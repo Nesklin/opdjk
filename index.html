@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LifeOS — Чек-лист жизни на 5 лет</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0e1a;
+    --bg-2: #111827;
+    --card: #1a1f2e;
+    --card-2: #232938;
+    --border: #2a3142;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --accent: #6366f1;
+    --accent-2: #8b5cf6;
+    --green: #10b981;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --pink: #ec4899;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(99,102,241,0.15), transparent 40%),
+      radial-gradient(circle at 90% 100%, rgba(139,92,246,0.12), transparent 40%);
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  header {
+    background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.05));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(10px);
+  }
+  .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  h1 { font-size: 28px; background: linear-gradient(135deg, #a5b4fc, #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .level-block { flex: 1; min-width: 280px; }
+  .level-info { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+  .level-info .lvl { color: var(--accent-2); font-weight: 700; font-size: 16px; }
+  .xp-bar {
+    height: 14px; background: var(--card-2); border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--border); position: relative;
+  }
+  .xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--pink));
+    border-radius: 8px; transition: width 0.5s ease;
+    box-shadow: 0 0 12px rgba(139,92,246,0.5);
+  }
+  .xp-text { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 20px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+  }
+  .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.blue { color: var(--blue); }
+
+  .tabs {
+    display: flex; gap: 4px; margin-bottom: 20px; overflow-x: auto;
+    background: var(--card); padding: 6px; border-radius: 12px; border: 1px solid var(--border);
+  }
+  .tab {
+    padding: 10px 18px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+    color: var(--muted); font-weight: 500; transition: all 0.2s; border: none; background: transparent;
+    font-size: 14px;
+  }
+  .tab:hover { color: var(--text); background: var(--card-2); }
+  .tab.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white; box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.3s; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 18px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .card h3 { font-size: 15px; margin: 14px 0 10px; color: var(--accent-2); }
+
+  .task-list { list-style: none; }
+  .task-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+    background: var(--card-2); border-radius: 10px; margin-bottom: 6px;
+    border: 1px solid transparent; transition: all 0.2s;
+  }
+  .task-item:hover { border-color: var(--border); }
+  .task-item.done { opacity: 0.55; }
+  .task-item.done .task-text { text-decoration: line-through; color: var(--muted); }
+  .task-item input[type="checkbox"] {
+    width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent);
+    flex-shrink: 0;
+  }
+  .task-text { flex: 1; font-size: 14px; }
+  .task-xp {
+    background: rgba(99,102,241,0.15); color: var(--accent-2);
+    padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  }
+  .task-del {
+    background: transparent; border: none; color: var(--red); cursor: pointer;
+    font-size: 16px; opacity: 0.5; transition: opacity 0.2s;
+  }
+  .task-del:hover { opacity: 1; }
+
+  .add-task {
+    display: flex; gap: 8px; margin-top: 12px;
+  }
+  .add-task input {
+    flex: 1; padding: 10px 14px; background: var(--card-2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 14px; outline: none;
+  }
+  .add-task input:focus { border-color: var(--accent); }
+  .add-task input[type="number"] { width: 80px; }
+
+  button.btn {
+    padding: 10px 18px; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;
+    font-size: 14px; transition: all 0.2s;
+  }
+  button.btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(99,102,241,0.4); }
+  button.btn.danger { background: linear-gradient(135deg, var(--red), #dc2626); }
+  button.btn.ghost { background: var(--card-2); border: 1px solid var(--border); }
+
+  .habit-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
+  }
+  .habit-card {
+    background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+    position: relative;
+  }
+  .habit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .habit-name { font-weight: 600; font-size: 14px; }
+  .habit-streak {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(245,158,11,0.15); color: var(--yellow);
+    padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  }
+  .habit-streak.hot { background: rgba(239,68,68,0.15); color: var(--red); }
+  .habit-days { display: flex; gap: 3px; margin-top: 10px; flex-wrap: wrap; }
+  .habit-day {
+    width: 22px; height: 22px; border-radius: 5px; background: var(--card);
+    border: 1px solid var(--border); cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--muted);
+  }
+  .habit-day:hover { transform: scale(1.15); }
+  .habit-day.done {
+    background: linear-gradient(135deg, var(--green), #059669);
+    border-color: var(--green); color: white;
+  }
+  .habit-day.today { box-shadow: 0 0 0 2px var(--accent); }
+
+  .chart-container { background: var(--card-2); border-radius: 12px; padding: 16px; margin-top: 12px; }
+  canvas { width: 100%; height: auto; display: block; }
+
+  .legend {
+    background: var(--card-2); border-radius: 12px; padding: 16px; margin-top: 12px;
+    border-left: 3px solid var(--accent);
+  }
+  .legend h4 { margin-bottom: 8px; color: var(--accent-2); font-size: 14px; }
+  .legend ul { list-style: none; font-size: 13px; }
+  .legend li { padding: 3px 0; color: var(--muted); }
+  .legend li strong { color: var(--text); }
+
+  .day-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 10px; flex-wrap: wrap; }
+  .day-nav input[type="date"] {
+    padding: 8px 12px; background: var(--card-2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 14px; outline: none;
+  }
+  .day-nav .day-info { font-size: 13px; color: var(--muted); }
+
+  .month-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .month-card {
+    background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+  }
+  .month-card h4 { color: var(--accent-2); margin-bottom: 10px; font-size: 15px; }
+  .month-card ul { list-style: none; font-size: 13px; }
+  .month-card li { padding: 4px 0; color: var(--muted); border-bottom: 1px dashed var(--border); }
+  .month-card li:last-child { border-bottom: none; }
+  .month-card li::before { content: "▸ "; color: var(--accent); }
+
+  .year-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .year-tab {
+    padding: 6px 14px; background: var(--card-2); border: 1px solid var(--border);
+    border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--muted);
+  }
+  .year-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  .reward-block {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;
+  }
+  .reward-block > div {
+    padding: 12px; border-radius: 10px; font-size: 13px;
+  }
+  .reward-good { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); }
+  .reward-bad { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); }
+  .reward-good h5 { color: var(--green); margin-bottom: 6px; }
+  .reward-bad h5 { color: var(--red); margin-bottom: 6px; }
+
+  .schedule {
+    background: var(--card-2); border-radius: 10px; padding: 14px; font-size: 13px;
+  }
+  .schedule-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed var(--border); }
+  .schedule-row:last-child { border-bottom: none; }
+  .schedule-row span:first-child { color: var(--muted); }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  }
+  .badge.js { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .badge.ts { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .badge.react { background: rgba(96,165,250,0.15); color: #60a5fa; }
+  .badge.node { background: rgba(16,185,129,0.15); color: var(--green); }
+  .badge.en { background: rgba(236,72,153,0.15); color: var(--pink); }
+  .badge.py { background: rgba(139,92,246,0.15); color: var(--accent-2); }
+  .badge.cpp { background: rgba(156,163,175,0.15); color: var(--muted); }
+
+  @media (max-width: 640px) {
+    .container { padding: 12px; }
+    h1 { font-size: 22px; }
+    .reward-block { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>🚀 LifeOS — Твой путь за 5 лет</h1>
+        <div class="subtitle">Чек-лист жизни, обучения и привычек · от Junior до Senior</div>
+      </div>
+      <div class="level-block">
+        <div class="level-info">
+          <span class="lvl" id="levelLabel">Уровень 1 · Новичок</span>
+          <span id="xpNumbers">0 / 100 XP</span>
+        </div>
+        <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+        <div class="xp-text">Всего заработано: <span id="totalXp">0</span> XP</div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Сегодня выполнено</div><div class="stat-value green" id="todayDone">0</div></div>
+      <div class="stat-card"><div class="stat-label">Всего задач</div><div class="stat-value blue" id="totalTasks">0</div></div>
+      <div class="stat-card"><div class="stat-label">Лучшая серия</div><div class="stat-value yellow" id="bestStreak">0 🔥</div></div>
+      <div class="stat-card"><div class="stat-label">Привычки сегодня</div><div class="stat-value green" id="habitsToday">0%</div></div>
+      <div class="stat-card"><button class="btn danger" style="width:100%;margin-top:4px" onclick="resetAll()">⚠️ Сбросить прогресс</button></div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="today">📅 Сегодня</button>
+    <button class="tab" data-tab="year1">📘 Год 1 (по дням)</button>
+    <button class="tab" data-tab="years">📚 Годы 2–5</button>
+    <button class="tab" data-tab="habits">🔥 Привычки</button>
+    <button class="tab" data-tab="charts">📊 Графики</button>
+    <button class="tab" data-tab="rules">🎖️ Система</button>
+  </div>
+
+  <!-- TODAY -->
+  <div class="panel active" id="panel-today">
+    <div class="card">
+      <h2>📆 Распорядок дня</h2>
+      <div class="schedule">
+        <div class="schedule-row"><span>08:00 — Подъём, стакан воды</span><span>30 XP</span></div>
+        <div class="schedule-row"><span>08:15 — Душ, сборы</span><span>—</span></div>
+        <div class="schedule-row"><span>08:45 — Завтрак</span><span>—</span></div>
+        <div class="schedule-row"><span>09:00–12:00 — Учёба (основной блок)</span><span>100 XP</span></div>
+        <div class="schedule-row"><span>12:00–12:30 — Английский</span><span>40 XP</span></div>
+        <div class="schedule-row"><span>12:30–13:30 — Обед, отдых</span><span>—</span></div>
+        <div class="schedule-row"><span>13:30–14:30 — Лёгкая учёба / Python / C++</span><span>50 XP</span></div>
+        <div class="schedule-row"><span>14:30 — Дорога на работу</span><span>—</span></div>
+        <div class="schedule-row"><span>15:00–23:00 — Работа</span><span>—</span></div>
+        <div class="schedule-row"><span>23:00–23:30 — Ужин, свободное время</span><span>—</span></div>
+        <div class="schedule-row"><span>00:00 — Отбой (8 часов сна)</span><span>20 XP</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🎯 Задачи на сегодня <span id="todayDateLabel" style="font-size:13px;color:var(--muted);font-weight:400;margin-left:auto"></span></h2>
+      <ul class="task-list" id="todayTasks"></ul>
+      <div class="add-task">
+        <input type="text" id="newTodayTask" placeholder="Добавить свою задачу на сегодня...">
+        <input type="number" id="newTodayXp" placeholder="XP" value="20" min="1" max="500">
+        <button class="btn" onclick="addCustomTask('today')">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- YEAR 1 -->
+  <div class="panel" id="panel-year1">
+    <div class="card">
+      <h2>📘 Год 1 — Путь к Junior Frontend</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
+        JavaScript → TypeScript → React → Node.js + английский + Python/C++ фоном. Цель — оффер junior frontend.
+      </p>
+      <div class="day-nav">
+        <button class="btn ghost" onclick="changeDay(-1)">← Предыдущий</button>
+        <input type="date" id="dayPicker">
+        <button class="btn ghost" onclick="changeDay(1)">Следующий →</button>
+        <div class="day-info" id="dayInfo"></div>
+      </div>
+      <ul class="task-list" id="dayTasks"></ul>
+      <div class="add-task">
+        <input type="text" id="newDayTask" placeholder="Добавить задачу на этот день...">
+        <input type="number" id="newDayXp" placeholder="XP" value="20" min="1" max="500">
+        <button class="btn" onclick="addCustomTask('day')">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- YEARS 2-5 -->
+  <div class="panel" id="panel-years">
+    <div class="card">
+      <h2>📚 Годы 2–5 · Рост до Senior</h2>
+      <div class="year-tabs">
+        <button class="year-tab active" data-year="2">Год 2 · Middle</button>
+        <button class="year-tab" data-year="3">Год 3 · Strong Middle</button>
+        <button class="year-tab" data-year="4">Год 4 · Senior</button>
+        <button class="year-tab" data-year="5">Год 5 · Tech Lead</button>
+      </div>
+      <div id="yearContent"></div>
+    </div>
+  </div>
+
+  <!-- HABITS -->
+  <div class="panel" id="panel-habits">
+    <div class="card">
+      <h2>🔥 Ежедневные привычки</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Кликай по ячейке, чтобы отметить день. Последние 30 дней.</p>
+      <div class="habit-grid" id="dailyHabits"></div>
+    </div>
+    <div class="card">
+      <h2>📅 Еженедельные привычки</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Последние 12 недель.</p>
+      <div class="habit-grid" id="weeklyHabits"></div>
+    </div>
+    <div class="card">
+      <h2>➕ Добавить свою привычку</h2>
+      <div class="add-task">
+        <input type="text" id="newHabitName" placeholder="Название привычки...">
+        <select id="newHabitType" style="padding:10px;background:var(--card-2);border:1px solid var(--border);border-radius:8px;color:var(--text)">
+          <option value="daily">Ежедневная</option>
+          <option value="weekly">Еженедельная</option>
+        </select>
+        <button class="btn" onclick="addHabit()">Добавить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="panel" id="panel-charts">
+    <div class="card">
+      <h2>📊 Выполнение привычек за 30 дней</h2>
+      <div class="chart-container"><canvas id="chart30" width="800" height="280"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>📈 Выполнение за 7 дней</h2>
+      <div class="chart-container"><canvas id="chart7" width="800" height="260"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>🔥 Серии (streak) по привычкам</h2>
+      <div class="chart-container"><canvas id="chartStreak" width="800" height="260"></canvas></div>
+    </div>
+  </div>
+
+  <!-- RULES -->
+  <div class="panel" id="panel-rules">
+    <div class="card">
+      <h2>🎖️ Система уровней и XP</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:10px">
+        Каждый уровень требует больше XP. Прогресс накапливается навсегда.
+      </p>
+      <div id="levelTable" style="font-size:13px;color:var(--muted)"></div>
+
+      <h3 style="margin-top:20px">💰 Награды и ⚠️ наказания</h3>
+      <div class="reward-block">
+        <div class="reward-good">
+          <h5>✅ Поощрения</h5>
+          <ul style="list-style:none">
+            <li>• +10 XP за задачу</li>
+            <li>• +20 XP за привычку (день)</li>
+            <li>• +50 XP бонус за серию 7 дней 🔥</li>
+            <li>• +150 XP бонус за серию 30 дней 🔥🔥</li>
+            <li>• +500 XP бонус за серию 100 дней 🔥🔥🔥</li>
+            <li>• +100 XP за новый уровень</li>
+          </ul>
+        </div>
+        <div class="reward-bad">
+          <h5>❌ Наказания</h5>
+          <ul style="list-style:none">
+            <li>• −30 XP за пропуск ежедневной привычки</li>
+            <li>• Серия обнуляется при пропуске</li>
+            <li>• −50 XP за срыв на доставки >2 часов</li>
+            <li>• −100 XP за пропуск 2 учебных дней подряд</li>
+            <li>• −200 XP за пропуск недели учёбы</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="legend" style="margin-top:20px">
+        <h4>📖 Легенда системы</h4>
+        <ul>
+          <li><strong>Уровень 1–5:</strong> Новичок — осваиваешь базу JS</li>
+          <li><strong>Уровень 6–10:</strong> Ученик — уверенный JS + TS</li>
+          <li><strong>Уровень 11–15:</strong> Junior — React, первые проекты</li>
+          <li><strong>Уровень 16–20:</strong> Junior+ — первый оффер, Node.js</li>
+          <li><strong>Уровень 21–30:</strong> Middle — рост на работе</li>
+          <li><strong>Уровень 31–40:</strong> Strong Middle — архитектура</li>
+          <li><strong>Уровень 41–50:</strong> Senior — менторство, система</li>
+          <li><strong>Уровень 50+:</strong> Tech Lead — твой уровень 🏆</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================
+   DATA & STATE
+   ========================= */
+const STORAGE_KEY = 'lifeos_v1';
+const defaultState = {
+  xp: 0,
+  totalXp: 0,
+  completedTasks: {},    // { "taskKey": true }
+  customTasks: {},       // { "date_or_today": [ {text, xp, id} ] }
+  habits: {
+    daily: [
+      { id: 'wake', name: 'Подъём до 08:00' },
+      { id: 'shower', name: 'Душ + сборы' },
+      { id: 'study', name: 'Учёба 3+ часа' },
+      { id: 'english', name: 'Английский 30 мин' },
+      { id: 'sport', name: 'Спорт / прогулка 30 мин' },
+      { id: 'sleep', name: 'Отбой до 00:00' },
+      { id: 'water', name: '2 литра воды' },
+      { id: 'no_junk', name: 'Без фастфуда / сахара' }
+    ],
+    weekly: [
+      { id: 'linens', name: 'Смена белья' },
+      { id: 'clean', name: 'Генеральная уборка' },
+      { id: 'friends', name: 'Встреча с другом (Вадик/Полина/Никита)' },
+      { id: 'review', name: 'Ревью недели + план на следующую' }
+    ]
+  },
+  habitLog: {},          // { habitId: { "YYYY-MM-DD": true } }
+  bestStreak: 0,
+  lastPenaltyDate: null
+};
+
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return structuredClone(defaultState);
+    const parsed = JSON.parse(raw);
+    // merge with defaults for new habits
+    const merged = structuredClone(defaultState);
+    Object.assign(merged, parsed);
+    merged.habits = {
+      daily: parsed.habits?.daily?.length ? parsed.habits.daily : defaultState.habits.daily,
+      weekly: parsed.habits?.weekly?.length ? parsed.habits.weekly : defaultState.habits.weekly
+    };
+    return merged;
+  } catch(e) { return structuredClone(defaultState); }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function resetAll() {
+  if (!confirm('Точно сбросить ВЕСЬ прогресс? Это действие необратимо.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = structuredClone(defaultState);
+  saveState();
+  renderAll();
+}
+
+/* =========================
+   XP & LEVELS
+   ========================= */
+function levelFromXp(xp) {
+  // each level needs more: level n requires n*100 cumulative? Let's use: xp needed for level L = L*L*50
+  // simpler: level = floor(sqrt(xp/50)) + 1
+  const lvl = Math.floor(Math.sqrt(xp / 50)) + 1;
+  return Math.max(1, lvl);
+}
+function xpForLevel(lvl) { return (lvl-1)*(lvl-1)*50; }
+function xpForNextLevel(lvl) { return lvl*lvl*50; }
+function levelTitle(lvl) {
+  if (lvl < 6) return 'Новичок';
+  if (lvl < 11) return 'Ученик';
+  if (lvl < 16) return 'Junior';
+  if (lvl < 21) return 'Junior+';
+  if (lvl < 31) return 'Middle';
+  if (lvl < 41) return 'Strong Middle';
+  if (lvl < 51) return 'Senior';
+  return 'Tech Lead 🏆';
+}
+
+function addXp(amount, reason) {
+  state.xp += amount;
+  if (amount > 0) state.totalXp += amount;
+  if (state.xp < 0) state.xp = 0;
+  saveState();
+  renderHeader();
+}
+
+/* =========================
+   DATE HELPERS
+   ========================= */
+function todayStr() {
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+function addDays(iso, n) {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0,10);
+}
+function daysBetween(a, b) {
+  return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000);
+}
+function getDayOfWeek(iso) {
+  return new Date(iso + 'T00:00:00').getDay(); // 0 Sun
+}
+
+/* =========================
+   YEAR 1 TASK GENERATION
+   ========================= */
+// Start date of Year 1 = today (dynamic)
+function getYear1Start() {
+  const saved = localStorage.getItem('lifeos_year1_start');
+  if (saved) return saved;
+  const today = todayStr();
+  localStorage.setItem('lifeos_year1_start', today);
+  return today;
+}
+
+// Curriculum phases (in days from start)
+// Phase 1: JS basics (0–60)
+// Phase 2: JS advanced + DOM (60–120)
+// Phase 3: TypeScript (120–180)
+// Phase 4: React (180–270)
+// Phase 5: Node.js + portfolio (270–365)
+function getPhase(dayNum) {
+  if (dayNum < 60) return { name: 'JavaScript — основы', badge: 'js', color: 'yellow' };
+  if (dayNum < 120) return { name: 'JavaScript — продвинутый', badge: 'js', color: 'yellow' };
+  if (dayNum < 180) return { name: 'TypeScript', badge: 'ts', color: 'blue' };
+  if (dayNum < 270) return { name: 'React', badge: 'react', color: 'blue' };
+  return { name: 'Node.js + Портфолио', badge: 'node', color: 'green' };
+}
+
+const jsTopicsBasics = [
+  'Переменные (let, const), типы данных',
+  'Операторы, условия if/else, switch',
+  'Циклы for, while, for...of',
+  'Функции: declaration, expression, arrow',
+  'Массивы: методы push/pop/map/filter',
+  'Объекты, деструктуризация',
+  'Строки: методы, шаблонные литералы',
+  'Область видимости, hoisting',
+  'Замыкания (closures)',
+  'This, bind/call/apply',
+  'Массивы: reduce, sort, find, every',
+  'Дата и время (Date)',
+  'JSON, работа с данными',
+  'Модули import/export',
+  'Регулярные выражения (основы)'
+];
+const jsTopicsAdvanced = [
+  'Прототипы и наследование',
+  'Классы ES6+',
+  'Promises (основы)',
+  'Async/await',
+  'Fetch API',
+  'Обработка ошибок try/catch',
+  'Event Loop, микро/макро задачи',
+  'Webpack/Vite — базовая настройка',
+  'Git: commit, branch, merge, PR',
+  'DOM: querySelector, события',
+  'Формы, валидация',
+  'LocalStorage, sessionStorage',
+  'Debouncing, throttling',
+  'Алгоритмы: сортировки, поиск',
+  'Тестовое мини-проекты (ToDo, калькулятор)'
+];
+const tsTopics = [
+  'Типы: string, number, boolean, any',
+  'Интерфейсы vs типы',
+  'Union и intersection типы',
+  'Generics (основы)',
+  'Type guards, narrowing',
+  'Enums, const enums',
+  'Utility types: Partial, Required, Pick',
+  'tsconfig.json',
+  'Миграция JS-проекта на TS',
+  'Типизация функций и коллбэков',
+  'Типизация API-ответов',
+  'Типизация React-компонентов (подготовка)'
+];
+const reactTopics = [
+  'JSX, компоненты, props',
+  'useState, useEffect',
+  'Обработка событий',
+  'Условный рендеринг, списки',
+  'Формы: controlled/uncontrolled',
+  'useRef, useMemo, useCallback',
+  'Context API',
+  'React Router',
+  'Custom hooks',
+  'Работа с API (fetch/axios)',
+  'Оптимизация: React.memo, lazy',
+  'Тестирование: Jest + RTL (основы)',
+  'State management: Zustand/Redux Toolkit',
+  'Стилизация: CSS Modules / Tailwind',
+  'Сборка проекта, деплой (Vercel)'
+];
+const nodeTopics = [
+  'Node.js основы, npm',
+  'Express: роуты, middleware',
+  'REST API дизайн',
+  'Работа с БД: PostgreSQL / MongoDB',
+  'ORM: Prisma / Mongoose',
+  'Авторизация: JWT',
+  'Валидация (Zod/Joi)',
+  'WebSocket (базово)',
+  'Деплой backend (Railway/Render)',
+  'Сборка портфолио (3–5 проектов)',
+  'Резюме, LinkedIn, GitHub README',
+  'Подготовка к собеседованиям',
+  'Тестовые задания, mock-интервью',
+  'Отклики на вакансии (5–10 в день)',
+  'Первый оффер 🎯'
+];
+
+function getTopicForDay(phase, dayInPhase) {
+  const map = {
+    'JavaScript — основы': jsTopicsBasics,
+    'JavaScript — продвинутый': jsTopicsAdvanced,
+    'TypeScript': tsTopics,
+    'React': reactTopics,
+    'Node.js + Портфолио': nodeTopics
+  };
+  const topics = map[phase.name] || [];
+  return topics[dayInPhase % topics.length];
+}
+
+function buildDayTasks(isoDate) {
+  const start = getYear1Start();
+  const dayNum = daysBetween(start, isoDate);
+  if (dayNum < 0 || dayNum >= 365) return [];
+
+  const phase = getPhase(dayNum);
+  const phaseStart = { 'JavaScript — основы': 0, 'JavaScript — продвинутый': 60, 'TypeScript': 120, 'React': 180, 'Node.js + Портфолио': 270 }[phase.name];
+  const dayInPhase = dayNum - phaseStart;
+  const topic = getTopicForDay(phase, dayInPhase);
+
+  const dow = getDayOfWeek(isoDate);
+  const isWeekend = dow === 0 || dow === 6;
+
+  const tasks = [];
+
+  // Morning routine tasks
+  tasks.push({ key: 'routine_morning', text: '🌅 Режим: подъём, душ, завтрак по расписанию', xp: 30 });
+  tasks.push({ key: 'routine_evening', text: '🌙 Режим: ужин, подготовка ко сну, отбой до 00:00', xp: 20 });
+
+  // Main study block
+  tasks.push({ key: 'study_main', text: `📚 Учёба (3 часа): ${topic}`, xp: 100, badge: phase.badge });
+
+  // English
+  tasks.push({ key: 'study_en', text: '🇬🇧 Английский 30 мин (Duolingo/слова/аудирование)', xp: 40, badge: 'en' });
+
+  // Background languages (3x per week)
+  if (dow === 1 || dow === 3 || dow === 5) {
+    tasks.push({ key: 'study_py', text: '🐍 Python фоном (30 мин): синтаксис, задачи', xp: 30, badge: 'py' });
+  }
+  if (dow === 2 || dow === 4) {
+    tasks.push({ key: 'study_cpp', text: '⚙️ C++ фоном (30 мин): основы, алгоритмы', xp: 30, badge: 'cpp' });
+  }
+
+  // Practice
+  if (!isWeekend) {
+    tasks.push({ key: 'practice', text: '💻 Практика: мини-проект / задачи на тему дня', xp: 60, badge: phase.badge });
+  }
+
+  // Weekend: friends
+  if (isWeekend) {
+    const friends = ['Вадик', 'Полина', 'Никита'];
+    const friendIdx = Math.floor(dayNum / 7) % 3;
+    tasks.push({ key: 'friends', text: `🍻 Встреча с другом: ${friends[friendIdx]}`, xp: 20 });
+    tasks.push({ key: 'rest', text: '🧘 Отдых без чувства вины (минимум 2 часа)', xp: 10 });
+  }
+
+  // Weekly review on Sunday
+  if (dow === 0) {
+    tasks.push({ key: 'review', text: '📝 Ревью недели: что получилось, план на следующую', xp: 40 });
+  }
+
+  // Milestone tasks every 30 days
+  if ((dayNum + 1) % 30 === 0) {
+    tasks.push({ key: 'milestone', text: `🎯 Рубеж: ${Math.floor(dayNum/30)+1}-й месяц — подвести итоги, обновить резюме`, xp: 150 });
+  }
+
+  // Final month
+  if (dayNum >= 335) {
+    tasks.push({ key: 'jobhunt', text: '🚀 Активный джобхант: 10 откликов в день', xp: 80 });
+  }
+
+  return tasks;
+}
+
+/* =========================
+   TASK RENDERING
+   ========================= */
+function taskKey(prefix, id, date) {
+  return `${prefix}:${id}:${date}`;
+}
+
+function renderTaskList(tasks, containerId, dateKey, prefix) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+
+  // Custom tasks
+  const customs = state.customTasks[dateKey] || [];
+
+  const allTasks = [
+    ...tasks.map(t => ({ ...t, type: 'preset' })),
+    ...customs.map(t => ({ ...t, key: 'custom:'+t.id, type: 'custom' }))
+  ];
+
+  allTasks.forEach(task => {
+    const key = taskKey(prefix, task.key, dateKey);
+    const done = !!state.completedTasks[key];
+    const li = document.createElement('li');
+    li.className = 'task-item' + (done ? ' done' : '');
+    li.innerHTML = `
+      <input type="checkbox" ${done ? 'checked' : ''} data-key="${key}" data-xp="${task.xp}">
+      <span class="task-text">
+        ${task.text}
+        ${task.badge ? `<span class="badge ${task.badge}">${task.badge.toUpperCase()}</span>` : ''}
+      </span>
+      <span class="task-xp">+${task.xp} XP</span>
+      ${task.type === 'custom' ? `<button class="task-del" data-key="${key}" title="Удалить">×</button>` : ''}
+    `;
+    container.appendChild(li);
+  });
+
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const key = e.target.dataset.key;
+      const xp = parseInt(e.target.dataset.xp);
+      const li = e.target.closest('.task-item');
+      if (e.target.checked) {
+        state.completedTasks[key] = true;
+        addXp(xp, 'task');
+        li.classList.add('done');
+      } else {
+        delete state.completedTasks[key];
+        addXp(-xp, 'task');
+        li.classList.remove('done');
+      }
+      renderHeader();
+    });
+  });
+
+  container.querySelectorAll('.task-del').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const key = e.target.dataset.key;
+      if (!confirm('Удалить задачу?')) return;
+      if (state.completedTasks[key]) addXp(-parseInt(e.target.closest('.task-item').querySelector('.task-xp').textContent.match(/\d+/)[0]), 'task');
+      delete state.completedTasks[key];
+      // remove from customs
+      for (const d in state.customTasks) {
+        state.customTasks[d] = state.customTasks[d].filter(t => 'custom:'+t.id !== key);
+      }
+      saveState();
+      renderToday();
+      renderDay();
+    });
+  });
+}
+
+/* =========================
+   TODAY
+   ========================= */
+function renderToday() {
+  const today = todayStr();
+  document.getElementById('todayDateLabel').textContent = formatDate(today);
+
+  // Build today's tasks based on year1 day if applicable
+  const start = getYear1Start();
+  const dayNum = daysBetween(start, today);
+  let tasks = [];
+  if (dayNum >= 0 && dayNum < 365) {
+    tasks = buildDayTasks(today);
+  } else {
+    // generic tasks
+    tasks = [
+      { key: 'routine_morning', text: '🌅 Режим дня по расписанию', xp: 30 },
+      { key: 'study_main', text: '📚 Учёба 3+ часа по текущему плану', xp: 100 },
+      { key: 'study_en', text: '🇬🇧 Английский 30 мин', xp: 40 },
+      { key: 'routine_evening', text: '🌙 Отбой до 00:00', xp: 20 }
+    ];
+  }
+  renderTaskList(tasks, 'todayTasks', 'today:'+today, 'today');
+}
+
+function addCustomTask(scope) {
+  let text, xp, dateKey;
+  if (scope === 'today') {
+    text = document.getElementById('newTodayTask').value.trim();
+    xp = parseInt(document.getElementById('newTodayXp').value) || 20;
+    dateKey = 'today:'+todayStr();
+    document.getElementById('newTodayTask').value = '';
+  } else {
+    text = document.getElementById('newDayTask').value.trim();
+    xp = parseInt(document.getElementById('newDayXp').value) || 20;
+    dateKey = currentDay;
+    document.getElementById('newDayTask').value = '';
+  }
+  if (!text) return;
+  if (!state.customTasks[dateKey]) state.customTasks[dateKey] = [];
+  state.customTasks[dateKey].push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), text, xp });
+  saveState();
+  if (scope === 'today') renderToday(); else renderDay();
+}
+
+/* =========================
+   YEAR 1 DAY VIEW
+   ========================= */
+let currentDay = todayStr();
+
+function renderDay() {
+  const start = getYear1Start();
+  const dayNum = daysBetween(start, currentDay);
+  const picker = document.getElementById('dayPicker');
+  picker.value = currentDay;
+  picker.min = start;
+  picker.max = addDays(start, 364);
+
+  const info = document.getElementById('dayInfo');
+  if (dayNum < 0) {
+    info.textContent = 'До старта года';
+  } else if (dayNum >= 365) {
+    info.textContent = 'Год 1 завершён 🎉';
+  } else {
+    const phase = getPhase(dayNum);
+    info.innerHTML = `День <strong style="color:var(--text)">${dayNum+1}</strong> из 365 · <span class="badge ${phase.badge}">${phase.name}</span>`;
+  }
+
+  const tasks = buildDayTasks(currentDay);
+  renderTaskList(tasks, 'dayTasks', currentDay, 'day');
+}
+
+function changeDay(delta) {
+  currentDay = addDays(currentDay, delta);
+  const start = getYear1Start();
+  const end = addDays(start, 364);
+  if (currentDay < start) currentDay = start;
+  if (currentDay > end) currentDay = end;
+  renderDay();
+}
+
+document.getElementById('dayPicker').addEventListener('change', e => {
+  currentDay = e.target.value;
+  renderDay();
+});
+
+/* =========================
+   YEARS 2-5
+   ========================= */
+const yearsPlan = {
+  2: {
+    title: 'Год 2 · Уверенный Middle',
+    months: [
+      { m: 'Месяц 1', items: ['Первые 3 месяца на работе: впитывай кодбейз', 'Читай чужой код 1 час в день', 'Попроси ментора, еженедельные 1-на-1'] },
+      { m: 'Месяц 2', items: ['Возьми первый самостоятельный таск end-to-end', 'Изучи паттерны: Module, Observer, Factory', 'Английский: B1 → B2 (разговорный)'] },
+      { m: 'Месяц 3', items: ['Освой testing: unit + integration (Jest, RTL)', 'Напиши 2 статьи на Хабр / в блог', 'Сделай code review 5+ PR коллег'] },
+      { m: 'Месяц 4', items: ['Углубись в производительность: Lighthouse, profiling', 'Изучи SSR: Next.js на практике', 'Первые выступления на внутреннем митапе'] },
+      { m: 'Месяц 5', items: ['CI/CD: GitHub Actions, деплой', 'Docker основы для фронтенда', 'TypeScript advanced: conditional types, generics'] },
+      { m: 'Месяц 6', items: ['Полугодовой перфоманс-ревью: цель — повышение грейда', 'Обнови портфолио (3 новых проекта)', 'Менторство джуна (если возможно)'] },
+      { m: 'Месяц 7', items: ['GraphQL: теория + практика', 'WebSocket, real-time приложения', 'Оптимизация бандла: tree-shaking, lazy'] },
+      { m: 'Месяц 8', items: ['State management deep dive: Redux Toolkit, Zustand', 'Micro-frontends: Module Federation', 'Accessibility (a11y) — обязательный навык'] },
+      { m: 'Месяц 9', items: ['Архитектура: Feature-Sliced Design / Clean Arch', 'Design System: Storybook + tokens', 'Английский: чтение технической документации'] },
+      { m: 'Месяц 10', items: ['Backend для фронтендера: Node.js + Nest.js основы', 'BFF-паттерн (Backend for Frontend)', 'Участие в найме: проводи скрининги'] },
+      { m: 'Месяц 11', items: ['Soft skills: коммуникация, эстимейты, планирование', 'Подготовка к собеседованиям Middle (если хочешь сменить)'] },
+      { m: 'Месяц 12', items: ['Итоги года: рост в зарплате на 30–50%', 'Цели на год 3: Strong Middle', 'Финансовая подушка — 3 зарплаты'] }
+    ]
+  },
+  3: {
+    title: 'Год 3 · Strong Middle → Senior',
+    months: [
+      { m: 'Месяц 1', items: ['Архитектурные решения: пиши ADR (Architecture Decision Records)', 'Веди технический долг и борись с ним'] },
+      { m: 'Месяц 2', items: ['Observability: логи, метрики, Sentry', 'Error tracking и monitoring'] },
+      { m: 'Месяц 3', items: ['Performance budgets, Core Web Vitals', 'Оптимизация рендера, virtualization'] },
+      { m: 'Месяц 4', items: ['Security: XSS, CSRF, CSP, auth best practices', 'OWASP Top 10 для фронтенда'] },
+      { m: 'Месяц 5', items: ['E2E тесты: Playwright / Cypress', 'Тестовая пирамида на проекте'] },
+      { m: 'Месяц 6', items: ['Публичное выступление: митап / конференция', 'Статья в профильное издание'] },
+      { m: 'Месяц 7', items: ['System Design для фронтенда: проектирование крупных систем', 'Event-driven, CQRS (базово)'] },
+      { m: 'Месяц 8', items: ['Монорепозитории: Nx, Turborepo', 'Workspace-менеджмент'] },
+      { m: 'Месяц 9', items: ['Менторство 2+ джунов', 'Построение онбординга в команде'] },
+      { m: 'Месяц 10', items: ['Переговоры о повышении до Senior', 'Расширение зоны ответственности'] },
+      { m: 'Месяц 11', items: ['Изучение смежных областей: мобильная разработка (React Native)', 'Инвестиции в себя: курсы, книги'] },
+      { m: 'Месяц 12', items: ['Итоги: оффер Senior или повышение', 'Финансовая подушка — 6 зарплат'] }
+    ]
+  },
+  4: {
+    title: 'Год 4 · Senior Frontend',
+    months: [
+      { m: 'Месяц 1', items: ['Tech lead первой команды / проекта', 'Ответственность за архитектуру'] },
+      { m: 'Месяц 2', items: ['Стратегия развития продукта: метрики, OKR', 'Работа с продактом и бизнесом'] },
+      { m: 'Месяц 3', items: ['Построение культуры code review', 'Гайдлайны и стандарты команды'] },
+      { m: 'Месяц 4', items: ['Эксперименты: новые технологии, PoC', 'Внедрение AI-инструментов в разработку'] },
+      { m: 'Месяц 5', items: ['Масштабирование команды: найм, онбординг', 'Делегирование и развитие людей'] },
+      { m: 'Месяц 6', items: ['Выступление на крупной конференции', 'Нетворкинг, комьюнити'] },
+      { m: 'Месяц 7', items: ['Cross-team проекты, влияние на компанию', 'Техническая стратегия на квартал'] },
+      { m: 'Месяц 8', items: ['Оптимизация процессов: time-to-market', 'DevEx (developer experience)'] },
+      { m: 'Месяц 9', items: ['Финансы: инвестиции, пассивный доход', 'Недвижимость / другие активы'] },
+      { m: 'Месяц 10', items: ['Open-source: свой проект или вклад в крупный', 'Публичный личный бренд'] },
+      { m: 'Месяц 11', items: ['Подготовка к Tech Lead роли', 'Management skills: 1-на-1, feedback'] },
+      { m: 'Месяц 12', items: ['Итоги: уровень компенсации top-10% рынка', 'План на год 5'] }
+    ]
+  },
+  5: {
+    title: 'Год 5 · Tech Lead / Staff Engineer',
+    months: [
+      { m: 'Месяц 1', items: ['Tech Lead направления / продукта', 'Видение технической стратегии'] },
+      { m: 'Месяц 2', items: ['Архитектура всей платформы, не только фронта', 'Сквозные решения'] },
+      { m: 'Месяц 3', items: ['Построение инженерной культуры', 'Технический бренд компании'] },
+      { m: 'Месяц 4', items: ['Менторство middle/senior инженеров', 'Карьерные треки для команды'] },
+      { m: 'Месяц 5', items: ['Работа с CTO / VP Eng', 'Бизнес-метрики и их влияние'] },
+      { m: 'Месяц 6', items: ['Международное комьюнити: конференции, доклады', 'Английский C1'] },
+      { m: 'Месяц 7', items: ['Опционально: релокация или remote на глобальный рынок', 'Зарплата $8k+ / ₽600k+'] },
+      { m: 'Текущий', items: ['Пассивный доход: курсы, менторство, консультации', 'Свой продукт / стартап (по желанию)'] },
+      { m: 'Текущий', items: ['Финансовая свобода: активы > 3 годовых доходов', 'Инвестиции, недвижимость'] },
+      { m: 'Текущий', items: ['Баланс: здоровье, отношения, хобби', 'Путешествия, качество жизни'] },
+      { m: 'Текущий', items: ['Возврат комьюнити: менторство, open-source', 'Твой вклад в индустрию'] },
+      { m: 'Финал', items: ['🏆 25 лет. Senior/Tech Lead с опытом, капиталом и сетью контактов', 'Следующие 5 лет — на твоих условиях'] }
+    ]
+  }
+};
+
+let currentYear = 2;
+function renderYears() {
+  const data = yearsPlan[currentYear];
+  const container = document.getElementById('yearContent');
+  container.innerHTML = `<h3 style="margin-bottom:14px">${data.title}</h3><div class="month-grid"></div>`;
+  const grid = container.querySelector('.month-grid');
+  data.months.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'month-card';
+    card.innerHTML = `<h4>${m.m}</h4><ul>${m.items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+    grid.appendChild(card);
+  });
+}
+
+document.querySelectorAll('.year-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.year-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentYear = parseInt(btn.dataset.year);
+    renderYears();
+  });
+});
+
+/* =========================
+   HABITS
+   ========================= */
+function renderHabits() {
+  renderHabitGroup('dailyHabits', state.habits.daily, 30, 'daily');
+  renderHabitGroup('weeklyHabits', state.habits.weekly, 12, 'weekly');
+}
+
+function renderHabitGroup(containerId, habits, count, type) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  const today = todayStr();
+
+  habits.forEach(h => {
+    const log = state.habitLog[h.id] || {};
+    // streak
+    let streak = 0;
+    let d = today;
+    if (type === 'daily') {
+      while (log[d]) { streak++; d = addDays(d, -1); }
+    } else {
+      // weekly: count consecutive weeks with at least one mark
+      // simplified: count consecutive weeks (Mon-Sun) with any mark
+      const weekStart = getWeekStart(d);
+      let ws = weekStart;
+      while (hasAnyMarkInWeek(log, ws)) { streak++; ws = addDays(ws, -7); }
+    }
+
+    const card = document.createElement('div');
+    card.className = 'habit-card';
+
+    // days cells
+    let cells = '';
+    if (type === 'daily') {
+      for (let i = count - 1; i >= 0; i--) {
+        const date = addDays(today, -i);
+        const done = log[date];
+        const isToday = date === today;
+        const label = new Date(date+'T00:00:00').toLocaleDateString('ru-RU', {day:'numeric', month:'short'});
+        cells += `<div class="habit-day ${done?'done':''} ${isToday?'today':''}" data-habit="${h.id}" data-date="${date}" title="${label}">${new Date(date+'T00:00:00').getDate()}</div>`;
+      }
+    } else {
+      for (let i = count - 1; i >= 0; i--) {
+        const ws = addDays(getWeekStart(today), -i*7);
+        const we = addDays(ws, 6);
+        const done = hasAnyMarkInWeek(log, ws);
+        const isCurrent = ws === getWeekStart(today);
+        cells += `<div class="habit-day ${done?'done':''} ${isCurrent?'today':''}" data-habit="${h.id}" data-week="${ws}" title="${ws} → ${we}">W${count-i}</div>`;
+      }
+    }
+
+    card.innerHTML = `
+      <div class="habit-header">
+        <span class="habit-name">${h.name}</span>
+        <span class="habit-streak ${streak>=7?'hot':''}">🔥 ${streak}</span>
+      </div>
+      <div class="habit-days">${cells}</div>
+    `;
+    container.appendChild(card);
+  });
+
+  // click handlers
+  container.querySelectorAll('.habit-day').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const habitId = cell.dataset.habit;
+      const date = cell.dataset.date;
+      const week = cell.dataset.week;
+      if (!state.habitLog[habitId]) state.habitLog[habitId] = {};
+
+      if (date) {
+        if (state.habitLog[habitId][date]) {
+          delete state.habitLog[habitId][date];
+          addXp(-20, 'habit');
+        } else {
+          state.habitLog[habitId][date] = true;
+          addXp(20, 'habit');
+          // streak bonus
+          const newStreak = calcStreak(habitId, 'daily');
+          if (newStreak === 7) addXp(50, 'streak7');
+          if (newStreak === 30) addXp(150, 'streak30');
+          if (newStreak === 100) addXp(500, 'streak100');
+          if (newStreak > state.bestStreak) state.bestStreak = newStreak;
+        }
+      } else if (week) {
+        if (hasAnyMarkInWeek(state.habitLog[habitId], week)) {
+          // remove all marks in that week
+          for (let i = 0; i < 7; i++) {
+            delete state.habitLog[habitId][addDays(week, i)];
+          }
+          addXp(-30, 'habit');
+        } else {
+          // mark today in that week (or week's today-equivalent)
+          const today = todayStr();
+          const todayDow = getDayOfWeek(today);
+          const weekDow = getDayOfWeek(week);
+          const markDate = addDays(week, todayDow);
+          state.habitLog[habitId][markDate] = true;
+          addXp(30, 'habit');
+        }
+      }
+      saveState();
+      renderHabits();
+      renderHeader();
+    });
+  });
+}
+
+function getWeekStart(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  const day = d.getDay(); // 0 Sun
+  const diff = day === 0 ? 6 : day - 1; // week starts Monday
+  d.setDate(d.getDate() - diff);
+  return d.toISOString().slice(0,10);
+}
+function hasAnyMarkInWeek(log, weekStart) {
+  for (let i = 0; i < 7; i++) {
+    if (log[addDays(weekStart, i)]) return true;
+  }
+  return false;
+}
+function calcStreak(habitId, type) {
+  const log = state.habitLog[habitId] || {};
+  const today = todayStr();
+  let streak = 0;
+  if (type === 'daily') {
+    let d = today;
+    while (log[d]) { streak++; d = addDays(d, -1); }
+  } else {
+    const ws = getWeekStart(today);
+    let w = ws;
+    while (hasAnyMarkInWeek(log, w)) { streak++; w = addDays(w, -7); }
+  }
+  return streak;
+}
+
+function addHabit() {
+  const name = document.getElementById('newHabitName').value.trim();
+  const type = document.getElementById('newHabitType').value;
+  if (!name) return;
+  const id = 'h_' + Date.now().toString(36);
+  state.habits[type].push({ id, name });
+  saveState();
+  document.getElementById('newHabitName').value = '';
+  renderHabits();
+}
+
+/* =========================
+   CHARTS
+   ========================= */
+function drawChart30() {
+  const canvas = document.getElementById('chart30');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.width, H = canvas.height;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  ctx.clearRect(0,0,W,H);
+  const today = todayStr();
+  const days = 30;
+  const allHabits = [...state.habits.daily, ...state.habits.weekly];
+  if (!allHabits.length) return;
+
+  // for each day, compute % habits done
+  const data = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const date = addDays(today, -i);
+    let done = 0, total = state.habits.daily.length;
+    state.habits.daily.forEach(h => {
+      if (state.habitLog[h.id]?.[date]) done++;
+    });
+    data.push({ date, pct: total ? done/total : 0, done, total });
+  }
+
+  const pad = { l: 40, r: 20, t: 20, b: 40 };
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  // grid
+  ctx.strokeStyle = '#2a3142'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ch * (i/4);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillStyle = '#9ca3af'; ctx.font = '11px sans-serif';
+    ctx.fillText((100 - i*25) + '%', 5, y + 4);
+  }
+
+  // bars
+  const barW = cw / days * 0.7;
+  data.forEach((d, i) => {
+    const x = pad.l + (cw / days) * i + (cw / days - barW) / 2;
+    const h = ch * d.pct;
+    const y = pad.t + ch - h;
+    const grad = ctx.createLinearGradient(0, y, 0, y + h);
+    grad.addColorStop(0, '#8b5cf6');
+    grad.addColorStop(1, '#6366f1');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, barW, h);
+  });
+
+  // line
+  ctx.strokeStyle = '#ec4899'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    const x = pad.l + (cw / days) * i + (cw / days) / 2;
+    const y = pad.t + ch - ch * d.pct;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // x labels
+  ctx.fillStyle = '#9ca3af'; ctx.font = '10px sans-serif';
+  data.forEach((d, i) => {
+    if (i % 5 === 0 || i === days - 1) {
+      const x = pad.l + (cw / days) * i + (cw / days) / 2;
+      const label = d.date.slice(5);
+      ctx.fillText(label, x - 12, H - pad.b + 15);
+    }
+  });
+
+  // avg
+  const avg = data.reduce((s,d) => s + d.pct, 0) / data.length;
+  ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 12px sans-serif';
+  ctx.fillText(`Среднее: ${Math.round(avg*100)}%`, pad.l, pad.t - 5);
+}
+
+function drawChart7() {
+  const canvas = document.getElementById('chart7');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.width, H = canvas.height;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const today = todayStr();
+  const days = 7;
+  const pad = { l: 40, r: 20, t: 20, b: 40 };
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  // grid
+  ctx.strokeStyle = '#2a3142';
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ch * (i/4);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillStyle = '#9ca3af'; ctx.font = '11px sans-serif';
+    ctx.fillText((100 - i*25) + '%', 5, y + 4);
+  }
+
+  const data = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const date = addDays(today, -i);
+    let done = 0, total = state.habits.daily.length;
+    state.habits.daily.forEach(h => {
+      if (state.habitLog[h.id]?.[date]) done++;
+    });
+    data.push({ date, pct: total ? done/total : 0, dayName: new Date(date+'T00:00:00').toLocaleDateString('ru-RU', {weekday:'short'}) });
+  }
+
+  // area
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    const x = pad.l + (cw / (days-1)) * i;
+    const y = pad.t + ch - ch * d.pct;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.lineTo(pad.l + cw, pad.t + ch);
+  ctx.lineTo(pad.l, pad.t + ch);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ch);
+  grad.addColorStop(0, 'rgba(16,185,129,0.4)');
+  grad.addColorStop(1, 'rgba(16,185,129,0)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // line
+  ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    const x = pad.l + (cw / (days-1)) * i;
+    const y = pad.t + ch - ch * d.pct;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // points + labels
+  data.forEach((d, i) => {
+    const x = pad.l + (cw / (days-1)) * i;
+    const y = pad.t + ch - ch * d.pct;
+    ctx.fillStyle = '#10b981';
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#e5e7eb';
+    ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = '#9ca3af'; ctx.font = '11px sans-serif';
+    ctx.fillText(d.dayName, x - 10, H - pad.b + 15);
+    ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(Math.round(d.pct*100)+'%', x - 10, y - 10);
+  });
+}
+
+function drawChartStreak() {
+  const canvas = document.getElementById('chartStreak');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.width, H = canvas.height;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const all = [
+    ...state.habits.daily.map(h => ({...h, type: 'daily'})),
+    ...state.habits.weekly.map(h => ({...h, type: 'weekly'}))
+  ];
+  if (!all.length) return;
+
+  const pad = { l: 140, r: 40, t: 20, b: 20 };
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+  const barH = Math.min(24, ch / all.length - 4);
+
+  const maxStreak = Math.max(1, ...all.map(h => calcStreak(h.id, h.type)), state.bestStreak);
+
+  all.forEach((h, i) => {
+    const streak = calcStreak(h.id, h.type);
+    const y = pad.t + (ch / all.length) * i + (ch / all.length - barH) / 2;
+    const w = cw * (streak / maxStreak);
+
+    // label
+    ctx.fillStyle = '#e5e7eb'; ctx.font = '12px sans-serif';
+    ctx.fillText(h.name.slice(0, 22), 10, y + barH/2 + 4);
+
+    // bar
+    const grad = ctx.createLinearGradient(pad.l, 0, pad.l + w, 0);
+    if (streak >= 30) { grad.addColorStop(0, '#ef4444'); grad.addColorStop(1, '#f59e0b'); }
+    else if (streak >= 7) { grad.addColorStop(0, '#f59e0b'); grad.addColorStop(1, '#10b981'); }
+    else { grad.addColorStop(0, '#6366f1'); grad.addColorStop(1, '#8b5cf6'); }
+    ctx.fillStyle = grad;
+    ctx.fillRect(pad.l, y, w, barH);
+
+    // value
+    ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`${streak} 🔥`, pad.l + w + 6, y + barH/2 + 4);
+  });
+}
+
+function renderCharts() {
+  drawChart30();
+  drawChart7();
+  drawChartStreak();
+}
+
+/* =========================
+   HEADER
+   ========================= */
+function renderHeader() {
+  const lvl = levelFromXp(state.xp);
+  const curLevelXp = xpForLevel(lvl);
+  const nextLevelXp = xpForNextLevel(lvl);
+  const progress = (state.xp - curLevelXp) / (nextLevelXp - curLevelXp);
+
+  document.getElementById('levelLabel').textContent = `Уровень ${lvl} · ${levelTitle(lvl)}`;
+  document.getElementById('xpNumbers').textContent = `${state.xp} / ${nextLevelXp} XP`;
+  document.getElementById('xpFill').style.width = Math.min(100, progress * 100) + '%';
+  document.getElementById('totalXp').textContent = state.totalXp;
+
+  // today stats
+  const today = todayStr();
+  let done = 0, total = 0;
+  // count today tasks
+  const todayTasks = document.querySelectorAll('#todayTasks .task-item');
+  todayTasks.forEach(t => {
+    total++;
+    if (t.classList.contains('done')) done++;
+  });
+  document.getElementById('todayDone').textContent = `${done}/${total}`;
+  document.getElementById('totalTasks').textContent = Object.keys(state.completedTasks).length;
+  document.getElementById('bestStreak').textContent = state.bestStreak + ' 🔥';
+
+  // habits today %
+  let hDone = 0, hTotal = state.habits.daily.length;
+  state.habits.daily.forEach(h => {
+    if (state.habitLog[h.id]?.[today]) hDone++;
+  });
+  document.getElementById('habitsToday').textContent = hTotal ? Math.round(hDone/hTotal*100) + '%' : '0%';
+}
+
+/* =========================
+   LEVEL TABLE
+   ========================= */
+function renderLevelTable() {
+  const container = document.getElementById('levelTable');
+  let html = '<table style="width:100%;border-collapse:collapse">';
+  html += '<tr style="color:var(--accent-2)"><th style="text-align:left;padding:4px">Уровень</th><th style="text-align:left;padding:4px">Титул</th><th style="text-align:right;padding:4px">Всего XP</th></tr>';
+  for (let i = 1; i <= 20; i++) {
+    const xp = xpForLevel(i);
+    html += `<tr style="border-top:1px dashed var(--border)"><td style="padding:4px">${i}</td><td style="padding:4px">${levelTitle(i)}</td><td style="padding:4px;text-align:right">${xp}</td></tr>`;
+  }
+  html += '</table>';
+  container.innerHTML = html;
+}
+
+/* =========================
+   TABS
+   ========================= */
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'charts') setTimeout(renderCharts, 50);
+    if (tab.dataset.tab === 'habits') renderHabits();
+    if (tab.dataset.tab === 'years') renderYears();
+    if (tab.dataset.tab === 'rules') renderLevelTable();
+  });
+});
+
+/* =========================
+   RENDER ALL
+   ========================= */
+function renderAll() {
+  renderHeader();
+  renderToday();
+  renderDay();
+  renderHabits();
+  renderYears();
+  renderLevelTable();
+  setTimeout(renderCharts, 100);
+}
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('panel-charts').classList.contains('active')) renderCharts();
+});
+
+renderAll();
+
+// Enter key for adding tasks
+document.getElementById('newTodayTask').addEventListener('keypress', e => { if (e.key === 'Enter') addCustomTask('today'); });
+document.getElementById('newDayTask').addEventListener('keypress', e => { if (e.key === 'Enter') addCustomTask('day'); });
+document.getElementById('newHabitName').addEventListener('keypress', e => { if (e.key === 'Enter') addHabit(); });
+
+console.log('%c🚀 LifeOS загружен. Удачи на пути к Senior!', 'color:#8b5cf6;font-size:14px;font-weight:bold');
+</script>
+</body>
+</html>
