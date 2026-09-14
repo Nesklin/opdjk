@@ -9,6 +9,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  
   const firebaseConfig = {
     apiKey: "AIzaSyA97O7tkAir-P1A2-7sr3Ashj0XjewV0Zs",
     authDomain: "academ-ad3db.firebaseapp.com",
@@ -19,6 +20,7 @@
     appId: "1:69950197764:web:40d86b32fc7168c8e76551",
     measurementId: "G-RB6KWP8046"
   };
+
   const app = initializeApp(firebaseConfig);
   window.fbAuth = getAuth(app);
   window.fbDb = getDatabase(app);
@@ -36,9 +38,11 @@
   html, body { overscroll-behavior: none; height: 100%; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg); color: var(--text); line-height: 1.5;
+    background: var(--bg); color: var(--text); line-height: 1.6;
     background-image: radial-gradient(circle at 10% 0%, rgba(139,92,246,0.15), transparent 40%), radial-gradient(circle at 90% 100%, rgba(236,72,153,0.12), transparent 40%);
     padding-bottom: calc(90px + var(--safe-bottom));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
   .icon { display: inline-block; width: 20px; height: 20px; vertical-align: middle; }
@@ -64,13 +68,17 @@
   .auth-input {
     width: 100%; padding: 14px; background: var(--bg-2); border: 1px solid var(--border);
     border-radius: 12px; color: var(--text); font-size: 16px; margin-bottom: 12px; outline: none;
+    transition: border-color 0.2s;
   }
   .auth-input:focus { border-color: var(--accent); }
+  .auth-input.error { border-color: var(--red); }
   .auth-btn {
     width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), var(--pink));
     color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px;
+    transition: transform 0.1s;
   }
   .auth-btn:active { transform: scale(0.98); }
+  .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .auth-toggle { margin-top: 16px; font-size: 14px; color: var(--muted); cursor: pointer; }
   .auth-toggle span { color: var(--accent); font-weight: 600; }
   .guest-btn { margin-top: 24px; background: transparent; border: 1px solid var(--border); color: var(--muted); }
@@ -79,6 +87,7 @@
   .auth-progress { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; }
   .auth-progress-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
   .auth-progress-dot.active { background: var(--accent); }
+  .password-hint { font-size: 12px; color: var(--muted); margin-top: -8px; margin-bottom: 12px; text-align: left; }
 
   header {
     background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.08));
@@ -135,6 +144,7 @@
   .task-item.done .task-text { text-decoration: line-through; color: var(--muted); }
   .task-item.routine { background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(236,72,153,0.05)); border-left: 3px solid var(--accent); }
   .task-item.next { border: 1px solid var(--green); box-shadow: 0 0 0 1px rgba(16,185,129,0.3); }
+  .task-item.challenge { background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(239,68,68,0.05)); border-left: 3px solid var(--yellow); }
   
   .task-item input[type="checkbox"] {
     width: 24px; height: 24px; cursor: pointer; accent-color: var(--accent);
@@ -145,6 +155,20 @@
   .task-time { color: var(--accent-2); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; margin-right: 4px; }
   .task-xp { background: rgba(139,92,246,0.15); color: var(--accent-2); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; flex-shrink: 0; align-self: center; }
   .task-del { background: transparent; border: none; color: var(--red); cursor: pointer; font-size: 20px; opacity: 0.5; padding: 0 4px; }
+
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 600; margin-left: 4px; vertical-align: middle; }
+  .badge.js { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .badge.ts { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .badge.react { background: rgba(96,165,250,0.15); color: #60a5fa; }
+  .badge.node { background: rgba(16,185,129,0.15); color: var(--green); }
+  .badge.en { background: rgba(236,72,153,0.15); color: var(--pink); }
+  .badge.py { background: rgba(139,92,246,0.15); color: var(--accent-2); }
+  .badge.cpp { background: rgba(156,163,175,0.15); color: var(--muted); }
+  .badge.html { background: rgba(239,68,68,0.15); color: #f87171; }
+  .badge.git { background: rgba(249,115,22,0.15); color: #fb923c; }
+  .badge.book { background: rgba(236,72,153,0.15); color: var(--pink); }
+  .badge.project { background: rgba(16,185,129,0.15); color: var(--green); }
+  .badge.challenge { background: rgba(245,158,11,0.15); color: var(--yellow); }
 
   .add-task { display: flex; gap: 8px; margin-top: 12px; }
   .add-task input {
@@ -175,6 +199,47 @@
     display: flex; align-items: center; justify-content: center; gap: 6px;
   }
   .quick-actions button:active { background: var(--border); }
+
+  .challenge-card {
+    background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.08));
+    border: 1px solid var(--yellow); border-radius: 14px; padding: 16px; margin-bottom: 12px;
+  }
+  .challenge-card h3 { color: var(--yellow); font-size: 16px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .challenge-card p { color: var(--text); font-size: 14px; }
+
+  .mood-card {
+    background: var(--card-2); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px;
+  }
+  .mood-stars { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+  .mood-star { font-size: 32px; cursor: pointer; opacity: 0.3; transition: all 0.2s; }
+  .mood-star.active { opacity: 1; transform: scale(1.2); }
+  .mood-star:hover { opacity: 0.7; }
+  .mood-input { width: 100%; padding: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; margin-top: 8px; outline: none; }
+
+  .resource-card {
+    background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(99,102,241,0.08));
+    border: 1px solid var(--blue); border-radius: 14px; padding: 16px; margin-bottom: 12px;
+  }
+  .resource-card h3 { color: var(--blue); font-size: 16px; margin-bottom: 6px; }
+  .resource-card a { color: var(--accent-2); text-decoration: none; font-size: 14px; }
+  .resource-card a:hover { text-decoration: underline; }
+
+  .quote-card {
+    background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.08));
+    border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px;
+    text-align: center;
+  }
+  .quote-text { font-size: 15px; font-style: italic; color: var(--text); margin-bottom: 6px; }
+  .quote-author { font-size: 12px; color: var(--muted); }
+
+  .progress-ring {
+    width: 100px; height: 100px; transform: rotate(-90deg);
+  }
+  .progress-ring-bg { fill: none; stroke: var(--card-2); stroke-width: 8; }
+  .progress-ring-fill {
+    fill: none; stroke: url(#ringGrad); stroke-width: 8; stroke-linecap: round;
+    transition: stroke-dashoffset 0.6s ease;
+  }
 
   .timer-modal {
     position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9998;
@@ -215,24 +280,6 @@
   .snippet-card .snippet-actions button {
     padding: 6px 12px; background: var(--card); border: 1px solid var(--border);
     border-radius: 6px; color: var(--text); font-size: 12px; cursor: pointer;
-  }
-  .snippet-card .snippet-actions button:active { background: var(--border); }
-
-  .quote-card {
-    background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.08));
-    border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px;
-    text-align: center;
-  }
-  .quote-text { font-size: 15px; font-style: italic; color: var(--text); margin-bottom: 6px; }
-  .quote-author { font-size: 12px; color: var(--muted); }
-
-  .progress-ring {
-    width: 100px; height: 100px; transform: rotate(-90deg);
-  }
-  .progress-ring-bg { fill: none; stroke: var(--card-2); stroke-width: 8; }
-  .progress-ring-fill {
-    fill: none; stroke: url(#ringGrad); stroke-width: 8; stroke-linecap: round;
-    transition: stroke-dashoffset 0.6s ease;
   }
 
   .toast {
@@ -285,7 +332,8 @@
       <h2>LifeOS</h2>
       <p>Твой путь за 5 лет · Junior → Senior</p>
       <input type="email" id="authEmail" class="auth-input" placeholder="Email">
-      <input type="password" id="authPass" class="auth-input" placeholder="Пароль (мин. 6 символов)">
+      <input type="password" id="authPass" class="auth-input" placeholder="Пароль (мин. 8 символов, 1 цифра, 1 буква)">
+      <div class="password-hint">Минимум 8 символов, хотя бы 1 цифра и 1 буква</div>
       <button class="auth-btn" id="authActionBtn" onclick="handleAuth()">Войти</button>
       <div class="auth-toggle" onclick="toggleAuthMode()">
         <span id="authToggleText">Нет аккаунта? Зарегистрироваться</span>
@@ -302,7 +350,6 @@
       <p>Это поможет настроить план под тебя</p>
       <input type="text" id="userName" class="auth-input" placeholder="Как тебя зовут?">
       <input type="number" id="userAge" class="auth-input" placeholder="Возраст" min="14" max="99">
-      <input type="text" id="userCity" class="auth-input" placeholder="Город">
       <button class="auth-btn" onclick="nextAuthStep(3)">Далее →</button>
     </div>
 
@@ -320,17 +367,7 @@
         <option value="intermediate">Учу JavaScript</option>
         <option value="advanced">Уже пишу на React</option>
       </select>
-      <button class="auth-btn" onclick="nextAuthStep(4)">Далее →</button>
-    </div>
-
-    <div class="auth-step" id="authStep4">
-      <div class="auth-logo">
-        <svg class="icon-xl" viewBox="0 0 24 24"><path class="icon-gradient" d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path class="icon-gradient" d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      </div>
-      <h2>Уведомления</h2>
-      <p>Напоминаем о задачах и привычках</p>
-      <button class="auth-btn" onclick="enableNotifications()">Включить уведомления</button>
-      <button class="auth-btn guest-btn" onclick="skipNotifications()">Пропустить</button>
+      <button class="auth-btn" onclick="finishRegistration()">Начать путь 🚀</button>
     </div>
   </div>
 </div>
@@ -367,7 +404,7 @@
       <div class="stat-card"><div class="stat-label">Сегодня</div><div class="stat-value green" id="todayDone">0</div></div>
       <div class="stat-card"><div class="stat-label">Всего</div><div class="stat-value blue" id="totalTasks">0</div></div>
       <div class="stat-card"><div class="stat-label">Серия</div><div class="stat-value yellow" id="bestStreak">0</div></div>
-      <div class="stat-card"><div class="stat-label">Привычки</div><div class="stat-value green" id="habitsToday">0%</div></div>
+      <div class="stat-card"><div class="stat-label">Настроение</div><div class="stat-value green" id="moodToday">—</div></div>
     </div>
   </header>
 
@@ -398,6 +435,20 @@
     <div id="quoteCard" class="quote-card">
       <div class="quote-text" id="quoteText">"Код — это поэзия, которую понимает машина."</div>
       <div class="quote-author" id="quoteAuthor">— Неизвестный автор</div>
+    </div>
+    <div id="challengeCard" class="challenge-card" style="display:none;">
+      <h3>
+        <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M12 2L2 7l10 5 10-5-10-5z"/><path class="icon-gradient" d="M2 17l10 5 10-5"/><path class="icon-gradient" d="M2 12l10 5 10-5"/></svg>
+        Челлендж дня
+      </h3>
+      <p id="challengeText"></p>
+    </div>
+    <div id="resourceCard" class="resource-card" style="display:none;">
+      <h3>
+        <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path class="icon-gradient" d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Ресурс дня
+      </h3>
+      <a id="resourceLink" href="#" target="_blank"></a>
     </div>
     <div class="card">
       <h2>
@@ -432,6 +483,18 @@
         <input type="number" id="newTodayXp" placeholder="XP" value="20" min="1" max="500">
         <button class="btn" onclick="addCustomTask('today')">+</button>
       </div>
+    </div>
+    <div class="mood-card">
+      <h2 style="font-size:16px; margin-bottom:8px;">Как прошёл день?</h2>
+      <div class="mood-stars" id="moodStars">
+        <span class="mood-star" data-value="1">⭐</span>
+        <span class="mood-star" data-value="2">⭐</span>
+        <span class="mood-star" data-value="3">⭐</span>
+        <span class="mood-star" data-value="4">⭐</span>
+        <span class="mood-star" data-value="5">⭐</span>
+      </div>
+      <input type="text" id="moodComment" class="mood-input" placeholder="Комментарий (необязательно)">
+      <button class="btn" onclick="saveMood()" style="width:100%; margin-top:8px;">Сохранить настроение</button>
     </div>
   </div>
 
@@ -631,16 +694,19 @@
   let typingStartTime = null;
   let typingErrors = 0;
   let typingText = '';
+  let authAttempts = [];
 
-  const STORAGE_KEY = 'lifeos_v7';
+  const STORAGE_KEY = 'lifeos_v8';
   const defaultState = {
     xp: 0, totalXp: 0, completedTasks: {}, customTasks: {},
     habits: [],
     habitLog: {}, bestStreak: 0,
     registrationDate: null,
-    profile: { name: '', age: 0, city: '', goal: '', level: '' },
+    profile: { name: '', age: 0, goal: '', level: '' },
     notifications: false,
-    snippets: []
+    snippets: [],
+    moods: {},
+    lastActive: null
   };
 
   let state = structuredClone(defaultState);
@@ -658,6 +724,30 @@
     { text: "Лучшее время начать — сейчас.", author: "Народная мудрость" }
   ];
 
+  const challenges = [
+    "Реши 1 задачу на LeetCode (Easy)",
+    "Прочитай 1 страницу документации React",
+    "Напиши функцию без использования циклов (только map/filter/reduce)",
+    "Объясни вслух, как работает замыкание",
+    "Найди и исправь 1 баг в своём старом коде",
+    "Выучи 5 новых методов массивов в JS",
+    "Напиши компонент на React без использования useState",
+    "Рефакторинг: улучши читаемость старого кода",
+    "Посмотри 1 видео по алгоритмам (15 мин)",
+    "Напиши тест для одной из своих функций"
+  ];
+
+  const resources = [
+    { title: "MDN Web Docs — JavaScript", url: "https://developer.mozilla.org/ru/docs/Web/JavaScript" },
+    { title: "React Official Documentation", url: "https://react.dev" },
+    { title: "TypeScript Handbook", url: "https://www.typescriptlang.org/docs/handbook/intro.html" },
+    { title: "Eloquent JavaScript (бесплатная книга)", url: "https://eloquentjavascript.net" },
+    { title: "JavaScript.info — современный учебник", url: "https://learn.javascript.ru" },
+    { title: "CSS-Tricks — Flexbox Guide", url: "https://css-tricks.com/snippets/css/a-guide-to-flexbox/" },
+    { title: "Git Pro Book (бесплатно)", url: "https://git-scm.com/book/ru/v2" },
+    { title: "Node.js Best Practices", url: "https://github.com/goldbergyoni/nodebestpractices" }
+  ];
+
   const typingTexts = [
     'const user = { name: "Alex", age: 20, skills: ["JS", "React"] };',
     'function calculate(a, b) { return a + b; }',
@@ -670,6 +760,30 @@
     'import { useState, useEffect } from "react";',
     'export default function App() { return <Main />; }'
   ];
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function validateEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function validatePassword(pass) {
+    return pass.length >= 8 && /\d/.test(pass) && /[a-zA-Z]/.test(pass);
+  }
+
+  function checkRateLimit() {
+    const now = Date.now();
+    authAttempts = authAttempts.filter(t => now - t < 60000);
+    if (authAttempts.length >= 5) {
+      return false;
+    }
+    authAttempts.push(now);
+    return true;
+  }
 
   window.toggleAuthMode = () => {
     authMode = authMode === 'login' ? 'register' : 'login';
@@ -690,8 +804,39 @@
     const email = document.getElementById('authEmail').value.trim();
     const pass = document.getElementById('authPass').value;
     const errEl = document.getElementById('authError');
-    if (!email || !pass) { errEl.textContent = 'Введите email и пароль'; errEl.style.display = 'block'; return; }
-    if (pass.length < 6) { errEl.textContent = 'Пароль минимум 6 символов'; errEl.style.display = 'block'; return; }
+    const emailInput = document.getElementById('authEmail');
+    const passInput = document.getElementById('authPass');
+    
+    emailInput.classList.remove('error');
+    passInput.classList.remove('error');
+    errEl.style.display = 'none';
+
+    if (!email || !pass) { 
+      errEl.textContent = 'Введите email и пароль'; 
+      errEl.style.display = 'block'; 
+      return; 
+    }
+
+    if (!validateEmail(email)) {
+      errEl.textContent = 'Некорректный формат email';
+      errEl.style.display = 'block';
+      emailInput.classList.add('error');
+      return;
+    }
+
+    if (!validatePassword(pass)) {
+      errEl.textContent = 'Пароль: мин. 8 символов, 1 цифра, 1 буква';
+      errEl.style.display = 'block';
+      passInput.classList.add('error');
+      return;
+    }
+
+    if (!checkRateLimit()) {
+      errEl.textContent = 'Слишком много попыток. Подожди 1 минуту.';
+      errEl.style.display = 'block';
+      return;
+    }
+
     try {
       if (authMode === 'login') {
         await signInWithEmailAndPassword(auth, email, pass);
@@ -706,7 +851,7 @@
       } else if (code === 'auth/email-already-in-use') {
         message = 'Email уже зарегистрирован. Нажми "Войти".';
       } else if (code === 'auth/weak-password') {
-        message = 'Пароль слишком слабый (мин. 6 символов).';
+        message = 'Пароль слишком слабый.';
       } else if (code === 'auth/too-many-requests') {
         message = 'Слишком много попыток. Подожди 10 минут.';
       } else {
@@ -721,15 +866,8 @@
     if (step === 3) {
       const name = document.getElementById('userName').value.trim();
       const age = parseInt(document.getElementById('userAge').value);
-      const city = document.getElementById('userCity').value.trim();
-      if (!name || !age || !city) { showToast('Заполни все поля'); return; }
-      state.profile = { name, age, city, goal: '', level: '' };
-    } else if (step === 4) {
-      const goal = document.getElementById('userGoal').value.trim();
-      const level = document.getElementById('userLevel').value;
-      if (!goal || !level) { showToast('Заполни все поля'); return; }
-      state.profile.goal = goal;
-      state.profile.level = level;
+      if (!name || !age) { showToast('Заполни все поля'); return; }
+      state.profile = { name, age, goal: '', level: '' };
     }
     document.querySelectorAll('.auth-step').forEach(s => s.classList.remove('active'));
     document.getElementById('authStep' + step).classList.add('active');
@@ -739,33 +877,24 @@
     authStep = step;
   };
 
-  window.enableNotifications = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        state.notifications = true;
-        showToast('Уведомления включены!');
-      }
-    }
-    finishRegistration();
-  };
-
-  window.skipNotifications = () => {
-    state.notifications = false;
-    finishRegistration();
-  };
-
-  function finishRegistration() {
+  window.finishRegistration = () => {
+    const goal = document.getElementById('userGoal').value.trim();
+    const level = document.getElementById('userLevel').value;
+    if (!goal || !level) { showToast('Заполни все поля'); return; }
+    state.profile.goal = goal;
+    state.profile.level = level;
     state.registrationDate = todayStr();
+    state.lastActive = todayStr();
     window.debouncedSave();
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     initApp();
-  }
+  };
 
   window.continueAsGuest = () => {
     isGuest = true;
     state.registrationDate = todayStr();
+    state.lastActive = todayStr();
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     loadLocalState();
@@ -792,9 +921,22 @@
           loadLocalState();
           saveToCloud();
         }
-        document.getElementById('authScreen').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-        initApp();
+        
+        // Проверяем, нужно ли показать шаги профиля
+        if (!state.profile.name || !state.profile.goal) {
+          document.getElementById('authScreen').style.display = 'flex';
+          document.getElementById('mainApp').style.display = 'none';
+          document.querySelectorAll('.auth-step').forEach(s => s.classList.remove('active'));
+          document.getElementById('authStep2').classList.add('active');
+          document.querySelectorAll('.auth-progress-dot').forEach((d, i) => {
+            d.classList.toggle('active', i < 2);
+          });
+          authStep = 2;
+        } else {
+          document.getElementById('authScreen').style.display = 'none';
+          document.getElementById('mainApp').style.display = 'block';
+          initApp();
+        }
       });
     }
   });
@@ -955,9 +1097,16 @@
       const key = taskKey(prefix, task.key, dateKey);
       const done = !!state.completedTasks[key];
       const isNext = key === nextKey;
+      const isRoutine = task.badge === 'routine';
       const li = document.createElement('li');
-      li.className = 'task-item' + (done ? ' done' : '') + (task.badge === 'routine' ? ' routine' : '') + (isNext ? ' next' : '');
-      li.innerHTML = `<input type="checkbox" ${done ? 'checked' : ''} data-key="${key}" data-xp="${task.xp}"><span class="task-text">${task.time ? `<span class="task-time">${task.time}</span>` : ''} ${task.text}${task.badge ? `<span class="badge ${task.badge}">${task.badge.toUpperCase()}</span>` : ''}${task.sub ? `<small>${task.sub}</small>` : ''}</span><span class="task-xp">+${task.xp}</span>${task.type === 'custom' ? `<button class="task-del" data-key="${key}">×</button>` : ''}`;
+      li.className = 'task-item' + (done ? ' done' : '') + (isRoutine ? ' routine' : '') + (isNext ? ' next' : '');
+      
+      let badgeHtml = '';
+      if (task.badge && !isRoutine) {
+        badgeHtml = `<span class="badge ${task.badge}">${task.badge.toUpperCase()}</span>`;
+      }
+      
+      li.innerHTML = `<input type="checkbox" ${done ? 'checked' : ''} data-key="${key}" data-xp="${task.xp}"><span class="task-text">${task.time ? `<span class="task-time">${task.time}</span>` : ''} ${task.text}${badgeHtml}${task.sub ? `<small>${task.sub}</small>` : ''}</span><span class="task-xp">+${task.xp}</span>${task.type === 'custom' ? `<button class="task-del" data-key="${key}">×</button>` : ''}`;
       container.appendChild(li);
     });
 
@@ -1020,17 +1169,38 @@
     
     const welcomeMsg = document.getElementById('welcomeMessage');
     const taskList = document.getElementById('todayTasks');
+    const challengeCard = document.getElementById('challengeCard');
+    const resourceCard = document.getElementById('resourceCard');
     
     if (state.registrationDate && today === state.registrationDate) {
       welcomeMsg.style.display = 'block';
       document.getElementById('welcomeName').textContent = state.profile.name || 'друг';
       taskList.innerHTML = '';
+      challengeCard.style.display = 'none';
+      resourceCard.style.display = 'none';
       document.getElementById('todayProgress').style.width = '0%';
       document.getElementById('todayProgressValue').textContent = '0%';
       updateProgressRing(0);
       return;
     } else {
       welcomeMsg.style.display = 'none';
+    }
+    
+    // Показываем челлендж и ресурс только в будни
+    const dow = getDayOfWeek(today);
+    if (dow >= 1 && dow <= 5) {
+      const dayOfYear = Math.floor((new Date(today) - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+      const challenge = challenges[dayOfYear % challenges.length];
+      document.getElementById('challengeText').textContent = challenge;
+      challengeCard.style.display = 'block';
+      
+      const resource = resources[dayOfYear % resources.length];
+      document.getElementById('resourceLink').textContent = resource.title;
+      document.getElementById('resourceLink').href = resource.url;
+      resourceCard.style.display = 'block';
+    } else {
+      challengeCard.style.display = 'none';
+      resourceCard.style.display = 'none';
     }
     
     const result = buildDayTasks(today);
@@ -1116,7 +1286,7 @@
       item.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--card-2); border-radius:10px; margin-bottom:8px;';
       item.innerHTML = `
         <div>
-          <div style="font-weight:600;">${h.name}</div>
+          <div style="font-weight:600;">${escapeHtml(h.name)}</div>
           <div style="font-size:12px; color:var(--yellow);">Серия: ${streak} дней</div>
         </div>
         <button class="btn" onclick="toggleHabit('${h.id}')" style="padding:8px 12px;">${log[today] ? 'Выполнено' : 'Отметить'}</button>
@@ -1147,7 +1317,29 @@
     renderHeader();
   };
 
-  // Snippets
+  window.saveMood = () => {
+    const stars = document.querySelectorAll('.mood-star.active');
+    const value = stars.length;
+    const comment = document.getElementById('moodComment').value.trim();
+    if (value === 0) { showToast('Выбери оценку'); return; }
+    
+    const today = todayStr();
+    state.moods[today] = { value, comment, timestamp: Date.now() };
+    window.debouncedSave();
+    document.getElementById('moodComment').value = '';
+    showToast('Настроение сохранено!');
+    renderHeader();
+  };
+
+  document.querySelectorAll('.mood-star').forEach(star => {
+    star.addEventListener('click', () => {
+      const value = parseInt(star.dataset.value);
+      document.querySelectorAll('.mood-star').forEach((s, i) => {
+        s.classList.toggle('active', i < value);
+      });
+    });
+  });
+
   window.addSnippet = () => {
     const title = document.getElementById('snippetTitle').value.trim();
     const tag = document.getElementById('snippetTag').value.trim();
@@ -1194,8 +1386,8 @@
       const card = document.createElement('div');
       card.className = 'snippet-card';
       card.innerHTML = `
-        <h4>${s.title}</h4>
-        <span class="snippet-tag">${s.tag}</span>
+        <h4>${escapeHtml(s.title)}</h4>
+        <span class="snippet-tag">${escapeHtml(s.tag)}</span>
         <pre>${escapeHtml(s.code)}</pre>
         <div class="snippet-actions">
           <button onclick="copySnippet('${s.id}')">Копировать</button>
@@ -1206,13 +1398,6 @@
     });
   }
 
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  // Timer
   window.startTimer = (type, seconds) => {
     timerSeconds = seconds;
     timerRunning = false;
@@ -1260,7 +1445,6 @@
     document.getElementById('timerDisplay').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
-  // Typing (БЕЗ XP!)
   function initTyping() {
     typingText = typingTexts[Math.floor(Math.random() * typingTexts.length)];
     document.getElementById('typingArea').innerHTML = typingText.split('').map((c, i) => `<span id="char${i}">${c}</span>`).join('');
@@ -1390,10 +1574,9 @@
     document.getElementById('totalTasks').textContent = Object.keys(state.completedTasks).length;
     document.getElementById('bestStreak').textContent = state.bestStreak;
     
-    let hDone = 0;
     const today = todayStr();
-    state.habits.forEach(h => { if (state.habitLog[h.id]?.[today]) hDone++; });
-    document.getElementById('habitsToday').textContent = state.habits.length ? Math.round(hDone/state.habits.length*100) + '%' : '0%';
+    const mood = state.moods[today];
+    document.getElementById('moodToday').textContent = mood ? '⭐'.repeat(mood.value) : '—';
     
     if (state.profile.name) {
       document.getElementById('userGreeting').textContent = `Привет, ${state.profile.name}!`;
@@ -1446,6 +1629,16 @@
     renderHabits();
     renderSnippets();
     initTyping();
+    
+    // Восстанавливаем настроение за сегодня
+    const today = todayStr();
+    const mood = state.moods[today];
+    if (mood) {
+      document.querySelectorAll('.mood-star').forEach((s, i) => {
+        s.classList.toggle('active', i < mood.value);
+      });
+      document.getElementById('moodComment').value = mood.comment || '';
+    }
   }
 
   function renderAll() {
