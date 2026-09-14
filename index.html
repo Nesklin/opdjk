@@ -2,13 +2,13 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0e1a">
-<title>LifeOS — Global Dev Platform</title>
+<title>LifeOS</title>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { getDatabase, ref, set, onValue, push, get, child, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { getDatabase, ref, set, onValue, push, get, child, update, remove, serverTimestamp, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
   
   const firebaseConfig = {
     apiKey: "AIzaSyA97O7tkAir-P1A2-7sr3Ashj0XjewV0Zs",
@@ -24,27 +24,23 @@
   const app = initializeApp(firebaseConfig);
   window.fbAuth = getAuth(app);
   window.fbDb = getDatabase(app);
-  window.fbFn = { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, ref, set, onValue, push, get, child, update, remove };
+  window.fbFn = { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, ref, set, onValue, push, get, child, update, remove, serverTimestamp, query, orderByChild, limitToLast };
 </script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   :root {
     --bg: #0a0e1a; --bg-2: #111827; --card: #1a1f2e; --card-2: #232938;
     --border: #2a3142; --text: #e5e7eb; --muted: #9ca3af;
-    --accent: var(--accent-color, #8b5cf6); --accent-2: var(--accent-color-2, #a78bfa);
-    --green: #10b981; --yellow: #f59e0b; --red: #ef4444; --pink: #ec4899;
+    --accent: #8b5cf6; --accent-2: #a78bfa; --green: #10b981;
+    --yellow: #f59e0b; --red: #ef4444; --pink: #ec4899;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  [data-theme="light"] {
-    --bg: #f8fafc; --bg-2: #f1f5f9; --card: #ffffff; --card-2: #f8fafc;
-    --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
   }
   html, body { overscroll-behavior: none; height: 100%; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg); color: var(--text); line-height: 1.6;
-    background-image: radial-gradient(circle at 10% 0%, rgba(139,92,246,0.1), transparent 40%), radial-gradient(circle at 90% 100%, rgba(236,72,153,0.08), transparent 40%);
-    padding-bottom: calc(90px + var(--safe-bottom));
+    background-image: radial-gradient(circle at 10% 0%, rgba(139,92,246,0.15), transparent 40%), radial-gradient(circle at 90% 100%, rgba(236,72,153,0.12), transparent 40%);
+    padding-bottom: calc(80px + var(--safe-bottom));
   }
   .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
   .icon { display: inline-block; width: 20px; height: 20px; vertical-align: middle; }
@@ -86,10 +82,9 @@
   .auth-progress-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
   .auth-progress-dot.active { background: var(--accent); }
   
-  .lang-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; max-height: 280px; overflow-y: auto; }
-  .lang-chip { padding: 10px 8px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+  .lang-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+  .lang-chip { padding: 12px 8px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
   .lang-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
-  .lang-chip:hover { border-color: var(--accent); }
 
   header {
     background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.08));
@@ -111,19 +106,15 @@
   .stat-value { font-size: 18px; font-weight: 700; margin-top: 2px; }
   .stat-value.green { color: var(--green); } .stat-value.yellow { color: var(--yellow); } .stat-value.blue { color: var(--blue); }
 
-  .tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; background: var(--card); padding: 4px; border-radius: 12px; border: 1px solid var(--border); scrollbar-width: none; }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab { padding: 10px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap; color: var(--muted); font-weight: 500; border: none; background: transparent; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
-  .tab.active { background: linear-gradient(135deg, var(--accent), var(--pink)); color: white; box-shadow: 0 2px 8px rgba(139,92,246,0.3); }
-
   .mobile-nav {
-    display: none; position: fixed; bottom: 0; left: 0; right: 0;
-    background: rgba(26, 31, 46, 0.95); backdrop-filter: blur(10px);
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(26, 31, 46, 0.98); backdrop-filter: blur(10px);
     border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom);
-    z-index: 100; justify-content: space-around; padding-top: 8px;
+    z-index: 100; display: flex; justify-content: space-around; padding-top: 8px;
   }
-  .mobile-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; color: var(--muted); font-size: 10px; cursor: pointer; border: none; background: transparent; }
+  .mobile-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; color: var(--muted); font-size: 10px; cursor: pointer; border: none; background: transparent; position: relative; }
   .mobile-nav-item.active { color: var(--accent-2); }
+  .nav-badge { position: absolute; top: 4px; right: calc(50% - 20px); background: var(--red); color: white; font-size: 10px; padding: 2px 5px; border-radius: 8px; min-width: 16px; }
 
   .panel { display: none; }
   .panel.active { display: block; animation: fadeIn 0.3s; }
@@ -139,7 +130,6 @@
   .task-item.done .task-text { text-decoration: line-through; color: var(--muted); }
   .task-item.routine { background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(236,72,153,0.05)); border-left: 3px solid var(--accent); }
   .task-item.next { border: 1px solid var(--green); box-shadow: 0 0 0 1px rgba(16,185,129,0.3); }
-  .task-item.challenge { background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(239,68,68,0.05)); border-left: 3px solid var(--yellow); }
   
   .task-item input[type="checkbox"] { width: 24px; height: 24px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0; margin-top: 2px; }
   .task-text { flex: 1; font-size: 15px; line-height: 1.4; min-width: 0; }
@@ -150,17 +140,11 @@
 
   .badge { display: inline-block; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 600; margin-left: 4px; vertical-align: middle; }
   .badge.js { background: rgba(245,158,11,0.15); color: var(--yellow); }
-  .badge.ts { background: rgba(59,130,246,0.15); color: var(--blue); }
-  .badge.react { background: rgba(96,165,250,0.15); color: #60a5fa; }
-  .badge.node { background: rgba(16,185,129,0.15); color: var(--green); }
-  .badge.en { background: rgba(236,72,153,0.15); color: var(--pink); }
   .badge.py { background: rgba(139,92,246,0.15); color: var(--accent-2); }
-  .badge.cpp { background: rgba(156,163,175,0.15); color: var(--muted); }
-  .badge.html { background: rgba(239,68,68,0.15); color: #f87171; }
+  .badge.en { background: rgba(236,72,153,0.15); color: var(--pink); }
   .badge.git { background: rgba(249,115,22,0.15); color: #fb923c; }
-  .badge.book { background: rgba(236,72,153,0.15); color: var(--pink); }
   .badge.project { background: rgba(16,185,129,0.15); color: var(--green); }
-  .badge.challenge { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .badge.book { background: rgba(236,72,153,0.15); color: var(--pink); }
 
   .add-task { display: flex; gap: 8px; margin-top: 12px; }
   .add-task input { flex: 1; padding: 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; outline: none; }
@@ -183,53 +167,59 @@
   .quick-actions button { flex: 1; min-width: 140px; padding: 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .quick-actions button:active { background: var(--border); }
 
-  /* Achievement badges */
+  /* Profile */
+  .profile-header { text-align: center; padding: 20px; background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.08)); border-radius: 16px; margin-bottom: 12px; }
+  .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 12px; border: 3px solid var(--accent-2); }
+  .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .profile-bio { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+  .profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .profile-stat { background: var(--card-2); padding: 10px; border-radius: 10px; }
+  .profile-stat-value { font-size: 18px; font-weight: 700; color: var(--accent-2); }
+  .profile-stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+
+  /* Achievements */
   .achievement-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-  .achievement { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; opacity: 0.4; transition: all 0.3s; }
+  .achievement { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; opacity: 0.4; }
   .achievement.unlocked { opacity: 1; border-color: var(--yellow); box-shadow: 0 0 12px rgba(245,158,11,0.3); }
   .achievement-icon { font-size: 32px; margin-bottom: 6px; }
-  .achievement-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .achievement-name { font-size: 12px; font-weight: 600; }
   .achievement-desc { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
-  /* Heatmap */
-  .heatmap { display: grid; grid-template-columns: repeat(52, 1fr); gap: 2px; overflow-x: auto; padding: 8px 0; }
-  .heatmap-cell { width: 12px; height: 12px; border-radius: 2px; background: var(--card-2); }
-  .heatmap-cell.l1 { background: rgba(139,92,246,0.3); }
-  .heatmap-cell.l2 { background: rgba(139,92,246,0.5); }
-  .heatmap-cell.l3 { background: rgba(139,92,246,0.7); }
-  .heatmap-cell.l4 { background: rgba(139,92,246,1); }
-
-  /* Guild */
+  /* Guilds */
   .guild-card { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.08)); border: 1px solid var(--accent); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .guild-id { font-family: 'Courier New', monospace; font-size: 14px; color: var(--accent-2); background: var(--card-2); padding: 4px 8px; border-radius: 6px; display: inline-block; margin-bottom: 8px; }
   .guild-code { font-family: 'Courier New', monospace; font-size: 20px; font-weight: 700; letter-spacing: 4px; color: var(--accent-2); background: var(--card-2); padding: 8px; border-radius: 8px; text-align: center; margin: 8px 0; }
-  .guild-member { display: flex; justify-content: space-between; padding: 8px; background: var(--card-2); border-radius: 8px; margin-bottom: 6px; }
-  .guild-rank-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--card-2); border-radius: 10px; margin-bottom: 8px; }
+  .guild-list-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--card-2); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
+  .guild-list-item:active { background: var(--border); }
+  .guild-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 24px; }
   .guild-rank-num { font-size: 20px; font-weight: 700; color: var(--accent-2); min-width: 30px; }
+
+  /* Chat */
+  .chat-container { display: flex; flex-direction: column; height: calc(100vh - 180px); }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 12px; background: var(--card-2); border-radius: 12px; margin-bottom: 12px; }
+  .chat-msg { margin-bottom: 10px; display: flex; flex-direction: column; }
+  .chat-msg.own { align-items: flex-end; }
+  .chat-msg.other { align-items: flex-start; }
+  .chat-msg-author { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .chat-msg-bubble { padding: 10px 14px; border-radius: 14px; max-width: 80%; word-break: break-word; }
+  .chat-msg.own .chat-msg-bubble { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+  .chat-msg.other .chat-msg-bubble { background: var(--card); border-bottom-left-radius: 4px; }
+  .chat-msg-time { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .chat-input-row { display: flex; gap: 8px; }
+  .chat-input-row input { flex: 1; padding: 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 15px; outline: none; }
+
+  /* Messages list */
+  .msg-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--card-2); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
+  .msg-item:active { background: var(--border); }
+  .msg-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .msg-info { flex: 1; min-width: 0; }
+  .msg-name { font-weight: 600; font-size: 14px; }
+  .msg-last { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* Shop */
   .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
   .shop-item { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center; }
   .shop-item-icon { font-size: 36px; margin-bottom: 6px; }
-  .shop-item-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-  .shop-item-price { font-size: 12px; color: var(--yellow); margin-bottom: 8px; }
-
-  /* Flashcards */
-  .flashcard { background: linear-gradient(135deg, var(--card), var(--card-2)); border: 1px solid var(--border); border-radius: 16px; padding: 40px 20px; text-align: center; min-height: 200px; display: flex; flex-direction: column; justify-content: center; cursor: pointer; transition: transform 0.3s; }
-  .flashcard.flipped { transform: rotateY(180deg); }
-  .flashcard-front, .flashcard-back { font-size: 18px; }
-  .flashcard-back { display: none; }
-  .flashcard.flipped .flashcard-front { display: none; }
-  .flashcard.flipped .flashcard-back { display: block; }
-
-  /* Quiz */
-  .quiz-option { display: block; width: 100%; padding: 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: pointer; text-align: left; color: var(--text); font-size: 14px; }
-  .quiz-option:hover { border-color: var(--accent); }
-  .quiz-option.correct { background: rgba(16,185,129,0.2); border-color: var(--green); }
-  .quiz-option.wrong { background: rgba(239,68,68,0.2); border-color: var(--red); }
-
-  /* Expenses */
-  .expense-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--card-2); border-radius: 10px; margin-bottom: 6px; }
-  .expense-category { display: inline-block; padding: 2px 8px; background: rgba(139,92,246,0.15); color: var(--accent-2); border-radius: 4px; font-size: 11px; margin-right: 8px; }
 
   /* Projects */
   .project-card { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
@@ -239,28 +229,25 @@
   /* Forecast */
   .forecast-card { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.08)); border: 1px solid var(--green); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
 
-  /* Burnout */
-  .burnout-low { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05)); border-color: var(--green); }
-  .burnout-med { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05)); border-color: var(--yellow); }
-  .burnout-high { background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05)); border-color: var(--red); }
-
-  /* Theme picker */
-  .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
-  .theme-swatch { height: 50px; border-radius: 10px; cursor: pointer; border: 2px solid var(--border); }
-  .theme-swatch.active { border-color: var(--text); }
-
-  .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--accent); color: white; padding: 12px 24px; border-radius: 24px; font-size: 14px; font-weight: 600; z-index: 1000; opacity: 0; transition: all 0.3s; pointer-events: none; box-shadow: 0 4px 20px rgba(139,92,246,0.4); white-space: nowrap; }
+  .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--accent); color: white; padding: 12px 24px; border-radius: 24px; font-size: 14px; font-weight: 600; z-index: 1000; opacity: 0; transition: all 0.3s; pointer-events: none; box-shadow: 0 4px 20px rgba(139,92,246,0.4); white-space: nowrap; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+  .back-btn { padding: 8px 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 6px; }
+
+  .avatar-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 12px 0; }
+  .avatar-option { width: 100%; aspect-ratio: 1; border-radius: 50%; background: var(--card-2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
+  .avatar-option.active { border-color: var(--accent); background: var(--accent); }
+
+  .color-picker { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+  .color-option { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border); }
+  .color-option.active { border-color: white; }
+
   @media (max-width: 768px) {
-    .tabs { display: none; }
-    .mobile-nav { display: flex; }
     .container { padding: 12px; }
     h1 { font-size: 20px; }
     .stats-row { grid-template-columns: repeat(2, 1fr); }
     .add-task { flex-wrap: wrap; }
     .add-task input[type="number"] { width: 100%; }
-    .lang-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -282,7 +269,6 @@
       <div class="auth-progress-dot"></div>
       <div class="auth-progress-dot"></div>
       <div class="auth-progress-dot"></div>
-      <div class="auth-progress-dot"></div>
     </div>
     
     <div class="auth-step active" id="authStep1">
@@ -290,21 +276,7 @@
         <svg class="icon-xl" viewBox="0 0 24 24"><path class="icon-gradient" d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path class="icon-gradient" d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path class="icon-gradient" d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path class="icon-gradient" d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
       </div>
       <h2>LifeOS</h2>
-      <p id="authSubtitle">Твой путь за 5 лет · Junior → Senior</p>
-      <select id="authLang" class="auth-select" onchange="changeInterfaceLang(this.value)">
-        <option value="ru">🇺 Русский</option>
-        <option value="en">🇬🇧 English</option>
-        <option value="es">🇸 Español</option>
-        <option value="de">🇩🇪 Deutsch</option>
-        <option value="fr">🇫🇷 Français</option>
-        <option value="zh">🇨🇳 中文</option>
-        <option value="ja">🇯🇵 日本語</option>
-        <option value="ko">🇰🇷 한국어</option>
-        <option value="pt">🇧🇷 Português</option>
-        <option value="ar">🇸 العربية</option>
-        <option value="hi">🇮🇳 हिन्दी</option>
-        <option value="tr">🇹🇷 Türkçe</option>
-      </select>
+      <p>Глобальная платформа для разработчиков</p>
       <input type="email" id="authEmail" class="auth-input" placeholder="Email">
       <input type="password" id="authPass" class="auth-input" placeholder="Пароль (мин. 8 символов)">
       <button class="auth-btn" id="authActionBtn" onclick="handleAuth()">Войти</button>
@@ -319,9 +291,10 @@
       <div class="auth-logo">
         <svg class="icon-xl" viewBox="0 0 24 24"><path class="icon-gradient" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle class="icon-gradient" cx="12" cy="7" r="4"/></svg>
       </div>
-      <h2 id="step2Title">Расскажи о себе</h2>
+      <h2>О тебе</h2>
       <input type="text" id="userName" class="auth-input" placeholder="Имя">
       <input type="number" id="userAge" class="auth-input" placeholder="Возраст" min="14" max="99">
+      <input type="text" id="userBio" class="auth-input" placeholder="О себе (необязательно)">
       <button class="auth-btn" onclick="nextAuthStep(3)">Далее →</button>
     </div>
 
@@ -329,14 +302,14 @@
       <div class="auth-logo">
         <svg class="icon-xl" viewBox="0 0 24 24"><path class="icon-gradient" d="M12 2L2 7l10 5 10-5-10-5z"/><path class="icon-gradient" d="M2 17l10 5 10-5"/><path class="icon-gradient" d="M2 12l10 5 10-5"/></svg>
       </div>
-      <h2 id="step3Title">Цели</h2>
+      <h2>Цели</h2>
       <input type="text" id="userGoal" class="auth-input" placeholder="Цель на год">
       <select id="userLevel" class="auth-input" style="appearance: none;">
         <option value="">Текущий уровень</option>
         <option value="beginner">Новичок</option>
-        <option value="basic">Основы HTML/CSS</option>
-        <option value="intermediate">Учу JS</option>
-        <option value="advanced">Пишу на React</option>
+        <option value="basic">Основы</option>
+        <option value="intermediate">Средний</option>
+        <option value="advanced">Продвинутый</option>
       </select>
       <button class="auth-btn" onclick="nextAuthStep(4)">Далее →</button>
     </div>
@@ -345,10 +318,10 @@
       <div class="auth-logo">
         <svg class="icon-xl" viewBox="0 0 24 24"><polyline class="icon-gradient" points="16 18 22 12 16 6"/><polyline class="icon-gradient" points="8 6 2 12 8 18"/></svg>
       </div>
-      <h2 id="step4Title">Языки программирования</h2>
-      <p id="step4Desc">Выбери что хочешь изучать</p>
+      <h2>Выбери язык</h2>
+      <p>Основной язык обучения</p>
       <div class="lang-grid" id="langGrid"></div>
-      <button class="auth-btn" onclick="finishRegistration()">Начать путь 🚀</button>
+      <button class="auth-btn" onclick="finishRegistration()">Начать путь </button>
     </div>
   </div>
 </div>
@@ -365,7 +338,7 @@
       </div>
       <div class="level-block">
         <div class="level-info">
-          <span class="lvl" id="levelLabel">Уровень 1 · Новичок</span>
+          <span class="lvl" id="levelLabel">Уровень 1</span>
           <span id="xpNumbers">0 / 100 XP</span>
         </div>
         <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
@@ -383,210 +356,1108 @@
     </div>
   </header>
 
-  <div class="tabs" id="desktopTabs"></div>
-
   <div class="panel active" id="panel-today"></div>
-  <div class="panel" id="panel-achievements"></div>
-  <div class="panel" id="panel-heatmap"></div>
-  <div class="panel" id="panel-quizzes"></div>
-  <div class="panel" id="panel-flashcards"></div>
-  <div class="panel" id="panel-expenses"></div>
-  <div class="panel" id="panel-projects"></div>
-  <div class="panel" id="panel-forecast"></div>
+  <div class="panel" id="panel-messages"></div>
   <div class="panel" id="panel-guilds"></div>
-  <div class="panel" id="panel-settings"></div>
+  <div class="panel" id="panel-profile"></div>
+  <div class="panel" id="panel-more"></div>
 
-  <div class="mobile-nav" id="mobileNav"></div>
+  <div class="mobile-nav">
+    <button class="mobile-nav-item active" data-tab="today">
+      <svg class="icon" viewBox="0 0 24 24"><rect class="icon-gradient" x="3" y="4" width="18" height="18" rx="2"/><line class="icon-gradient" x1="16" y1="2" x2="16" y2="6"/><line class="icon-gradient" x1="8" y1="2" x2="8" y2="6"/><line class="icon-gradient" x1="3" y1="10" x2="21" y2="10"/></svg>
+      Сегодня
+    </button>
+    <button class="mobile-nav-item" data-tab="messages">
+      <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Чаты
+      <span class="nav-badge" id="msgBadge" style="display:none;">0</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="guilds">
+      <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M3 21h18M5 21V7l8-4 8 4v14M8 21v-9a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v9"/></svg>
+      Гильдии
+    </button>
+    <button class="mobile-nav-item" data-tab="profile">
+      <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle class="icon-gradient" cx="12" cy="7" r="4"/></svg>
+      Профиль
+    </button>
+    <button class="mobile-nav-item" data-tab="more">
+      <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="1"/><circle class="icon-gradient" cx="12" cy="5" r="1"/><circle class="icon-gradient" cx="12" cy="19" r="1"/></svg>
+      Ещё
+    </button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script type="module">
   await new Promise(resolve => setTimeout(resolve, 100));
-  const { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, ref, set, onValue, push, get, child, update, remove } = window.fbFn;
+  const { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, ref, set, onValue, push, get, child, update, remove, serverTimestamp, query, orderByChild, limitToLast } = window.fbFn;
   const auth = window.fbAuth;
   const db = window.fbDb;
-
-  // ============ i18n ============
-  const i18n = {
-    ru: { subtitle: 'Твой путь за 5 лет · Junior → Senior', step2: 'Расскажи о себе', step3: 'Цели', step4: 'Языки программирования', step4desc: 'Выбери что хочешь изучать', login: 'Войти', register: 'Зарегистрироваться', noAcc: 'Нет аккаунта? Зарегистрироваться', hasAcc: 'Уже есть аккаунт? Войти', guest: 'Продолжить локально', start: 'Начать путь 🚀', next: 'Далее →', name: 'Имя', age: 'Возраст', goal: 'Цель на год', level: 'Текущий уровень', email: 'Email', pass: 'Пароль (мин. 8 символов)' },
-    en: { subtitle: 'Your 5-year journey · Junior → Senior', step2: 'Tell about yourself', step3: 'Goals', step4: 'Programming languages', step4desc: 'Choose what to learn', login: 'Sign in', register: 'Sign up', noAcc: "No account? Sign up", hasAcc: 'Have account? Sign in', guest: 'Continue locally', start: 'Start journey 🚀', next: 'Next →', name: 'Name', age: 'Age', goal: 'Year goal', level: 'Current level', email: 'Email', pass: 'Password (min 8 chars)' },
-    es: { subtitle: 'Tu camino de 5 años · Junior → Senior', step2: 'Cuéntanos de ti', step3: 'Metas', step4: 'Lenguajes', step4desc: 'Elige qué aprender', login: 'Entrar', register: 'Registrarse', noAcc: '¿Sin cuenta? Regístrate', hasAcc: '¿Tienes cuenta? Entra', guest: 'Continuar local', start: 'Empezar 🚀', next: 'Siguiente →', name: 'Nombre', age: 'Edad', goal: 'Meta del año', level: 'Nivel actual', email: 'Correo', pass: 'Contraseña (mín 8)' },
-    de: { subtitle: 'Dein 5-Jahres-Weg · Junior → Senior', step2: 'Über dich', step3: 'Ziele', step4: 'Programmiersprachen', step4desc: 'Wähle zum Lernen', login: 'Anmelden', register: 'Registrieren', noAcc: 'Kein Konto? Registrieren', hasAcc: 'Konto vorhanden? Anmelden', guest: 'Lokal fortfahren', start: 'Start ', next: 'Weiter →', name: 'Name', age: 'Alter', goal: 'Jahresziel', level: 'Aktuelles Level', email: 'E-Mail', pass: 'Passwort (min 8)' },
-    fr: { subtitle: 'Ton parcours de 5 ans · Junior → Senior', step2: 'Parle de toi', step3: 'Objectifs', step4: 'Langages', step4desc: 'Choisis à apprendre', login: 'Connexion', register: "S'inscrire", noAcc: 'Pas de compte? Inscris-toi', hasAcc: 'Déjà un compte? Connecte-toi', guest: 'Continuer localement', start: 'Commencer 🚀', next: 'Suivant →', name: 'Nom', age: 'Âge', goal: 'Objectif annuel', level: 'Niveau actuel', email: 'E-mail', pass: 'Mot de passe (min 8)' },
-    zh: { subtitle: '你的5年旅程 · Junior → Senior', step2: '介绍自己', step3: '目标', step4: '编程语言', step4desc: '选择学习内容', login: '登录', register: '注册', noAcc: '没有账号？注册', hasAcc: '已有账号？登录', guest: '本地继续', start: '开始 🚀', next: '下一步 →', name: '姓名', age: '年龄', goal: '年度目标', level: '当前等级', email: '邮箱', pass: '密码（至少8位）' },
-    ja: { subtitle: '5年の旅 · Junior → Senior', step2: '自己紹介', step3: '目標', step4: 'プログラミング言語', step4desc: '学ぶものを選択', login: 'ログイン', register: '登録', noAcc: 'アカウントなし？登録', hasAcc: 'アカウントあり？ログイン', guest: 'ローカルで続行', start: '開始 🚀', next: '次へ →', name: '名前', age: '年齢', goal: '年間目標', level: '現在のレベル', email: 'メール', pass: 'パスワード（8文字以上）' },
-    ko: { subtitle: '5년의 여정 · Junior → Senior', step2: '자기소개', step3: '목표', step4: '프로그래밍 언어', step4desc: '배울 것을 선택', login: '로그인', register: '회원가입', noAcc: '계정 없음? 가입', hasAcc: '계정 있음? 로그인', guest: '로컬로 계속', start: '시작 🚀', next: '다음 →', name: '이름', age: '나이', goal: '연간 목표', level: '현재 레벨', email: '이메일', pass: '비밀번호 (최소 8자)' },
-    pt: { subtitle: 'Sua jornada de 5 anos · Junior → Senior', step2: 'Sobre você', step3: 'Metas', step4: 'Linguagens', step4desc: 'Escolha o que aprender', login: 'Entrar', register: 'Cadastrar', noAcc: 'Sem conta? Cadastre-se', hasAcc: 'Já tem conta? Entre', guest: 'Continuar local', start: 'Começar 🚀', next: 'Próximo →', name: 'Nome', age: 'Idade', goal: 'Meta anual', level: 'Nível atual', email: 'E-mail', pass: 'Senha (mín 8)' },
-    ar: { subtitle: 'رحلتك لمدة 5 سنوات · Junior → Senior', step2: 'عنك', step3: 'أهداف', step4: 'لغات البرمجة', step4desc: 'اختر ما تتعلمه', login: 'تسجيل الدخول', register: 'تسجيل', noAcc: 'لا حساب؟ سجل', hasAcc: 'لديك حساب؟ ادخل', guest: 'متابعة محلياً', start: 'ابدأ 🚀', next: 'التالي →', name: 'الاسم', age: 'العمر', goal: 'هدف السنة', level: 'المستوى الحالي', email: 'البريد', pass: 'كلمة المرور (8+)' },
-    hi: { subtitle: 'तुम्हारी 5 साल की यात्रा · Junior → Senior', step2: 'अपने बारे में', step3: 'लक्ष्य', step4: 'प्रोग्रामिंग भाषाएँ', step4desc: 'सीखने के लिए चुनें', login: 'लॉगिन', register: 'रजिस्टर', noAcc: 'अकाउंट नहीं? रजिस्टर', hasAcc: 'अकाउंट है? लॉगिन', guest: 'लोकल जारी', start: 'शुरू ', next: 'आगे →', name: 'नाम', age: 'उम्र', goal: 'साल का लक्ष्य', level: 'वर्तमान स्तर', email: 'ईमेल', pass: 'पासवर्ड (8+)' },
-    tr: { subtitle: '5 yıllık yolculuk · Junior → Senior', step2: 'Kendinden bahset', step3: 'Hedefler', step4: 'Programlama dilleri', step4desc: 'Öğreneceklerini seç', login: 'Giriş', register: 'Kayıt', noAcc: 'Hesap yok? Kaydol', hasAcc: 'Hesabın var? Giriş', guest: 'Yerel devam', start: 'Başla 🚀', next: 'İleri →', name: 'İsim', age: 'Yaş', goal: 'Yıl hedefi', level: 'Mevcut seviye', email: 'E-posta', pass: 'Şifre (min 8)' }
-  };
-
-  const programmingLangs = [
-    { id: 'js', name: 'JavaScript', flag: '🟨' },
-    { id: 'ts', name: 'TypeScript', flag: '🟦' },
-    { id: 'python', name: 'Python', flag: '🐍' },
-    { id: 'java', name: 'Java', flag: '' },
-    { id: 'cpp', name: 'C++', flag: '⚙️' },
-    { id: 'csharp', name: 'C#', flag: '' },
-    { id: 'go', name: 'Go', flag: '🐹' },
-    { id: 'rust', name: 'Rust', flag: '🦀' },
-    { id: 'swift', name: 'Swift', flag: '🍎' },
-    { id: 'kotlin', name: 'Kotlin', flag: '🤖' },
-    { id: 'ruby', name: 'Ruby', flag: '' },
-    { id: 'php', name: 'PHP', flag: '🐘' },
-    { id: 'scala', name: 'Scala', flag: '🔺' },
-    { id: 'dart', name: 'Dart', flag: '🎯' },
-    { id: 'r', name: 'R', flag: '📊' },
-    { id: 'lua', name: 'Lua', flag: '🌙' },
-    { id: 'perl', name: 'Perl', flag: '🐪' },
-    { id: 'haskell', name: 'Haskell', flag: 'λ' },
-    { id: 'elixir', name: 'Elixir', flag: '💧' },
-    { id: 'zig', name: 'Zig', flag: '⚡' },
-    { id: 'nim', name: 'Nim', flag: '👑' },
-    { id: 'julia', name: 'Julia', flag: '🔬' },
-    { id: 'clojure', name: 'Clojure', flag: '🌀' },
-    { id: 'sql', name: 'SQL', flag: '🗄️' },
-    { id: 'html', name: 'HTML/CSS', flag: '🌐' },
-    { id: 'assembly', name: 'Assembly', flag: '🔧' }
-  ];
 
   let currentUser = null;
   let isGuest = false;
   let authMode = 'login';
   let authStep = 1;
-  let selectedLangs = [];
-  let interfaceLang = 'ru';
+  let selectedLang = 'js';
   let saveTimeout = null;
-  let guildUnsubscribe = null;
+  let guildUnsub = null;
+  let chatUnsub = null;
+  let msgUnsubs = {};
+  let currentChat = null;
+  let currentGuildChat = null;
+  let allUsersCache = {};
 
-  const STORAGE_KEY = 'lifeos_v9';
+  const STORAGE_KEY = 'lifeos_v10';
   const defaultState = {
     xp: 0, totalXp: 0, completedTasks: {}, customTasks: {},
     habits: [], habitLog: {}, bestStreak: 0,
     registrationDate: null, lastLogin: null, loginStreak: 0,
-    profile: { name: '', age: 0, goal: '', level: '', langs: [], interfaceLang: 'ru' },
-    notifications: false, snippets: [], moods: {},
+    profile: { name: '', age: 0, bio: '', goal: '', level: '', lang: 'js', avatar: '🚀', color: '#8b5cf6' },
     achievements: [], dailyBonusClaimed: null,
-    expenses: [], projects: [], flashcards: [], quizScores: {},
-    theme: 'dark', accentColor: '#8b5cf6',
-    guildId: null, guildContribution: 0,
-    burnoutHistory: []
+    projects: [], guildId: null, guildContribution: 0,
+    chats: {}, lastMsgAt: {}
   };
 
   let state = structuredClone(defaultState);
 
-  // ============ Achievements ============
+  const AVATARS = ['🚀','‍💻','👩‍💻','🦊','','🐶','🦁','','🐨','🦄','🐲','🔥','⭐','💎','🎯','','🎮','🎨','','🎪','🌟','✨','💫','🌈'];
+  const COLORS = ['#8b5cf6','#ec4899','#10b981','#f59e0b','#3b82f6','#ef4444','#06b6d4','#84cc16','#f97316'];
+
   const ACHIEVEMENTS = [
-    { id: 'first_task', icon: '', name: 'Первый шаг', desc: 'Выполни первую задачу', check: s => Object.keys(s.completedTasks).length >= 1 },
-    { id: 'ten_tasks', icon: '🔥', name: 'Разгон', desc: '10 задач выполнено', check: s => Object.keys(s.completedTasks).length >= 10 },
-    { id: 'hundred_tasks', icon: '💯', name: 'Сотня', desc: '100 задач', check: s => Object.keys(s.completedTasks).length >= 100 },
-    { id: 'xp_1000', icon: '⭐', name: 'Тысячник', desc: '1000 XP', check: s => s.totalXp >= 1000 },
-    { id: 'xp_10000', icon: '🌟', name: 'Легенда', desc: '10000 XP', check: s => s.totalXp >= 10000 },
-    { id: 'streak_7', icon: '🔥', name: 'Неделя', desc: 'Серия 7 дней', check: s => s.bestStreak >= 7 },
-    { id: 'streak_30', icon: '', name: 'Месяц', desc: 'Серия 30 дней', check: s => s.bestStreak >= 30 },
-    { id: 'habit_5', icon: '✨', name: 'Привычка', desc: '5 привычек', check: s => s.habits.length >= 5 },
-    { id: 'snippet_5', icon: '📝', name: 'Коллекционер', desc: '5 сниппетов', check: s => s.snippets.length >= 5 },
-    { id: 'guild_join', icon: '🏰', name: 'Гильдеец', desc: 'Вступи в гильдию', check: s => s.guildId !== null },
-    { id: 'guild_1000', icon: '👑', name: 'Лидер', desc: '1000 баллов гильдии', check: s => s.guildContribution >= 1000 },
-    { id: 'expense_track', icon: '💰', name: 'Эконом', desc: 'Первая запись расхода', check: s => s.expenses.length >= 1 },
-    { id: 'project_done', icon: '🚀', name: 'Проект', desc: 'Заверши pet-проект', check: s => s.projects.some(p => p.stages.every(st => st.done)) },
-    { id: 'quiz_5', icon: '', name: 'Умник', desc: 'Пройди 5 квизов', check: s => Object.keys(s.quizScores).length >= 5 },
-    { id: 'flash_20', icon: '', name: 'Память', desc: '20 карточек', check: s => s.flashcards.length >= 20 }
+    { id: 'first_task', icon: '🎯', name: 'Первый шаг', desc: '1 задача' },
+    { id: 'ten_tasks', icon: '🔥', name: 'Разгон', desc: '10 задач' },
+    { id: 'hundred_tasks', icon: '💯', name: 'Сотня', desc: '100 задач' },
+    { id: 'xp_1000', icon: '⭐', name: 'Тысячник', desc: '1000 XP' },
+    { id: 'xp_10000', icon: '🌟', name: 'Легенда', desc: '10000 XP' },
+    { id: 'streak_7', icon: '🔥', name: 'Неделя', desc: 'Серия 7 дней' },
+    { id: 'streak_30', icon: '💎', name: 'Месяц', desc: 'Серия 30 дней' },
+    { id: 'guild_join', icon: '🏰', name: 'Гильдеец', desc: 'Вступи в гильдию' },
+    { id: 'guild_1000', icon: '', name: 'Лидер', desc: '1000 баллов гильдии' },
+    { id: 'project_done', icon: '🚀', name: 'Проект', desc: 'Заверши проект' },
+    { id: 'msg_first', icon: '', name: 'Общительный', desc: 'Первое сообщение' },
+    { id: 'level_10', icon: '🏆', name: 'Уровень 10', desc: 'Достигни 10 уровня' }
   ];
 
-  // ============ Quiz questions ============
-  const QUIZZES = {
-    js: [
-      { q: 'Что выведет typeof null?', options: ['"null"', '"object"', '"undefined"', '"number"'], correct: 1 },
-      { q: 'Как объявить константу?', options: ['var x', 'let x', 'const x', 'constant x'], correct: 2 },
-      { q: 'Что такое замыкание?', options: ['Цикл', 'Функция + её лексическое окружение', 'Массив', 'Объект'], correct: 1 },
-      { q: 'Метод для добавления в конец массива?', options: ['push()', 'pop()', 'shift()', 'unshift()'], correct: 0 },
-      { q: 'Что вернёт [1,2,3].map(x => x*2)?', options: ['[1,2,3]', '[2,4,6]', '6', 'undefined'], correct: 1 }
-    ],
-    react: [
-      { q: 'Хук для состояния?', options: ['useEffect', 'useState', 'useContext', 'useRef'], correct: 1 },
-      { q: 'Как передать данные дочернему компоненту?', options: ['state', 'props', 'context', 'redux'], correct: 1 },
-      { q: 'Что делает useEffect?', options: ['Рендер', 'Побочные эффекты', 'Состояние', 'Роутинг'], correct: 1 },
-      { q: 'Правило хуков?', options: ['В циклах', 'В условиях', 'Только в теле компонента', 'Везде'], correct: 2 },
-      { q: 'Virtual DOM это...', options: ['Реальный DOM', 'Лёгкая копия DOM', 'База данных', 'CSS'], correct: 1 }
-    ],
-    python: [
-      { q: 'Как создать список?', options: ['[]', '{}', '()', '""'], correct: 0 },
-      { q: 'Функция для длины?', options: ['size()', 'len()', 'length()', 'count()'], correct: 1 },
-      { q: 'Ключевое слово для функции?', options: ['func', 'function', 'def', 'fn'], correct: 2 },
-      { q: 'Что выведет print(type(5))?', options: ["<class 'int'>", "<type 'int'>", 'int', '5'], correct: 0 },
-      { q: 'Как импортировать модуль?', options: ['include', 'require', 'import', 'using'], correct: 2 }
-    ]
-  };
-
-  // ============ Flashcards ============
-  const DEFAULT_FLASHCARDS = [
-    { front: 'Closure (Замыкание)', back: 'Функция, запоминающая своё лексическое окружение' },
-    { front: 'Promise', back: 'Объект, представляющий результат асинхронной операции' },
-    { front: 'DOM', back: 'Document Object Model — программный интерфейс HTML' },
-    { front: 'API', back: 'Application Programming Interface — интерфейс взаимодействия' },
-    { front: 'REST', back: 'Архитектурный стиль для веб-сервисов' },
-    { front: 'Git', back: 'Система контроля версий' },
-    { front: 'npm', back: 'Node Package Manager — менеджер пакетов Node.js' },
-    { front: 'TypeScript', back: 'Типизированный надмножество JavaScript' },
-    { front: 'React', back: 'Библиотека для создания UI от Facebook' },
-    { front: 'Node.js', back: 'Среда выполнения JS на сервере' }
-  ];
-
-  // ============ Guild Shop ============
   const GUILD_SHOP = [
     { id: 'xp_boost', icon: '⚡', name: 'XP Бустер x2', price: 500, desc: 'Двойной XP на 1 час' },
-    { id: 'habit_boost', icon: '🔥', name: 'Бустер привычек', price: 300, desc: 'Двойные баллы за привычку' },
-    { id: 'avatar_frame', icon: '🎨', name: 'Рамка аватара', price: 750, desc: 'Уникальная рамка' },
-    { id: 'title_vet', icon: '🏆', name: 'Титул "Ветеран"', price: 2000, desc: 'Особый значок' },
-    { id: 'lootbox', icon: '🎁', name: 'Лутбокс', price: 200, desc: 'Случайный бонус 50-500 XP' },
-    { id: 'skin', icon: '🌟', name: 'Скин профиля', price: 1000, desc: 'Меняет цвет интерфейса' }
+    { id: 'habit_boost', icon: '🔥', name: 'Бустер привычек', price: 300, desc: 'Двойные баллы' },
+    { id: 'lootbox', icon: '🎁', name: 'Лутбокс', price: 200, desc: '50-500 XP' },
+    { id: 'title_vet', icon: '🏆', name: 'Титул "Ветеран"', price: 2000, desc: 'Особый значок' }
   ];
 
+  // ============ JS Course (52 weeks) ============
+  const JS_COURSE = [];
+  const jsWeeks = [
+    { t: 'HTML/CSS/Git', p: 'Визитка', d: [
+      ['Установка VS Code, Node, Git','node -v, git --version',30,'git'],
+      ['Git и GitHub — основы','Владилен Минин',60,'git'],
+      ['Git: ветки, merge, PR','',60,'git'],
+      ['HTML: теги, семантика','',70,'html'],
+      ['CSS: селекторы, box-model','',70,'html'],
+      ['HTML: формы, таблицы','',60,'html'],
+      ['CSS: Flexbox','Flexbox Froggy',70,'html'],
+      ['Практика: карточка товара','',50,'project'],
+      ['CSS: Grid, позиционирование','',70,'html'],
+      ['CSS: адаптивность','',70,'html'],
+      ['Практика: адаптивная галерея','',60,'project'],
+      ['CSS: переменные, transitions','',60,'html'],
+      ['Проект: Визитка (HTML)','Обо мне, навыки',70,'project'],
+      ['Проект: Визитка (CSS+адаптив)','',80,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых (2+ часа)','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'JS Основы', p: 'Консольный калькулятор', d: [
+      ['JS Основы — часть 1','let, const, var',80,'js'],
+      ['Stepik: JS для начинающих (раздел 1)','',60,'js'],
+      ['Операторы, сравнения, логика','',70,'js'],
+      ['Условия: if/else, switch','',70,'js'],
+      ['Stepik: условия (10 задач)','',60,'js'],
+      ['Циклы: for, while, break','',70,'js'],
+      ['Практика: 10 задач на циклы','',70,'js'],
+      ['Stepik: циклы','',60,'js'],
+      ['Функции: declaration, return','',70,'js'],
+      ['Практика: 5 функций','',70,'project'],
+      ['Stepik: функции','',60,'js'],
+      ['Массивы: push/pop/shift','',70,'js'],
+      ['Объекты: свойства, this','',70,'js'],
+      ['Начало консольного калькулятора','',60,'project'],
+      ['Завершение калькулятора','',70,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Функции, массивы, объекты', p: 'GUI Калькулятор', d: [
+      ['Массивы: map, filter, reduce','Владилен',80,'js'],
+      ['Практика: 10 задач на map/filter','',70,'js'],
+      ['Объекты: деструктуризация, spread','',70,'js'],
+      ['Object.keys/values/entries','',60,'js'],
+      ['Практика: 10 задач на объекты','',60,'js'],
+      ['Область видимости, hoisting','',70,'js'],
+      ['Замыкания (closures) — базово','',70,'js'],
+      ['Строки: slice, split, replace','',60,'js'],
+      ['Начало GUI-калькулятора: HTML+CSS','',70,'project'],
+      ['GUI-калькулятор: JS-логика','',90,'project'],
+      ['Стилизация, адаптив','',50,'project'],
+      ['Тестирование, фикс багов','',50,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью месяца 1 + план','',60,'book']
+    ]},
+    { t: 'DOM и события', p: 'To-Do List', d: [
+      ['DOM: querySelector, создание','',80,'js'],
+      ['Практика: изменить стили через JS','',60,'js'],
+      ['События: addEventListener, click','',70,'js'],
+      ['Делегирование событий','',70,'js'],
+      ['Работа с формами: ввод, валидация','',70,'js'],
+      ['Начало To-Do List: HTML+CSS','',70,'project'],
+      ['To-Do List: добавление, удаление','',80,'project'],
+      ['To-Do List: LocalStorage','',70,'project'],
+      ['To-Do List: фильтры, счётчик','',70,'project'],
+      ['Финализация: стили, адаптив','',60,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью месяца + план','',60,'book']
+    ]},
+    { t: 'Практика JS + слайдер', p: 'Галерея/слайдер', d: [
+      ['JS с ПРАКТИКОЙ (часть 1)','',80,'js'],
+      ['Stepik: массивы (продвинутый)','',60,'js'],
+      ['Продолжение курса (часть 2)','',80,'js'],
+      ['Начало слайдера: HTML+CSS','',60,'project'],
+      ['Слайдер: переключение по клику','',80,'project'],
+      ['Слайдер: автопрокрутка','',60,'project'],
+      ['Слайдер: индикаторы, клавиатура','',70,'project'],
+      ['Слайдер: CSS transitions','',60,'project'],
+      ['Слайдер: touch-события','',70,'project'],
+      ['Финализация','',60,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Асинхронность и API', p: 'Приложение погоды', d: [
+      ['Асинхронность: callback, Promise','Владилен',80,'js'],
+      ['Promises: then/catch/finally','',70,'js'],
+      ['async/await, try/catch','',80,'js'],
+      ['Практика: 5 задач на async/await','',60,'js'],
+      ['Fetch API, REST API основы','',70,'js'],
+      ['Практика: jsonplaceholder','',60,'js'],
+      ['Начало приложения погоды: HTML+CSS, API-ключ','',70,'project'],
+      ['Fetch погоды по городу','',70,'project'],
+      ['Погода: ошибки, loader, иконки','',70,'project'],
+      ['Погода: геолокация','',60,'project'],
+      ['Финализация','',50,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'ES6+ и игра', p: 'Игра (змейка/кликер)', d: [
+      ['JS ES6 — Полный курс (1-я часть)','',80,'js'],
+      ['Деструктуризация объектов и массивов','',60,'js'],
+      ['Spread/rest, shallow vs deep copy','',70,'js'],
+      ['Продолжение ES6-курса (2-я часть)','',70,'js'],
+      ['Модули: import/export','',70,'js'],
+      ['Начало игры: HTML+CSS','',60,'project'],
+      ['Игра: основная логика','',80,'project'],
+      ['Игра: обработка ввода','',60,'project'],
+      ['Игра: рекорды (LocalStorage), рестарт','',70,'project'],
+      ['Финализация','',50,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Повторение и GitHub', p: 'Красивый GitHub-профиль', d: [
+      ['Рефакторинг: калькулятор, To-Do List','',60,'js'],
+      ['Рефакторинг: слайдер, погода, игра','',60,'js'],
+      ['Git продвинутый: .gitignore, ветки, rebase','',70,'git'],
+      ['GitHub: README.md, badges','',60,'git'],
+      ['README для каждого проекта','',70,'git'],
+      ['GitHub profile README','',60,'git'],
+      ['Книга: «Выразительный JavaScript» гл. 1-2','eloquentjavascript.ru',60,'book'],
+      ['5 задач на Codewars (8 kyu)','',60,'js'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью месяца 2 + план','',60,'book']
+    ]},
+    { t: 'ООП и прототипы', p: 'Библиотека книг (CRUD)', d: [
+      ['Прототипы: __proto__, prototype','Владилен',80,'js'],
+      ['5 задач на прототипы','',60,'js'],
+      ['Классы ES6: constructor, extends','',80,'js'],
+      ['Статические методы, приватные поля (#)','',60,'js'],
+      ['this: call, apply, bind, стрелочные функции','',70,'js'],
+      ['Задачи на контекст','',60,'js'],
+      ['Начало «Библиотеки книг»: класс Book, HTML+CSS','',70,'project'],
+      ['Добавление книг, список','',60,'project'],
+      ['CRUD: редактирование, удаление, фильтры','',80,'project'],
+      ['LocalStorage','',60,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Замыкания и продвинутые темы', p: 'Мини-фреймворк', d: [
+      ['Замыкания глубже: lexical environment','',80,'js'],
+      ['10 задач на замыкания','',60,'js'],
+      ['Каррирование, частичное применение','',70,'js'],
+      ['Мемоизация: функция memoize','',70,'js'],
+      ['Функции высшего порядка: compose, pipe','',70,'js'],
+      ['Практика','',60,'js'],
+      ['Event Loop: call stack, micro/macrotasks','Philip Roberts',80,'js'],
+      ['Начало мини-фреймворка: createElement, render','',80,'project'],
+      ['Обработка состояния','',60,'project'],
+      ['Финализация','',60,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Регулярки, дата, JSON', p: 'Планировщик с календарём', d: [
+      ['Date: создание, методы, форматирование','',70,'js'],
+      ['5 задач на даты','',50,'js'],
+      ['JSON: parse, stringify','',70,'js'],
+      ['Регулярные выражения','',70,'js'],
+      ['try/catch/finally, кастомные Error','',70,'js'],
+      ['Валидация email/телефона','',60,'js'],
+      ['Начало планировщика: HTML+CSS календаря','',70,'project'],
+      ['Логика: месяц, переключение','',60,'project'],
+      ['Добавление задач, редактирование','',80,'project'],
+      ['LocalStorage','',60,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'SPA на чистом JS', p: 'SPA «Блог»', d: [
+      ['History API: pushState, popstate','',80,'js'],
+      ['Простой роутер на 2 страницы','',60,'js'],
+      ['Модульная структура: import/export','',70,'js'],
+      ['Начало SPA: структура, роутер','',60,'project'],
+      ['SPA: список постов (jsonplaceholder)','',80,'project'],
+      ['SPA: страница деталей','',70,'project'],
+      ['SPA: поиск, фильтры, пагинация','',70,'project'],
+      ['SPA: 404, loader','',60,'project'],
+      ['SPA: стили, анимации','',60,'project'],
+      ['Книга: «Выразительный JavaScript» гл. 3-5','',50,'book'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью месяца 3 + план','',60,'book']
+    ]},
+    { t: 'Алгоритмы: массивы и строки', p: '20 задач LeetCode', d: [
+      ['Алгоритмы: сложность O(1), O(n), O(n²)','',70,'js'],
+      ['LeetCode: Two Sum, Valid Anagram','',70,'js'],
+      ['LeetCode: Best Time to Buy Stock, Valid Palindrome','',70,'js'],
+      ['LeetCode: Move Zeroes, Fibonacci','',70,'js'],
+      ['LeetCode: Longest Substring, Group Anagrams','',70,'js'],
+      ['LeetCode: Product of Array Except Self, 3Sum','',70,'js'],
+      ['LeetCode: ещё 5 задач','',70,'js'],
+      ['Книга: «Грокаем алгоритмы» гл. 1-2','',50,'book'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Связные списки, стеки, очереди', p: 'Визуализатор структур', d: [
+      ['Связный список: реализация','',80,'js'],
+      ['LeetCode: Reverse Linked List','',60,'js'],
+      ['Стек (Stack): реализация','',70,'js'],
+      ['LeetCode: Valid Parentheses, Min Stack','',60,'js'],
+      ['Очередь (Queue)','',70,'js'],
+      ['LeetCode: Implement Queue using Stacks','',60,'js'],
+      ['Hash Table: реализация','',70,'js'],
+      ['5 задач на Hash Map','',60,'js'],
+      ['Визуализатор: стек и очередь','',70,'project'],
+      ['Финализация визуализатора','',50,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Деревья и графы', p: 'Визуализатор дерева', d: [
+      ['Рекурсия: базовый случай, стек вызовов','',80,'js'],
+      ['10 задач на рекурсию','',60,'js'],
+      ['Бинарное дерево: обходы (in/pre/post-order)','',80,'js'],
+      ['LeetCode: Maximum Depth, Invert Binary Tree','',60,'js'],
+      ['BST: вставка, поиск, удаление','',70,'js'],
+      ['LeetCode: Validate BST','',60,'js'],
+      ['Графы: BFS, DFS','',70,'js'],
+      ['LeetCode: Number of Islands','',60,'js'],
+      ['Визуализатор бинарного дерева','',80,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Сортировки и LeetCode марафон', p: 'Визуализатор сортировок', d: [
+      ['Сортировки: bubble, selection, insertion','',70,'js'],
+      ['Визуализатор: bubble sort','',60,'project'],
+      ['Сортировки: merge, quick','',70,'js'],
+      ['Визуализатор: merge/quick sort','',60,'project'],
+      ['Бинарный поиск','',70,'js'],
+      ['LeetCode: Binary Search','',60,'js'],
+      ['LeetCode марафон: 10 Easy + 5 Medium','',80,'js'],
+      ['Финализация визуализатора','',60,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью месяца 4 + план','',60,'book']
+    ]},
+    { t: 'Event Loop глубже', p: 'Анимационное приложение', d: [
+      ['Event Loop глубже: Jake Archibald "In The Loop"','',80,'js'],
+      ['Microtasks vs Macrotasks','',70,'js'],
+      ['20 примеров с Event Loop (quiz)','',70,'js'],
+      ['requestAnimationFrame','',60,'js'],
+      ['Анимация: Canvas, базовая анимация','',70,'project'],
+      ['Физика: движение, гравитация','',70,'project'],
+      ['Управление мышью/клавиатурой, частицы','',70,'project'],
+      ['Финализация','',60,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Web APIs, Storage', p: 'Заметки (IndexedDB)', d: [
+      ['LocalStorage vs SessionStorage vs IndexedDB','',70,'js'],
+      ['IndexedDB: CRUD','',80,'js'],
+      ['History API, Geolocation, Notifications','',70,'js'],
+      ['Начало заметок: IndexedDB','',70,'project'],
+      ['CRUD, поиск, теги','',70,'project'],
+      ['Markdown, экспорт/импорт','',70,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Формы и валидация', p: 'Многоступенчатая форма', d: [
+      ['Формы: типы input, встроенная валидация','',70,'js'],
+      ['Кастомная валидация','',70,'js'],
+      ['FormData API, FileReader','',70,'js'],
+      ['Форма: шаги, прогресс-бар','',70,'project'],
+      ['Валидация каждого шага','',70,'project'],
+      ['Отправка, success-экран','',70,'project'],
+      ['Черновик в LocalStorage','',60,'project'],
+      ['Финализация','',60,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Оптимизация, Debounce/Throttle', p: 'Поиск с автодополнением', d: [
+      ['Debounce и Throttle: реализация','',80,'js'],
+      ['Применить к scroll, input','',60,'js'],
+      ['Lighthouse: аудит производительности','',70,'js'],
+      ['Поиск: HTML+CSS, mock API','',70,'project'],
+      ['Debounce, результаты','',70,'project'],
+      ['Подсветка, навигация клавиатурой','',70,'project'],
+      ['История поиска','',60,'project'],
+      ['Финализация, оптимизация (Lighthouse 95+)','',60,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью месяца 5 + план','',60,'book']
+    ]},
+    { t: 'TypeScript: основы', p: 'Миграция To-Do на TS', d: [
+      ['TypeScript — Полный Курс (1-я часть)','',80,'js'],
+      ['Типы: string, number, any, unknown, void','',60,'js'],
+      ['Массивы, кортежи, enum','',70,'js'],
+      ['Продолжение курса (2-я часть)','',70,'js'],
+      ['Интерфейсы vs типы','',70,'js'],
+      ['Union, intersection, type guards','',70,'js'],
+      ['tsconfig.json, strict mode','',60,'js'],
+      ['Начало миграции To-Do','',60,'project'],
+      ['Миграция: типы для задач, функций','',80,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'TypeScript: Generics', p: 'Библиотека утилит', d: [
+      ['Generics: функции, классы, интерфейсы','',80,'js'],
+      ['10 задач на дженерики','',60,'js'],
+      ['Utility types: Partial, Required, Pick, Omit','',80,'js'],
+      ['Conditional types, keyof, typeof','',70,'js'],
+      ['Библиотека утилит: groupBy, sortBy, pipe','',80,'project'],
+      ['Документация (JSDoc)','',60,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'TS + DOM, TS + API', p: 'Погода на TypeScript', d: [
+      ['Типизация DOM: HTMLElement, Event','',70,'js'],
+      ['Типизация fetch, API-ответов','',70,'js'],
+      ['Начало погодного приложения на TS','',70,'project'],
+      ['Типизация API OpenWeatherMap','',70,'project'],
+      ['UI, обработка ошибок','',70,'project'],
+      ['История поиска','',60,'project'],
+      ['Финализация','',50,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Миграция SPA на TypeScript', p: 'Миграция SPA-блога', d: [
+      ['Настройка TS: tsconfig, Vite','',70,'project'],
+      ['Миграция: роутер, API-клиент','',70,'project'],
+      ['Миграция компонентов','',70,'project'],
+      ['Миграция оставшихся модулей','',70,'project'],
+      ['Фикс TS-ошибок, strict mode','',60,'project'],
+      ['Книга: «Выразительный JavaScript» гл. 6-10','',60,'book'],
+      ['Финализация, README','',50,'project'],
+      ['GitHub + GitHub Pages','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью месяца 6 + план (React!)','',60,'book']
+    ]},
+    { t: 'React: JSX, компоненты, props', p: 'Карточное приложение', d: [
+      ['React.js Курс Для Новичков (1-я часть)','',80,'js'],
+      ['JSX: синтаксис, выражения','',70,'js'],
+      ['Компоненты: функциональные, props','',80,'js'],
+      ['Vite + React + TypeScript','',60,'js'],
+      ['Props: передача данных, TS-типы','',70,'js'],
+      ['Начало карточного приложения','',70,'project'],
+      ['Карточки: отображение, стили','',70,'project'],
+      ['Финализация: адаптив','',60,'project'],
+      ['GitHub + Vercel','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'useState, useEffect', p: 'Счётчик + таймер + TODO', d: [
+      ['useState: инициализация, обновление','',80,'js'],
+      ['Практика: счётчик, формы','',60,'js'],
+      ['useEffect: зависимости, cleanup','',80,'js'],
+      ['Практика: загрузка данных, таймеры','',60,'js'],
+      ['React-таймер','',70,'project'],
+      ['React-ToDo: CRUD','',70,'project'],
+      ['ToDo: фильтры, LocalStorage','',70,'project'],
+      ['Залить на GitHub + Vercel','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Формы, события, списки', p: 'Форма регистрации', d: [
+      ['Обработка событий, controlled/uncontrolled','',70,'js'],
+      ['Рендер списков: key, условный рендеринг','',70,'js'],
+      ['Форма: поля, валидация','',70,'project'],
+      ['Многоступенчатая форма','',70,'project'],
+      ['Отправка, success/error экраны','',70,'project'],
+      ['Залить на GitHub + Vercel','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'React To-Do (большой проект)', p: 'Продвинутый To-Do', d: [
+      ['Архитектура, структура папок','',70,'project'],
+      ['Базовый CRUD','',70,'project'],
+      ['Категории, теги, приоритеты','',70,'project'],
+      ['Фильтры, поиск','',70,'project'],
+      ['Drag-and-drop, даты','',70,'project'],
+      ['LocalStorage, экспорт/импорт','',60,'project'],
+      ['Темная/светлая тема','',60,'project'],
+      ['Статистика','',60,'project'],
+      ['Финализация','',50,'project'],
+      ['GitHub + Vercel','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью месяца 7 + план','',60,'book']
+    ]},
+    { t: 'Context, useMemo, useCallback', p: 'E-commerce корзина', d: [
+      ['Context API: создание, провайдер, useContext','',80,'js'],
+      ['useMemo, useCallback, React.memo','',80,'js'],
+      ['Корзина: каталог, карточки','',70,'project'],
+      ['Корзина: CRUD','',70,'project'],
+      ['Корзина: Context, пересчёт суммы','',70,'project'],
+      ['Промокоды, избранное','',60,'project'],
+      ['Финализация','',60,'project'],
+      ['GitHub + Vercel','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'React Router', p: 'Многостраничный сайт', d: [
+      ['React Router v6: BrowserRouter, Routes, Link','',80,'js'],
+      ['Динамические роуты (:id), useSearchParams','',70,'js'],
+      ['Начало сайта: layout (Header, Footer)','',70,'project'],
+      ['Главная страница','',70,'project'],
+      ['Страница блога: список + детали','',70,'project'],
+      ['Страница контактов','',60,'project'],
+      ['Финализация: SEO, стили','',60,'project'],
+      ['GitHub + Vercel','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Custom hooks, API интеграция', p: 'Кинопоиск', d: [
+      ['Custom hooks: создание, правила','',80,'js'],
+      ['5 своих хуков','',60,'js'],
+      ['Работа с API: axios, react-query','',80,'js'],
+      ['Начало «Кинопоиска»: API OMDB/TMDB','',70,'project'],
+      ['Список фильмов, поиск','',70,'project'],
+      ['Детали фильма, актёры','',70,'project'],
+      ['Избранное, фильтры','',60,'project'],
+      ['Финализация','',60,'project'],
+      ['GitHub + Vercel','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Большое React-приложение', p: 'Дашборд аналитики', d: [
+      ['Архитектура дашборда','',70,'project'],
+      ['Mock API','',70,'project'],
+      ['Графики: Chart.js или Recharts','',80,'project'],
+      ['Фильтры по датам','',60,'project'],
+      ['Таблицы с сортировкой, пагинацией','',70,'project'],
+      ['Экспорт в CSV','',60,'project'],
+      ['Темная/светлая тема','',60,'project'],
+      ['Сохранение настроек','',60,'project'],
+      ['Финализация, README','',50,'project'],
+      ['GitHub + Vercel','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью месяца 8 + план','',60,'book']
+    ]},
+    { t: 'Zustand / Redux Toolkit', p: 'E-commerce на Zustand', d: [
+      ['Zustand: store, actions, selectors','',80,'js'],
+      ['Мигрировать корзину на Zustand','',60,'js'],
+      ['Redux Toolkit: createSlice, configureStore','',80,'js'],
+      ['RTK Query: загрузка данных, кэширование','',70,'js'],
+      ['E-commerce: каталог, корзина, checkout','',80,'project'],
+      ['Авторизация (mock)','',70,'project'],
+      ['Финализация','',60,'project'],
+      ['GitHub + Vercel','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Jest основы', p: 'Покрытие тестами', d: [
+      ['Jest: describe/it/expect, matchers','',80,'js'],
+      ['Тесты для 10 функций','',60,'js'],
+      ['Mock функции, jest.fn()','',70,'js'],
+      ['Асинхронные тесты','',70,'js'],
+      ['Покрытие тестами библиотеки утилит','',80,'project'],
+      ['Тестирование React-компонентов','',70,'js'],
+      ['CI: GitHub Actions для тестов','',60,'git'],
+      ['Обновить GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'React Testing Library', p: 'Тесты To-Do + E-commerce', d: [
+      ['React Testing Library: render, screen, fireEvent','',80,'js'],
+      ['userEvent, waitFor, findBy queries','',70,'js'],
+      ['Тесты для To-Do List','',70,'project'],
+      ['Тесты для корзины','',70,'project'],
+      ['Тесты для роутинга, моков API','',70,'project'],
+      ['Финализация, CI','',50,'project'],
+      ['Обновить GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Финальный проект с тестами', p: 'Финальное React-приложение', d: [
+      ['Выбор идеи: блог / трекер / чат','',60,'project'],
+      ['Архитектура','',70,'project'],
+      ['Основной функционал: CRUD, роутинг','',80,'project'],
+      ['API интеграция','',70,'project'],
+      ['Авторизация, личный кабинет','',70,'project'],
+      ['UI: стили, адаптив','',60,'project'],
+      ['Unit + integration тесты (80%+)','',80,'project'],
+      ['CI/CD: GitHub Actions','',50,'git'],
+      ['README, документация','',50,'project'],
+      ['GitHub + Vercel','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью месяца 9 + план (Node.js!)','',60,'book']
+    ]},
+    { t: 'Node.js основы', p: 'HTTP-сервер + CLI', d: [
+      ['Node.js для начинающих (1-я часть)','',80,'js'],
+      ['Node.js: event loop, модули','',70,'js'],
+      ['NPM: package.json, зависимости','',70,'js'],
+      ['Встроенные модули: fs, path, http','',70,'js'],
+      ['HTTP-сервер на http','',70,'project'],
+      ['Чтение/запись файлов','',60,'project'],
+      ['CLI утилита: commander.js','',70,'project'],
+      ['Финализация','',50,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Express, REST API', p: 'REST API для блога', d: [
+      ['Express: роуты, middleware','',80,'js'],
+      ['REST API: принципы, методы HTTP','',70,'js'],
+      ['Middleware: cors, body-parser','',70,'js'],
+      ['REST API для блога: CRUD','',80,'project'],
+      ['Валидация, обработка ошибок','',60,'project'],
+      ['Комментарии, авторы, фильтры','',70,'project'],
+      ['Пагинация, поиск','',60,'project'],
+      ['Swagger документация','',60,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'БД: PostgreSQL + Prisma', p: 'Миграция блога на БД', d: [
+      ['SQL основы: SELECT, INSERT, UPDATE','',80,'js'],
+      ['PostgreSQL: установка','',60,'js'],
+      ['Prisma ORM: schema, миграции','',80,'js'],
+      ['Миграция блога на PostgreSQL + Prisma','',80,'project'],
+      ['Связи: один-ко-многим','',60,'project'],
+      ['Индексы, транзакции','',70,'project'],
+      ['Финализация, тесты','',60,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'JWT, авторизация', p: 'Авторизация в блоге', d: [
+      ['Аутентификация vs авторизация, JWT','',70,'js'],
+      ['bcrypt: хэширование','',70,'js'],
+      ['JWT: создание, подпись, верификация','',80,'js'],
+      ['Регистрация: валидация, хэш','',70,'project'],
+      ['Логин: выдача JWT','',70,'project'],
+      ['Защищённые роуты','',70,'project'],
+      ['Роли: admin/user','',60,'project'],
+      ['Финализация, тесты','',60,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью месяца 10 + план','',60,'book']
+    ]},
+    { t: 'Fullstack проект', p: 'Fullstack блог', d: [
+      ['Архитектура: frontend + backend + БД','',70,'project'],
+      ['Backend: API','',70,'project'],
+      ['Frontend: подключение к API','',70,'project'],
+      ['Frontend: авторизация','',70,'project'],
+      ['CRUD постов, комментарии','',70,'project'],
+      ['Личный кабинет','',60,'project'],
+      ['Финализация','',60,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Docker основы', p: 'Dockerfile + docker-compose', d: [
+      ['Docker: образы, контейнеры','',80,'js'],
+      ['Dockerfile: FROM, RUN, COPY','',70,'js'],
+      ['Dockerfile для backend','',60,'project'],
+      ['Multi-stage builds','',70,'js'],
+      ['Dockerfile для frontend','',60,'project'],
+      ['docker-compose: сервисы, сети','',70,'js'],
+      ['docker-compose.yml','',70,'project'],
+      ['Запуск всего стека','',60,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'CI/CD, GitHub Actions', p: 'CI/CD для блога', d: [
+      ['CI/CD: pipeline, stages','',70,'git'],
+      ['GitHub Actions: workflow','',70,'git'],
+      ['CI: lint, тесты, сборка','',70,'project'],
+      ['CD: автодеплой на Vercel + Railway','',70,'project'],
+      ['Vercel: деплой React','',70,'js'],
+      ['Railway: деплой Node.js + PostgreSQL','',70,'js'],
+      ['Деплой fullstack блога','',80,'project'],
+      ['Monitoring: Sentry basics','',60,'project'],
+      ['Обновить GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Второй fullstack проект', p: 'Таск-менеджер (Trello-like)', d: [
+      ['Архитектура, схема БД','',70,'project'],
+      ['Backend: API','',70,'project'],
+      ['Frontend: доски, списки','',80,'project'],
+      ['Drag-and-drop','',70,'project'],
+      ['Авторизация, совместный доступ','',70,'project'],
+      ['Финализация','',60,'project'],
+      ['Деплой','',50,'project'],
+      ['README, демо','',40,'project'],
+      ['Залить на GitHub','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью месяца 11 + план','',60,'book']
+    ]},
+    { t: 'Портфолио-сайт', p: 'Портфолио на React + TS', d: [
+      ['Дизайн: секции (Hero, About, Skills, Projects)','',60,'project'],
+      ['Vite + React + TS + Tailwind','',60,'project'],
+      ['Hero-секция: анимации','',70,'project'],
+      ['About: история, фото','',60,'project'],
+      ['Skills: иконки, уровни','',60,'project'],
+      ['Projects: карточки с проектами','',70,'project'],
+      ['Contact: форма, соцсети','',60,'project'],
+      ['Темная/светлая тема','',60,'project'],
+      ['Финализация, SEO','',50,'project'],
+      ['Деплой на Vercel','',30,'git'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Резюме, LinkedIn, GitHub', p: 'Резюме + LinkedIn', d: [
+      ['Резюме: структура','',70,'book'],
+      ['Резюме: английский + русский','',60,'book'],
+      ['LinkedIn: профиль, фото, headline','',60,'book'],
+      ['LinkedIn: проекты, навыки','',60,'book'],
+      ['GitHub: profile README','',60,'git'],
+      ['GitHub: README для проектов','',60,'git'],
+      ['hh.ru / Habr Career: профиль','',50,'book'],
+      ['Сопроводительное письмо','',50,'book'],
+      ['Список 30 компаний','',50,'book'],
+      ['Нетворкинг: 20 рекрутеров','',40,'book'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Подготовка к собеседованиям', p: 'Mock-интервью + 50 задач', d: [
+      ['Вопросы Junior Frontend: JS','',70,'js'],
+      ['10 задач','',60,'js'],
+      ['Вопросы по React','',70,'js'],
+      ['10 задач','',60,'js'],
+      ['Вопросы по HTML/CSS','',70,'js'],
+      ['Вопросы по TypeScript','',60,'js'],
+      ['Live-coding: 10 задач за 2 часа','',80,'js'],
+      ['debounce, throttle, Promise.all','',60,'js'],
+      ['Mock-интервью (записать на видео)','',70,'book'],
+      ['STAR-метод','',50,'book'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Активный джобхант', p: '50+ откликов', d: [
+      ['10 откликов на hh.ru / LinkedIn','',60,'book'],
+      ['Cover letter','',50,'book'],
+      ['Ещё 10 откликов','',60,'book'],
+      ['LeetCode: 5 Easy','',60,'js'],
+      ['10 откликов + нетворкинг','',60,'book'],
+      ['Тестовое задание','',80,'project'],
+      ['10 откликов','',60,'book'],
+      ['Собеседование','',80,'book'],
+      ['Анализ отказов','',50,'book'],
+      ['Ещё 10 откликов','',50,'book'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Джобхант + тестовые', p: 'Тестовые + собеседования', d: [
+      ['10 откликов','',60,'book'],
+      ['Тестовое','',80,'project'],
+      ['10 откликов','',60,'book'],
+      ['Собеседование','',80,'book'],
+      ['Тестовое','',80,'project'],
+      ['10 откликов','',50,'book'],
+      ['10 откликов','',60,'book'],
+      ['Собеседование','',80,'book'],
+      ['Анализ прогресса','',50,'book'],
+      ['10 откликов','',50,'book'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Финальный push', p: 'Первый оффер ', d: [
+      ['10 откликов','',60,'book'],
+      ['Собеседование','',80,'book'],
+      ['10 откликов','',50,'book'],
+      ['Собеседование','',80,'book'],
+      ['10 откликов','',60,'book'],
+      ['Тестовое','',80,'project'],
+      ['10 откликов','',50,'book'],
+      ['Собеседование','',80,'book'],
+      ['Переговоры по офферу','',60,'book'],
+      ['10 откликов','',50,'book'],
+      ['Встреча с другом','',20,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Закрепление оффера', p: 'Подготовка к работе', d: [
+      ['Подписание оффера','',60,'book'],
+      ['5 откликов (на случай)','',40,'book'],
+      ['Изучение стека компании','',70,'js'],
+      ['Повторение: React, TS','',60,'js'],
+      ['Git workflow: feature branches, PR','',60,'git'],
+      ['Agile/Scrum основы','',50,'book'],
+      ['Настройка окружения','',50,'git'],
+      ['10 задач JS/React','',60,'js'],
+      ['Книга: «Чистый код» — главы 1-3','',60,'book'],
+      ['Встреча с другом','',20,'book'],
+      ['Отдых','',10,'book'],
+      ['Ревью недели + план','',40,'book']
+    ]},
+    { t: 'Итоги года ', p: 'Итоговый пост + план на год 2', d: [
+      ['Итоги года: список проектов, навыков','',70,'book'],
+      ['Обновление GitHub','',50,'git'],
+      ['Итоговый пост в блог / LinkedIn','',60,'book'],
+      ['Обновление резюме','',50,'book'],
+      ['План на год 2: цели, навыки','',70,'book'],
+      ['Книга: «Чистый код» — главы 4-7','',60,'book'],
+      ['Отдых от кода (1 день)','',30,'book'],
+      ['Празднование окончания года 1!','',100,'book'],
+      ['Благодарность себе','',50,'book'],
+      ['Встреча с друзьями (Вадик + Полина + Никита)','',40,'book'],
+      ['ГОД 1 ЗАВЕРШЁН! Ты — Junior Frontend Developer 🎉','',200,'book'],
+      ['Переход к Году 2','',50,'book']
+    ]}
+  ];
+  jsWeeks.forEach((w, i) => {
+    const days = {};
+    const tasks = w.d;
+    for (let d = 1; d <= 5; d++) days[d] = [tasks[(d-1)*2], tasks[(d-1)*2+1]].filter(Boolean);
+    days[6] = [tasks[10], tasks[11]].filter(Boolean);
+    days[0] = [tasks[12], tasks[13]].filter(Boolean);
+    JS_COURSE.push({ title: `Неделя ${i+1} — ${w.t}`, topic: w.t, goal: `Завершить ${w.p}`, project: w.p, days });
+  });
+
+  // ============ Python Course (52 weeks) ============
+  const PY_COURSE = [];
+  const pyWeeks = [
+    { t: 'Python Основы', p: 'Консольный калькулятор', d: [
+      ['Установка Python, VS Code, pip','',30,'py'],
+      ['Hello World, переменные, типы данных','',60,'py'],
+      ['Ввод/вывод, строки, f-strings','',70,'py'],
+      ['Числа, математические операции','',70,'py'],
+      ['Условия: if/elif/else','',70,'py'],
+      ['Логические операторы','',60,'py'],
+      ['Цикл for, range()','',70,'py'],
+      ['Цикл while, break, continue','',70,'py'],
+      ['Списки: создание, методы','',70,'py'],
+      ['Срезы списков','',60,'py'],
+      ['Кортежи и множества','',60,'py'],
+      ['Словари: создание, методы','',70,'py'],
+      ['Функции: def, параметры, return','',70,'py'],
+      ['Функции: *args, **kwargs','',60,'py'],
+      ['Lambda-функции','',60,'py'],
+      ['Практика: консольный калькулятор','',80,'project'],
+      ['GitHub: первый репозиторий','',30,'git'],
+      ['Ревью недели','',40,'book']
+    ]},
+    { t: 'ООП в Python', p: 'Система управления библиотекой', d: [
+      ['Классы: создание, __init__','',70,'py'],
+      ['Атрибуты и методы','',70,'py'],
+      ['Наследование','',70,'py'],
+      ['Полиморфизм','',60,'py'],
+      ['Инкапсуляция: _ и __','',60,'py'],
+      ['Магические методы: __str__, __repr__','',70,'py'],
+      ['Свойства: @property','',60,'py'],
+      ['Статические и классовые методы','',60,'py'],
+      ['Абстрактные классы (ABC)','',70,'py'],
+      ['Множественное наследование','',60,'py'],
+      ['MRO (Method Resolution Order)','',60,'py'],
+      ['Dunder-методы: __add__, __len__','',70,'py'],
+      ['Практика: класс Book','',70,'project'],
+      ['Практика: класс Library','',70,'project'],
+      ['CRUD для библиотеки','',80,'project'],
+      ['Сохранение в JSON','',60,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Ревью недели','',40,'book']
+    ]},
+    { t: 'Работа с файлами и исключения', p: 'Менеджер задач с БД', d: [
+      ['Чтение файлов: open(), read()','',70,'py'],
+      ['Запись файлов: write(), append()','',70,'py'],
+      ['Контекстный менеджер with','',60,'py'],
+      ['Работа с CSV','',70,'py'],
+      ['Работа с JSON','',70,'py'],
+      ['Модуль os и путь к файлам','',60,'py'],
+      ['Исключения: try/except/finally','',70,'py'],
+      ['Кастомные исключения','',60,'py'],
+      ['Модули: import, from','',70,'py'],
+      ['Создание своих модулей','',70,'py'],
+      ['Пакеты и __init__.py','',60,'py'],
+      ['virtualenv и requirements.txt','',60,'py'],
+      ['Практика: менеджер задач','',80,'project'],
+      ['Сохранение в файл','',70,'project'],
+      ['Обработка ошибок','',60,'project'],
+      ['Финализация проекта','',60,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Ревью недели','',40,'book']
+    ]},
+    { t: 'Продвинутые темы Python', p: 'Парсер сайтов', d: [
+      ['Генераторы и yield','',70,'py'],
+      ['Итераторы','',60,'py'],
+      ['Декораторы','',80,'py'],
+      ['Замыкания в Python','',70,'py'],
+      ['List/dict/set comprehensions','',70,'py'],
+      ['Функции высшего порядка','',60,'py'],
+      ['map, filter, reduce','',60,'py'],
+      ['Модуль itertools','',60,'py'],
+      ['Модуль collections','',60,'py'],
+      ['Регулярные выражения (re)','',70,'py'],
+      ['requests: HTTP-запросы','',70,'py'],
+      ['BeautifulSoup: парсинг HTML','',80,'py'],
+      ['Практика: парсер сайтов','',90,'project'],
+      ['Сохранение данных в CSV','',60,'project'],
+      ['Обработка ошибок парсинга','',60,'project'],
+      ['Финализация','',50,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Ревью недели','',40,'book']
+    ]},
+    { t: 'Flask: основы веб-разработки', p: 'Блог на Flask', d: [
+      ['Установка Flask','',60,'py'],
+      ['Первый роут, hello world','',70,'py'],
+      ['Шаблоны Jinja2','',70,'py'],
+      ['Наследование шаблонов','',60,'py'],
+      ['Статические файлы (CSS, JS)','',60,'py'],
+      ['Формы и обработка POST','',70,'py'],
+      ['Flash-сообщения','',60,'py'],
+      ['SQLite: основы SQL','',70,'py'],
+      ['sqlite3 в Python','',70,'py'],
+      ['CRUD для блога','',80,'project'],
+      ['Авторизация: sessions','',70,'project'],
+      ['Хэширование паролей','',60,'project'],
+      ['Практика: блог на Flask','',90,'project'],
+      ['Деплой на PythonAnywhere','',60,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Ревью недели','',40,'book']
+    ]},
+    { t: 'Django: основы', p: 'Django-приложение', d: [
+      ['Установка Django','',60,'py'],
+      ['Создание проекта и приложения','',70,'py'],
+      ['Models: создание моделей','',70,'py'],
+      ['Migrations','',60,'py'],
+      ['Admin панель','',60,'py'],
+      ['Views: function-based','',70,'py'],
+      ['URLs и роутинг','',70,'py'],
+      ['Templates в Django','',70,'py'],
+      ['Практика: todo-приложение','',80,'project'],
+      ['Class-based views','',70,'py'],
+      ['Forms в Django','',70,'py'],
+      ['User auth в Django','',70,'py'],
+      ['Практика: расширение todo','',80,'project'],
+      ['Статика и медиа','',60,'project'],
+      ['Деплой на Railway','',60,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Ревью недели','',40,'book']
+    ]},
+    { t: 'Django REST Framework', p: 'API на DRF', d: [
+      ['Установка DRF','',60,'py'],
+      ['Сериализаторы','',70,'py'],
+      ['ViewSets и Routers','',70,'py'],
+      ['API endpoints','',70,'py'],
+      ['Аутентификация в API','',70,'py'],
+      ['JWT токены','',70,'py'],
+      ['Permissions','',60,'py'],
+      ['Пагинация','',60,'py'],
+      ['Фильтрация и поиск','',70,'py'],
+      ['Практика: REST API для блога','',90,'project'],
+      ['Тестирование API','',70,'project'],
+      ['Документация (Swagger)','',60,'project'],
+      ['Финализация API','',60,'project'],
+      ['Деплой','',60,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Ревью недели','',40,'book']
+    ]},
+    { t: 'Алгоритмы и структуры данных', p: 'Визуализатор алгоритмов', d: [
+      ['Big O нотация','',70,'py'],
+      ['Массивы и строки','',60,'py'],
+      ['Двухуказательный метод','',70,'py'],
+      ['Скользящее окно','',70,'py'],
+      ['Связные списки','',70,'py'],
+      ['Стеки и очереди','',70,'py'],
+      ['Хэш-таблицы','',70,'py'],
+      ['Бинарный поиск','',70,'py'],
+      ['Рекурсия','',70,'py'],
+      ['Сортировки: bubble, merge, quick','',80,'py'],
+      ['Деревья: обходы','',70,'py'],
+      ['Графы: BFS, DFS','',70,'py'],
+      ['Практика: LeetCode Easy','',80,'py'],
+      ['Практика: LeetCode Medium','',80,'py'],
+      ['Визуализатор алгоритмов','',90,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Ревью недели','',40,'book']
+    ]},
+    { t: 'Data Science основы', p: 'Анализ данных', d: [
+      ['NumPy: массивы','',70,'py'],
+      ['NumPy: операции','',70,'py'],
+      ['Pandas: Series и DataFrame','',70,'py'],
+      ['Pandas: фильтрация','',70,'py'],
+      ['Pandas: группировка','',70,'py'],
+      ['Matplotlib: графики','',70,'py'],
+      ['Seaborn: статистика','',70,'py'],
+      ['Загрузка данных (CSV, Excel)','',70,'py'],
+      ['Очистка данных','',70,'py'],
+      ['EDA (Exploratory Data Analysis)','',80,'py'],
+      ['Практика: анализ датасета','',90,'project'],
+      ['Визуализация результатов','',70,'project'],
+      ['Отчёт в Jupyter Notebook','',70,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Ревью недели','',40,'book']
+    ]},
+    { t: 'Автоматизация и скрипты', p: 'Telegram-бот', d: [
+      ['Модуль os и системные команды','',70,'py'],
+      ['Автоматизация файлов','',70,'py'],
+      ['Планировщик задач (schedule)','',60,'py'],
+      ['Selenium: автоматизация браузера','',80,'py'],
+      ['pyautogui: управление мышью','',70,'py'],
+      ['Парсинг с Selenium','',70,'py'],
+      ['Telegram Bot API','',80,'py'],
+      ['python-telegram-bot','',80,'py'],
+      ['Обработчики команд','',70,'py'],
+      ['Inline-кнопки','',60,'py'],
+      ['Практика: Telegram-бот','',90,'project'],
+      ['Деплой бота на сервер','',70,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Ревью недели','',40,'book']
+    ]},
+    { t: 'Тестирование', p: 'Тесты для проектов', d: [
+      ['pytest: основы','',70,'py'],
+      ['Фикстуры','',70,'py'],
+      ['Параметризация','',60,'py'],
+      ['Моки (unittest.mock)','',70,'py'],
+      ['Тестирование Flask','',70,'py'],
+      ['Тестирование Django','',70,'py'],
+      ['Покрытие кода (coverage)','',60,'py'],
+      ['CI: GitHub Actions','',70,'git'],
+      ['Практика: тесты для блога','',80,'project'],
+      ['Финализация','',60,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Ревью недели','',40,'book']
+    ]},
+    { t: 'Финальный проект', p: 'Fullstack Python-приложение', d: [
+      ['Выбор идеи проекта','',60,'project'],
+      ['Архитектура приложения','',70,'project'],
+      ['Backend на Django/Flask','',80,'project'],
+      ['API endpoints','',70,'project'],
+      ['Frontend (HTML/CSS/JS)','',70,'project'],
+      ['База данных','',70,'project'],
+      ['Авторизация','',70,'project'],
+      ['Тесты','',70,'project'],
+      ['Деплой','',70,'project'],
+      ['Документация','',60,'project'],
+      ['GitHub + README','',30,'git'],
+      ['Ревью проекта','',40,'book']
+    ]}
+  ];
+  pyWeeks.forEach((w, i) => {
+    const days = {};
+    const tasks = w.d;
+    for (let d = 1; d <= 5; d++) days[d] = [tasks[(d-1)*2], tasks[(d-1)*2+1]].filter(Boolean);
+    days[6] = [tasks[10], tasks[11]].filter(Boolean);
+    days[0] = [tasks[12], tasks[13]].filter(Boolean);
+    PY_COURSE.push({ title: `Неделя ${i+1} — ${w.t}`, topic: w.t, goal: `Завершить ${w.p}`, project: w.p, days });
+  });
+
   // ============ Helpers ============
-  function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+  function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text || ''; return div.innerHTML; }
   function todayStr() { return new Date().toISOString().slice(0,10); }
   function addDays(iso, n) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
   function daysBetween(a, b) { return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000); }
   function getDayOfWeek(iso) { return new Date(iso + 'T00:00:00').getDay(); }
   function getWeekStart(iso) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1)); return d.toISOString().slice(0,10); }
-  function genCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
-  function t(key) { return i18n[interfaceLang]?.[key] || i18n.ru[key] || key; }
+
+  function getCourse() { return state.profile.lang === 'py' ? PY_COURSE : JS_COURSE; }
+
+  function getYear1Start() {
+    const saved = localStorage.getItem('lifeos_year1_start');
+    if (saved) return saved;
+    const today = todayStr();
+    localStorage.setItem('lifeos_year1_start', today);
+    return today;
+  }
 
   // ============ Auth ============
   function renderLangGrid() {
     const grid = document.getElementById('langGrid');
-    grid.innerHTML = programmingLangs.map(l => 
-      `<div class="lang-chip ${selectedLangs.includes(l.id) ? 'active' : ''}" onclick="toggleLang('${l.id}')">${l.flag} ${l.name}</div>`
-    ).join('');
+    grid.innerHTML = `
+      <div class="lang-chip ${selectedLang === 'js' ? 'active' : ''}" onclick="selectLang('js')">
+        <div style="font-size:24px;">🟨</div>
+        <div><strong>JavaScript</strong></div>
+        <div style="font-size:11px; color:var(--muted);">Веб-разработка</div>
+      </div>
+      <div class="lang-chip ${selectedLang === 'py' ? 'active' : ''}" onclick="selectLang('py')">
+        <div style="font-size:24px;">🐍</div>
+        <div><strong>Python</strong></div>
+        <div style="font-size:11px; color:var(--muted);">Универсальный</div>
+      </div>
+    `;
   }
 
-  window.toggleLang = (id) => {
-    if (selectedLangs.includes(id)) selectedLangs = selectedLangs.filter(x => x !== id);
-    else selectedLangs.push(id);
-    renderLangGrid();
-  };
-
-  window.changeInterfaceLang = (lang) => {
-    interfaceLang = lang;
-    const tr = i18n[lang] || i18n.ru;
-    document.getElementById('authSubtitle').textContent = tr.subtitle;
-    document.getElementById('step2Title').textContent = tr.step2;
-    document.getElementById('step3Title').textContent = tr.step3;
-    document.getElementById('step4Title').textContent = tr.step4;
-    document.getElementById('step4Desc').textContent = tr.step4desc;
-    document.getElementById('authActionBtn').textContent = authMode === 'login' ? tr.login : tr.register;
-    document.getElementById('authToggleText').textContent = authMode === 'login' ? tr.noAcc : tr.hasAcc;
-    document.querySelector('.guest-btn').textContent = tr.guest;
-  };
+  window.selectLang = (lang) => { selectedLang = lang; renderLangGrid(); };
 
   window.toggleAuthMode = () => {
     authMode = authMode === 'login' ? 'register' : 'login';
-    const tr = i18n[interfaceLang] || i18n.ru;
-    document.getElementById('authActionBtn').textContent = authMode === 'login' ? tr.login : tr.register;
-    document.getElementById('authToggleText').textContent = authMode === 'login' ? tr.noAcc : tr.hasAcc;
+    document.getElementById('authActionBtn').textContent = authMode === 'login' ? 'Войти' : 'Зарегистрироваться';
+    document.getElementById('authToggleText').textContent = authMode === 'login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти';
     document.getElementById('authError').style.display = 'none';
   };
 
@@ -609,12 +1480,13 @@
     if (step === 3) {
       const name = document.getElementById('userName').value.trim();
       const age = parseInt(document.getElementById('userAge').value);
-      if (!name || !age) { showToast('Заполни все поля'); return; }
-      state.profile = { ...state.profile, name, age };
+      const bio = document.getElementById('userBio').value.trim();
+      if (!name || !age) { showToast('Заполни имя и возраст'); return; }
+      state.profile = { ...state.profile, name, age, bio };
     } else if (step === 4) {
       const goal = document.getElementById('userGoal').value.trim();
       const level = document.getElementById('userLevel').value;
-      if (!goal || !level) { showToast('Заполни все поля'); return; }
+      if (!goal || !level) { showToast('Заполни цель и уровень'); return; }
       state.profile.goal = goal;
       state.profile.level = level;
     }
@@ -625,26 +1497,39 @@
     if (step === 4) renderLangGrid();
   };
 
-  window.finishRegistration = () => {
-    if (selectedLangs.length === 0) { showToast('Выбери хотя бы 1 язык'); return; }
-    state.profile.langs = selectedLangs;
-    state.profile.interfaceLang = interfaceLang;
+  window.finishRegistration = async () => {
+    state.profile.lang = selectedLang;
     state.registrationDate = todayStr();
     state.lastLogin = todayStr();
     state.loginStreak = 1;
-    state.flashcards = DEFAULT_FLASHCARDS.map((c, i) => ({ ...c, id: 'fc_' + i, lastReview: null, level: 0 }));
-    saveToCloud();
+    
+    if (currentUser) {
+      await set(ref(db, 'users/' + currentUser.uid), state);
+      await updateProfileIndex();
+    } else {
+      saveToCloud();
+    }
+    
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     initApp();
   };
+
+  async function updateProfileIndex() {
+    if (!currentUser) return;
+    await set(ref(db, 'users/' + currentUser.uid + '/_index'), {
+      name: state.profile.name,
+      avatar: state.profile.avatar,
+      color: state.profile.color,
+      uid: currentUser.uid
+    });
+  }
 
   window.continueAsGuest = () => {
     isGuest = true;
     state.registrationDate = todayStr();
     state.lastLogin = todayStr();
     state.loginStreak = 1;
-    state.flashcards = DEFAULT_FLASHCARDS.map((c, i) => ({ ...c, id: 'fc_' + i, lastReview: null, level: 0 }));
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     loadLocalState();
@@ -662,11 +1547,13 @@
       const userRef = ref(db, 'users/' + user.uid);
       onValue(userRef, (snapshot) => {
         const data = snapshot.val();
-        if (data) state = { ...defaultState, ...data };
-        else { loadLocalState(); saveToCloud(); }
-        
-        interfaceLang = state.profile.interfaceLang || 'ru';
-        selectedLangs = state.profile.langs || [];
+        if (data) {
+          const { _index, ...realData } = data;
+          state = { ...defaultState, ...realData };
+        } else {
+          loadLocalState();
+          saveToCloud();
+        }
         
         if (!state.profile.name || !state.profile.goal) {
           document.getElementById('authScreen').style.display = 'flex';
@@ -680,6 +1567,7 @@
             document.getElementById('authStep4').classList.add('active');
             document.querySelectorAll('.auth-progress-dot').forEach((d, i) => d.classList.toggle('active', i < 4));
             authStep = 4;
+            selectedLang = state.profile.lang || 'js';
             renderLangGrid();
           }
         } else {
@@ -690,8 +1578,8 @@
         }
       });
       
-      // Подписка на гильдию
       if (state.guildId) subscribeToGuild(state.guildId);
+      loadAllUsers();
     }
   });
 
@@ -705,7 +1593,7 @@
       state.lastLogin = today;
       state.dailyBonusClaimed = null;
       saveToCloud();
-      showToast(` Серия входов: ${state.loginStreak} дней!`);
+      showToast(`🔥 Серия входов: ${state.loginStreak} дней!`);
     }
   }
 
@@ -727,11 +1615,24 @@
     saveTimeout = setTimeout(async () => {
       try {
         await set(ref(db, 'users/' + currentUser.uid), state);
+        await updateProfileIndex();
         document.getElementById('syncStatus').textContent = 'Синхронизировано';
       } catch (e) { document.getElementById('syncStatus').textContent = 'Ошибка сети'; }
     }, 800);
   }
   window.debouncedSave = saveToCloud;
+
+  async function loadAllUsers() {
+    try {
+      const snapshot = await get(child(ref(db), 'users'));
+      const users = snapshot.val() || {};
+      allUsersCache = {};
+      Object.entries(users).forEach(([uid, data]) => {
+        if (data._index) allUsersCache[uid] = data._index;
+        else if (data.profile?.name) allUsersCache[uid] = { name: data.profile.name, avatar: data.profile.avatar || '🚀', color: data.profile.color || '#8b5cf6', uid };
+      });
+    } catch(e) {}
+  }
 
   // ============ XP & Levels ============
   function levelFromXp(xp) { return Math.max(1, Math.floor(Math.sqrt(xp / 50)) + 1); }
@@ -758,10 +1659,22 @@
     renderHeader();
   };
 
-  // ============ Achievements ============
   function checkAchievements() {
+    const checks = {
+      'first_task': Object.keys(state.completedTasks).length >= 1,
+      'ten_tasks': Object.keys(state.completedTasks).length >= 10,
+      'hundred_tasks': Object.keys(state.completedTasks).length >= 100,
+      'xp_1000': state.totalXp >= 1000,
+      'xp_10000': state.totalXp >= 10000,
+      'streak_7': state.bestStreak >= 7,
+      'streak_30': state.bestStreak >= 30,
+      'guild_join': state.guildId !== null,
+      'guild_1000': state.guildContribution >= 1000,
+      'project_done': state.projects.some(p => p.stages?.every(s => s.done)),
+      'level_10': levelFromXp(state.xp) >= 10
+    };
     ACHIEVEMENTS.forEach(a => {
-      if (!state.achievements.includes(a.id) && a.check(state)) {
+      if (!state.achievements.includes(a.id) && checks[a.id]) {
         state.achievements.push(a.id);
         state.xp += 100;
         state.totalXp += 100;
@@ -772,54 +1685,64 @@
 
   // ============ Guild ============
   async function subscribeToGuild(guildId) {
-    if (guildUnsubscribe) guildUnsubscribe();
+    if (guildUnsub) guildUnsub();
     const guildRef = ref(db, 'guilds/' + guildId);
-    guildUnsubscribe = onValue(guildRef, (snapshot) => {
+    guildUnsub = onValue(guildRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         window.currentGuild = data;
-        if (document.getElementById('panel-guilds').classList.contains('active')) renderGuilds();
         document.getElementById('guildPoints').textContent = data.totalPoints || 0;
+        if (document.getElementById('panel-guilds').classList.contains('active')) renderGuilds();
       }
     });
   }
 
-  window.createGuild = () => {
+  window.createGuild = async () => {
     const name = prompt('Название гильдии:');
     if (!name) return;
-    const code = genCode();
-    const guildId = 'g_' + Date.now().toString(36);
+    const icon = prompt('Иконка (эмодзи):', '🏰') || '🏰';
+    const color = prompt('Цвет (hex):', '#8b5cf6') || '#8b5cf6';
+    const desc = prompt('Описание:', '') || '';
+    
+    // Получаем следующий ID
+    const counterRef = ref(db, 'guildCounter');
+    const counterSnap = await get(counterRef);
+    const nextId = (counterSnap.val() || 0) + 1;
+    await set(counterRef, nextId);
+    const guildId = '#' + String(nextId).padStart(5, '0');
+    
     const guildData = {
-      name, code, ownerId: currentUser.uid,
-      members: { [currentUser.uid]: { name: state.profile.name, contribution: 0 } },
+      id: guildId, name, icon, color, desc,
+      ownerId: currentUser.uid,
+      members: { [currentUser.uid]: { name: state.profile.name, role: 'owner', contribution: 0, avatar: state.profile.avatar, color: state.profile.color } },
       totalPoints: 0, createdAt: Date.now(), shopPurchases: []
     };
-    set(ref(db, 'guilds/' + guildId), guildData).then(() => {
-      state.guildId = guildId;
-      state.guildContribution = 0;
-      saveToCloud();
-      subscribeToGuild(guildId);
-      showToast('Гильдия создана! Код: ' + code);
-      renderGuilds();
-    });
+    await set(ref(db, 'guilds/' + guildId), guildData);
+    state.guildId = guildId;
+    state.guildContribution = 0;
+    saveToCloud();
+    subscribeToGuild(guildId);
+    showToast('Гильдия создана: ' + guildId);
+    renderGuilds();
   };
 
-  window.joinGuild = () => {
-    const code = prompt('Введи код гильдии (6 символов):').toUpperCase().trim();
+  window.joinGuild = async () => {
+    const code = prompt('Введи ID гильдии (например #00001):').trim();
     if (!code) return;
-    get(child(ref(db), 'guilds')).then((snapshot) => {
-      const guilds = snapshot.val() || {};
-      const guild = Object.entries(guilds).find(([id, g]) => g.code === code);
-      if (!guild) { showToast('Гильдия не найдена'); return; }
-      const [guildId, data] = guild;
-      update(ref(db, 'guilds/' + guildId + '/members/' + currentUser.uid), { name: state.profile.name, contribution: 0 });
-      state.guildId = guildId;
-      state.guildContribution = 0;
-      saveToCloud();
-      subscribeToGuild(guildId);
-      showToast('Ты в гильдии ' + data.name + '!');
-      renderGuilds();
+    const guildRef = ref(db, 'guilds/' + code);
+    const snapshot = await get(guildRef);
+    const data = snapshot.val();
+    if (!data) { showToast('Гильдия не найдена'); return; }
+    await update(ref(db, 'guilds/' + code + '/members/' + currentUser.uid), { 
+      name: state.profile.name, role: 'member', contribution: 0,
+      avatar: state.profile.avatar, color: state.profile.color
     });
+    state.guildId = code;
+    state.guildContribution = 0;
+    saveToCloud();
+    subscribeToGuild(code);
+    showToast('Ты в гильдии ' + data.name + '!');
+    renderGuilds();
   };
 
   async function updateGuildPoints(points) {
@@ -844,19 +1767,15 @@
     if ((data.totalPoints || 0) < item.price) { showToast('Недостаточно баллов'); return; }
     if (!confirm(`Купить ${item.name} за ${item.price} баллов?`)) return;
     
-    update(guildRef, {
+    await update(guildRef, {
       totalPoints: data.totalPoints - item.price,
       ['shopPurchases/' + Date.now()]: { itemId, buyer: currentUser.uid, buyerName: state.profile.name, at: Date.now() }
     });
     
-    // Применение эффекта
     if (itemId === 'lootbox') {
       const bonus = 50 + Math.floor(Math.random() * 450);
-      state.xp += bonus;
-      state.totalXp += bonus;
+      state.xp += bonus; state.totalXp += bonus;
       showToast(`🎁 Лутбокс: +${bonus} XP!`);
-    } else if (itemId === 'xp_boost') {
-      showToast('⚡ XP Бустер активирован на 1 час!');
     } else {
       showToast(`Куплено: ${item.name}`);
     }
@@ -864,41 +1783,181 @@
     renderGuilds();
   };
 
-  window.leaveGuild = () => {
+  window.leaveGuild = async () => {
     if (!confirm('Покинуть гильдию?')) return;
     if (state.guildId) {
-      remove(ref(db, 'guilds/' + state.guildId + '/members/' + currentUser.uid));
+      await remove(ref(db, 'guilds/' + state.guildId + '/members/' + currentUser.uid));
     }
     state.guildId = null;
     state.guildContribution = 0;
     saveToCloud();
-    if (guildUnsubscribe) guildUnsubscribe();
+    if (guildUnsub) guildUnsub();
     showToast('Ты покинул гильдию');
     renderGuilds();
   };
 
-  // ============ Expenses ============
-  window.addExpense = () => {
-    const amount = parseFloat(prompt('Сумма:'));
-    if (!amount) return;
-    const category = prompt('Категория (еда/транспорт/развлечения/учёба/другое):') || 'другое';
-    const desc = prompt('Описание:') || '';
-    state.expenses.push({ id: 'e_' + Date.now(), amount, category, desc, date: todayStr() });
-    saveToCloud();
-    renderExpenses();
-    showToast('Расход добавлен');
+  window.promoteMember = async (uid, newRole) => {
+    if (!confirm(`Назначить ${newRole}?`)) return;
+    await update(ref(db, 'guilds/' + state.guildId + '/members/' + uid), { role: newRole });
+    showToast('Роль изменена');
   };
+
+  // ============ Chat ============
+  window.openGuildChat = () => {
+    currentGuildChat = state.guildId;
+    currentChat = null;
+    renderChatView();
+  };
+
+  window.sendGuildMessage = async () => {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text || !currentGuildChat) return;
+    input.value = '';
+    const msgRef = push(ref(db, 'guildChats/' + currentGuildChat));
+    await set(msgRef, {
+      text, author: currentUser.uid, authorName: state.profile.name,
+      authorAvatar: state.profile.avatar, authorColor: state.profile.color,
+      timestamp: Date.now()
+    });
+  };
+
+  window.openUserChat = (uid) => {
+    if (uid === currentUser.uid) return;
+    currentChat = uid;
+    currentGuildChat = null;
+    renderChatView();
+  };
+
+  window.sendUserMessage = async () => {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text || !currentChat) return;
+    input.value = '';
+    const chatId = [currentUser.uid, currentChat].sort().join('_');
+    const msgRef = push(ref(db, 'messages/' + chatId));
+    await set(msgRef, {
+      text, from: currentUser.uid, to: currentChat,
+      fromName: state.profile.name, fromAvatar: state.profile.avatar, fromColor: state.profile.color,
+      timestamp: Date.now()
+    });
+    
+    if (!state.achievements.includes('msg_first')) {
+      state.achievements.push('msg_first');
+      state.xp += 100; state.totalXp += 100;
+      showToast('🏆 Достижение: Общительный! +100 XP');
+    }
+    saveToCloud();
+  };
+
+  window.backToMessages = () => {
+    currentChat = null;
+    currentGuildChat = null;
+    if (chatUnsub) { chatUnsub(); chatUnsub = null; }
+    Object.values(msgUnsubs).forEach(u => u());
+    msgUnsubs = {};
+    renderMessages();
+  };
+
+  function renderChatView() {
+    const panel = document.getElementById('panel-messages');
+    if (currentGuildChat) {
+      const g = window.currentGuild;
+      panel.innerHTML = `
+        <button class="back-btn" onclick="backToMessages()">← Назад</button>
+        <div class="card" style="padding:12px;">
+          <h2 style="font-size:16px;">${g?.icon || '🏰'} ${escapeHtml(g?.name || '')} <span class="guild-id">${currentGuildChat}</span></h2>
+        </div>
+        <div class="chat-container">
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Сообщение..." onkeypress="if(event.key==='Enter')sendGuildMessage()">
+            <button class="btn" onclick="sendGuildMessage()"></button>
+          </div>
+        </div>
+      `;
+      subscribeGuildChat(currentGuildChat);
+    } else if (currentChat) {
+      const user = allUsersCache[currentChat];
+      panel.innerHTML = `
+        <button class="back-btn" onclick="backToMessages()">← Назад</button>
+        <div class="card" style="padding:12px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="msg-avatar" style="background:${user?.color || 'var(--accent)'}; font-size:24px;">${user?.avatar || '👤'}</div>
+            <div>
+              <div style="font-weight:600;">${escapeHtml(user?.name || 'Пользователь')}</div>
+              <div style="font-size:12px; color:var(--muted);">Личный чат</div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-container">
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Сообщение..." onkeypress="if(event.key==='Enter')sendUserMessage()">
+            <button class="btn" onclick="sendUserMessage()">➤</button>
+          </div>
+        </div>
+      `;
+      subscribeUserChat(currentChat);
+    }
+  }
+
+  function subscribeGuildChat(guildId) {
+    if (chatUnsub) chatUnsub();
+    const q = query(ref(db, 'guildChats/' + guildId), orderByChild('timestamp'), limitToLast(100));
+    chatUnsub = onValue(q, (snapshot) => {
+      const msgs = snapshot.val() || {};
+      const container = document.getElementById('chatMessages');
+      if (!container) return;
+      container.innerHTML = Object.entries(msgs).map(([_, m]) => {
+        const isOwn = m.author === currentUser.uid;
+        const time = new Date(m.timestamp).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+        return `
+          <div class="chat-msg ${isOwn ? 'own' : 'other'}">
+            <div class="chat-msg-author">${escapeHtml(m.authorName)}${isOwn ? ' (ты)' : ''}</div>
+            <div class="chat-msg-bubble">${escapeHtml(m.text)}</div>
+            <div class="chat-msg-time">${time}</div>
+          </div>
+        `;
+      }).join('');
+      container.scrollTop = container.scrollHeight;
+    });
+  }
+
+  function subscribeUserChat(uid) {
+    Object.values(msgUnsubs).forEach(u => u());
+    msgUnsubs = {};
+    const chatId = [currentUser.uid, uid].sort().join('_');
+    const q = query(ref(db, 'messages/' + chatId), orderByChild('timestamp'), limitToLast(100));
+    msgUnsubs[chatId] = onValue(q, (snapshot) => {
+      const msgs = snapshot.val() || {};
+      const container = document.getElementById('chatMessages');
+      if (!container) return;
+      container.innerHTML = Object.entries(msgs).map(([_, m]) => {
+        const isOwn = m.from === currentUser.uid;
+        const time = new Date(m.timestamp).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+        return `
+          <div class="chat-msg ${isOwn ? 'own' : 'other'}">
+            <div class="chat-msg-author">${isOwn ? 'Ты' : escapeHtml(m.fromName)}</div>
+            <div class="chat-msg-bubble">${escapeHtml(m.text)}</div>
+            <div class="chat-msg-time">${time}</div>
+          </div>
+        `;
+      }).join('');
+      container.scrollTop = container.scrollHeight;
+    });
+  }
 
   // ============ Projects ============
   window.addProject = () => {
     const name = prompt('Название проекта:');
     if (!name) return;
-    const stagesStr = prompt('Этапы (через запятую):') || 'Идея,Дизайн,Разработка,Тестирование,Деплой';
+    const stagesStr = prompt('Этапы (через запятую):', 'Идея,Дизайн,Разработка,Тестирование,Деплой') || 'Идея,Разработка,Деплой';
     const stages = stagesStr.split(',').map(s => ({ name: s.trim(), done: false }));
     state.projects.push({ id: 'p_' + Date.now(), name, stages, createdAt: todayStr() });
     saveToCloud();
-    renderProjects();
     checkAchievements();
+    renderProfile();
   };
 
   window.toggleStage = (projectId, stageIdx) => {
@@ -906,122 +1965,9 @@
     if (project) {
       project.stages[stageIdx].done = !project.stages[stageIdx].done;
       saveToCloud();
-      renderProjects();
       checkAchievements();
+      renderProfile();
     }
-  };
-
-  // ============ Flashcards ============
-  let currentCardIdx = 0;
-  window.flipCard = () => {
-    const card = document.getElementById('flashcard');
-    if (card) card.classList.toggle('flipped');
-  };
-  window.nextCard = () => {
-    currentCardIdx = (currentCardIdx + 1) % state.flashcards.length;
-    renderFlashcard();
-  };
-  window.addFlashcard = () => {
-    const front = prompt('Вопрос/термин:');
-    if (!front) return;
-    const back = prompt('Ответ/определение:');
-    if (!back) return;
-    state.flashcards.push({ id: 'fc_' + Date.now(), front, back, lastReview: null, level: 0 });
-    saveToCloud();
-    renderFlashcards();
-    checkAchievements();
-  };
-
-  // ============ Quiz ============
-  let currentQuiz = null;
-  let currentQuizIdx = 0;
-  let quizCorrect = 0;
-  window.startQuiz = (lang) => {
-    const questions = QUIZZES[lang] || QUIZZES.js;
-    currentQuiz = questions.sort(() => Math.random() - 0.5).slice(0, 5);
-    currentQuizIdx = 0;
-    quizCorrect = 0;
-    renderQuizQuestion();
-  };
-  window.answerQuiz = (optIdx) => {
-    const q = currentQuiz[currentQuizIdx];
-    const options = document.querySelectorAll('.quiz-option');
-    options.forEach((o, i) => {
-      o.disabled = true;
-      if (i === q.correct) o.classList.add('correct');
-      else if (i === optIdx) o.classList.add('wrong');
-    });
-    if (optIdx === q.correct) quizCorrect++;
-    setTimeout(() => {
-      currentQuizIdx++;
-      if (currentQuizIdx < currentQuiz.length) renderQuizQuestion();
-      else finishQuiz();
-    }, 1000);
-  };
-  function finishQuiz() {
-    const score = Math.round(quizCorrect / currentQuiz.length * 100);
-    state.quizScores['q_' + Date.now()] = { score, date: todayStr() };
-    const xp = quizCorrect * 20;
-    state.xp += xp;
-    state.totalXp += xp;
-    showToast(`Квиз завершён! ${score}% · +${xp} XP`);
-    saveToCloud();
-    checkAchievements();
-    renderQuizzes();
-  }
-
-  // ============ Forecast & Burnout ============
-  function calcForecast() {
-    const daysSinceReg = state.registrationDate ? daysBetween(state.registrationDate, todayStr()) : 1;
-    const tasksPerDay = Object.keys(state.completedTasks).length / Math.max(daysSinceReg, 1);
-    const tasksToJunior = 500;
-    const daysLeft = Math.ceil((tasksToJunior - Object.keys(state.completedTasks).length) / Math.max(tasksPerDay, 0.1));
-    return { daysLeft, tasksPerDay: tasksPerDay.toFixed(1) };
-  }
-
-  function calcBurnout() {
-    const recentMoods = Object.entries(state.moods)
-      .filter(([d]) => daysBetween(d, todayStr()) <= 7)
-      .map(([_, v]) => v.value);
-    if (recentMoods.length === 0) return { score: 50, level: 'med' };
-    const avg = recentMoods.reduce((a, b) => a + b, 0) / recentMoods.length;
-    const score = Math.round(avg / 5 * 100);
-    const level = score >= 70 ? 'low' : score >= 40 ? 'med' : 'high';
-    return { score, level, avg: avg.toFixed(1) };
-  }
-
-  // ============ Themes ============
-  const THEMES = [
-    { id: 'dark', name: 'Тёмная', bg: '#0a0e1a' },
-    { id: 'light', name: 'Светлая', bg: '#f8fafc' },
-    { id: 'midnight', name: 'Полночь', bg: '#000000' },
-    { id: 'forest', name: 'Лес', bg: '#0f1f15' }
-  ];
-  const ACCENTS = ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#06b6d4'];
-
-  window.applyTheme = (themeId) => {
-    state.theme = themeId;
-    document.documentElement.setAttribute('data-theme', themeId === 'light' ? 'light' : 'dark');
-    if (themeId === 'midnight') {
-      document.documentElement.style.setProperty('--bg', '#000000');
-      document.documentElement.style.setProperty('--bg-2', '#0a0a0a');
-    } else if (themeId === 'forest') {
-      document.documentElement.style.setProperty('--bg', '#0f1f15');
-      document.documentElement.style.setProperty('--bg-2', '#1a2f22');
-    } else {
-      document.documentElement.style.removeProperty('--bg');
-      document.documentElement.style.removeProperty('--bg-2');
-    }
-    saveToCloud();
-    renderSettings();
-  };
-
-  window.applyAccent = (color) => {
-    state.accentColor = color;
-    document.documentElement.style.setProperty('--accent-color', color);
-    document.documentElement.style.setProperty('--accent-color-2', color);
-    saveToCloud();
-    renderSettings();
   };
 
   // ============ UI Rendering ============
@@ -1036,56 +1982,23 @@
     if (state.profile.name) document.getElementById('userGreeting').textContent = `Привет, ${state.profile.name}!`;
   }
 
-  function buildTabs() {
-    const tabs = [
-      { id: 'today', icon: '📅', name: 'Сегодня' },
-      { id: 'achievements', icon: '🏆', name: 'Достижения' },
-      { id: 'heatmap', icon: '📊', name: 'Карта' },
-      { id: 'quizzes', icon: '🎓', name: 'Квизы' },
-      { id: 'flashcards', icon: '🧠', name: 'Карточки' },
-      { id: 'expenses', icon: '💰', name: 'Расходы' },
-      { id: 'projects', icon: '🚀', name: 'Проекты' },
-      { id: 'forecast', icon: '', name: 'Прогноз' },
-      { id: 'guilds', icon: '🏰', name: 'Гильдии' },
-      { id: 'settings', icon: '⚙️', name: 'Настройки' }
-    ];
-    const mobileTabs = [
-      { id: 'today', icon: '📅' },
-      { id: 'achievements', icon: '🏆' },
-      { id: 'guilds', icon: '🏰' },
-      { id: 'forecast', icon: '📈' },
-      { id: 'settings', icon: '⚙️' }
-    ];
-    
-    document.getElementById('desktopTabs').innerHTML = tabs.map(t => 
-      `<button class="tab ${t.id === 'today' ? 'active' : ''}" data-tab="${t.id}">${t.icon} ${t.name}</button>`
-    ).join('');
-    document.getElementById('mobileNav').innerHTML = mobileTabs.map(t => 
-      `<button class="mobile-nav-item ${t.id === 'today' ? 'active' : ''}" data-tab="${t.id}"><span style="font-size:20px">${t.icon}</span></button>`
-    ).join('');
-    
-    document.querySelectorAll('.tab, .mobile-nav-item').forEach(tab => {
+  function buildNav() {
+    document.querySelectorAll('.mobile-nav-item').forEach(tab => {
       tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
   }
 
   window.switchTab = (tabName) => {
-    document.querySelectorAll('.tab, .mobile-nav-item').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll(`[data-tab="${tabName}"]`).forEach(t => t.classList.add('active'));
+    document.querySelectorAll('.mobile-nav-item').forEach(t => t.classList.remove('active'));
+    document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    const panel = document.getElementById('panel-' + tabName);
-    panel.classList.add('active');
+    document.getElementById('panel-' + tabName).classList.add('active');
     
     if (tabName === 'today') renderToday();
-    else if (tabName === 'achievements') renderAchievements();
-    else if (tabName === 'heatmap') renderHeatmap();
-    else if (tabName === 'quizzes') renderQuizzes();
-    else if (tabName === 'flashcards') renderFlashcards();
-    else if (tabName === 'expenses') renderExpenses();
-    else if (tabName === 'projects') renderProjects();
-    else if (tabName === 'forecast') renderForecast();
+    else if (tabName === 'messages') renderMessages();
     else if (tabName === 'guilds') renderGuilds();
-    else if (tabName === 'settings') renderSettings();
+    else if (tabName === 'profile') renderProfile();
+    else if (tabName === 'more') renderMore();
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -1093,50 +2006,128 @@
   function renderToday() {
     const today = todayStr();
     const panel = document.getElementById('panel-today');
+    const isRegDay = state.registrationDate && today === state.registrationDate;
+    
     panel.innerHTML = `
       <div class="card">
-        <h2>🎯 Задачи на сегодня <span style="font-size:13px;color:var(--muted);font-weight:400;margin-left:auto">${today}</span></h2>
+        <h2>🎯 ${isRegDay ? 'Добро пожаловать!' : 'Задачи на сегодня'} <span style="font-size:13px;color:var(--muted);font-weight:400;margin-left:auto">${formatDate(today)}</span></h2>
+        ${isRegDay ? `
+          <div style="padding:20px; text-align:center;">
+            <svg class="icon-xl" viewBox="0 0 24 24" style="margin-bottom:16px;"><path class="icon-gradient" d="M12 2L2 7l10 5 10-5-10-5z"/><path class="icon-gradient" d="M2 17l10 5 10-5"/><path class="icon-gradient" d="M2 12l10 5 10-5"/></svg>
+            <h3 style="color:var(--accent-2); margin-bottom:8px;">Привет, ${escapeHtml(state.profile.name)}!</h3>
+            <p style="color:var(--muted);">Твой план начнётся завтра. Сегодня изучи интерфейс, настрой профиль и вступи в гильдию.</p>
+          </div>
+        ` : ''}
         <div id="todayWeekBanner"></div>
         <ul class="task-list" id="todayTasks"></ul>
-        <div class="progress-mini">
-          <span class="progress-mini-label">Прогресс:</span>
-          <div class="progress-mini-bar"><div class="progress-mini-fill" id="todayProgress" style="width:0%"></div></div>
-          <span class="progress-mini-value" id="todayProgressValue">0%</span>
-        </div>
-        <div class="quick-actions">
-          <button onclick="claimDailyBonus()"> Ежедневный бонус</button>
-          <button onclick="switchTab('guilds')">🏰 Гильдия</button>
-        </div>
-        <div class="add-task">
-          <input type="text" id="newTodayTask" placeholder="Своя задача...">
-          <input type="number" id="newTodayXp" placeholder="XP" value="20" min="1" max="500">
-          <button class="btn" onclick="addCustomTask('today')">+</button>
-        </div>
+        ${!isRegDay ? `
+          <div class="progress-mini">
+            <span class="progress-mini-label">Прогресс:</span>
+            <div class="progress-mini-bar"><div class="progress-mini-fill" id="todayProgress" style="width:0%"></div></div>
+            <span class="progress-mini-value" id="todayProgressValue">0%</span>
+          </div>
+          <div class="quick-actions">
+            <button onclick="claimDailyBonus()">🎁 Ежедневный бонус</button>
+            <button onclick="switchTab('guilds')">🏰 Гильдия</button>
+          </div>
+          <div class="add-task">
+            <input type="text" id="newTodayTask" placeholder="Своя задача...">
+            <input type="number" id="newTodayXp" placeholder="XP" value="20" min="1" max="500">
+            <button class="btn" onclick="addCustomTask('today')">+</button>
+          </div>
+        ` : ''}
       </div>
     `;
     
-    // Простые задачи дня
-    const tasks = [
-      { key: 'r_wake', time: '08:00', text: 'Подъём, стакан воды', xp: 30, badge: 'routine' },
-      { key: 'r_study', time: '09:00', text: `Учёба (3 часа): ${state.profile.langs?.[0] || 'JS'}`, xp: 100, badge: state.profile.langs?.[0] || 'js' },
-      { key: 'r_english', time: '12:00', text: 'Английский (30 мин)', xp: 40, badge: 'en' },
-      { key: 'r_lunch', time: '12:30', text: 'Обед', xp: 0, badge: 'routine' },
-      { key: 'r_study2', time: '13:30', text: 'Python/C++ (1 час)', xp: 50, badge: 'py' },
-      { key: 'r_work', time: '15:00', text: 'Работа (до 23:00)', xp: 0, badge: 'routine' },
-      { key: 'r_sleep', time: '00:00', text: 'Отбой', xp: 20, badge: 'routine' }
-    ];
+    if (isRegDay) return;
     
-    const container = document.getElementById('todayTasks');
-    container.innerHTML = '';
-    tasks.forEach(task => {
-      const key = 'today:' + task.key + ':' + today;
-      const done = !!state.completedTasks[key];
-      const li = document.createElement('li');
-      li.className = 'task-item' + (done ? ' done' : '') + (task.badge === 'routine' ? ' routine' : '');
-      li.innerHTML = `<input type="checkbox" ${done ? 'checked' : ''} data-key="${key}" data-xp="${task.xp}"><span class="task-text"><span class="task-time">${task.time}</span> ${task.text}<span class="badge ${task.badge}">${task.badge.toUpperCase()}</span></span><span class="task-xp">+${task.xp}</span>`;
-      container.appendChild(li);
+    const course = getCourse();
+    const start = getYear1Start();
+    const dayNum = daysBetween(start, today);
+    const weekNum = Math.min(Math.floor(dayNum / 7), course.length - 1);
+    const dayOfWeek = getDayOfWeek(today);
+    const dowKey = dayOfWeek === 0 ? 0 : dayOfWeek;
+    const week = course[weekNum];
+    const dayTasks = week?.days[dowKey] || week?.days[1] || [];
+    
+    const mainTopic = dayTasks.find(t => t[3] && !['book','git'].includes(t[3])) || dayTasks[0];
+    const mainTopicText = mainTopic ? mainTopic[0] : 'Учёба по плану';
+    const mainTopicSub = mainTopic?.[1] || `Тема недели: ${week?.topic}`;
+    
+    const bgLang = (dowKey === 1 || dowKey === 3 || dowKey === 5) ? 'py' : (dowKey === 2 || dowKey === 4) ? (state.profile.lang === 'py' ? 'js' : 'py') : null;
+    const monthIdx = Math.floor(weekNum / 4);
+    const pyTopics = ['Основы: переменные, типы', 'Условия и циклы', 'Функции, списки', 'ООП: классы', 'Работа с файлами', 'Модули, pip', 'REST API на Flask', 'Базы данных: sqlite3', 'Автоматизация скриптов', 'Data Science: pandas', 'Тестирование: pytest', 'Мини-проект'];
+    const jsTopics = ['Основы: переменные, типы', 'Условия и циклы', 'Функции, массивы', 'ООП: классы', 'Асинхронность', 'Модули, npm', 'REST API на Express', 'Базы данных: PostgreSQL', 'Автоматизация скриптов', 'Тестирование: Jest', 'CI/CD: GitHub Actions', 'Мини-проект'];
+    const bgTopic = bgLang === 'py' ? (pyTopics[monthIdx] || 'Практика') : bgLang === 'js' ? (jsTopics[monthIdx] || 'Практика') : null;
+    const bgBadge = bgLang || 'book';
+
+    const tasks = [];
+    tasks.push({ key: 'r_wake', time: '08:00', text: 'Подъём, стакан воды', xp: 30, badge: 'book' });
+    tasks.push({ key: 'r_shower', time: '08:15', text: 'Душ, сборы', xp: 0, badge: 'book' });
+    tasks.push({ key: 'r_breakfast', time: '08:45', text: 'Завтрак', xp: 0, badge: 'book' });
+    tasks.push({ key: 'r_study1', time: '09:00', text: `Учёба (3 часа): ${mainTopicText}`, sub: mainTopicSub, xp: 100, badge: state.profile.lang });
+    tasks.push({ key: 'r_english', time: '12:00', text: 'Английский (30 мин)', sub: 'Duolingo / слова / документация', xp: 40, badge: 'en' });
+    tasks.push({ key: 'r_lunch', time: '12:30', text: 'Обед, отдых', xp: 0, badge: 'book' });
+    
+    if (bgLang) tasks.push({ key: 'r_study2', time: '13:30', text: `${bgLang === 'py' ? '🐍' : '🟨'} ${bgLang.toUpperCase()} (1 час): ${bgTopic}`, sub: 'Практика, задачи', xp: 50, badge: bgBadge });
+    else tasks.push({ key: 'r_study2', time: '13:30', text: 'Лёгкая учёба / повторение', xp: 50, badge: 'book' });
+
+    tasks.push({ key: 'r_road', time: '14:30', text: 'Дорога на работу', xp: 0, badge: 'book' });
+    tasks.push({ key: 'r_work', time: '15:00', text: 'Работа (до 23:00)', xp: 0, badge: 'book' });
+    
+    if (dowKey === 6 || dowKey === 0) {
+      tasks.push({ key: 'r_friends', time: '16:00', text: 'Встреча с другом (Вадик / Полина / Никита)', xp: 20, badge: 'book' });
+      tasks.push({ key: 'r_rest', time: '19:00', text: 'Отдых без чувства вины', xp: 10, badge: 'book' });
+    } else {
+      tasks.push({ key: 'r_dinner', time: '23:00', text: 'Ужин, свободное время', xp: 0, badge: 'book' });
+    }
+    tasks.push({ key: 'r_sleep', time: '00:00', text: 'Отбой (8 часов сна)', xp: 20, badge: 'book' });
+
+    dayTasks.forEach((t, i) => {
+      if (t === mainTopic) return;
+      tasks.push({ key: `study_${i}`, text: t[0], sub: t[1] || '', xp: t[2], badge: t[3] });
     });
     
+    renderTaskList(tasks, 'todayTasks', 'today:'+today, 'today', week);
+  }
+
+  function formatDate(iso) { return new Date(iso + 'T00:00:00').toLocaleDateString('ru-RU', { weekday:'short', day:'numeric', month:'short' }); }
+
+  function renderTaskList(tasks, containerId, dateKey, prefix, weekInfo) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    const bannerId = containerId === 'todayTasks' ? 'todayWeekBanner' : 'dayWeekBanner';
+    const banner = document.getElementById(bannerId);
+    if (banner && weekInfo) {
+      banner.innerHTML = `<div style="background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(236,72,153,0.08));border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;"><h3 style="font-size:15px;color:var(--accent-2);margin-bottom:4px;">${weekInfo.title}</h3><p style="font-size:13px;color:var(--muted);"><strong>Тема:</strong> ${weekInfo.topic}</p><div style="margin-top:8px;padding:8px 12px;background:rgba(16,185,129,0.1);border-left:3px solid var(--green);border-radius:6px;font-size:13px;"><strong style="color:var(--green);">Проект недели:</strong> ${weekInfo.project}</div></div>`;
+    } else if (banner) { banner.innerHTML = ''; }
+
+    const customs = state.customTasks[dateKey] || [];
+    const allTasks = [...tasks.map(t => ({ ...t, type: 'preset' })), ...customs.map(t => ({ ...t, key: 'custom:'+t.id, type: 'custom' }))];
+
+    let nextKey = null;
+    for (const task of allTasks) {
+      if (!state.completedTasks[taskKey(prefix, task.key, dateKey)]) { nextKey = taskKey(prefix, task.key, dateKey); break; }
+    }
+
+    allTasks.forEach(task => {
+      const key = taskKey(prefix, task.key, dateKey);
+      const done = !!state.completedTasks[key];
+      const isNext = key === nextKey;
+      const isRoutine = task.badge === 'book';
+      const li = document.createElement('li');
+      li.className = 'task-item' + (done ? ' done' : '') + (isRoutine ? ' routine' : '') + (isNext ? ' next' : '');
+      
+      let badgeHtml = '';
+      if (task.badge && !isRoutine) {
+        badgeHtml = `<span class="badge ${task.badge}">${task.badge.toUpperCase()}</span>`;
+      }
+      
+      li.innerHTML = `<input type="checkbox" ${done ? 'checked' : ''} data-key="${key}" data-xp="${task.xp}"><span class="task-text">${task.time ? `<span class="task-time">${task.time}</span>` : ''} ${task.text}${badgeHtml}${task.sub ? `<small>${task.sub}</small>` : ''}</span><span class="task-xp">+${task.xp}</span>${task.type === 'custom' ? `<button class="task-del" data-key="${key}">×</button>` : ''}`;
+      container.appendChild(li);
+    });
+
     container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
       cb.addEventListener('change', e => {
         const key = e.target.dataset.key;
@@ -1148,24 +2139,40 @@
         renderHeader();
       });
     });
+
+    container.querySelectorAll('.task-del').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const key = e.target.dataset.key;
+        if (!confirm('Удалить?')) return;
+        const xpMatch = e.target.closest('.task-item').querySelector('.task-xp').textContent.match(/\d+/);
+        if (xpMatch && state.completedTasks[key]) window.addXp(-parseInt(xpMatch[0]));
+        delete state.completedTasks[key];
+        for (const d in state.customTasks) state.customTasks[d] = state.customTasks[d].filter(t => 'custom:'+t.id !== key);
+        window.debouncedSave();
+        renderToday();
+      });
+    });
     updateTodayProgress();
   }
+
+  function taskKey(prefix, id, date) { return `${prefix}:${id}:${date}`; }
 
   function updateTodayProgress() {
     const items = document.querySelectorAll('#todayTasks .task-item');
     let done = 0;
     items.forEach(i => { if (i.classList.contains('done')) done++; });
     const pct = items.length ? Math.round(done/items.length*100) : 0;
-    document.getElementById('todayProgress').style.width = pct + '%';
-    document.getElementById('todayProgressValue').textContent = pct + '%';
+    const p = document.getElementById('todayProgress');
+    const v = document.getElementById('todayProgressValue');
+    if (p) p.style.width = pct + '%';
+    if (v) v.textContent = pct + '%';
   }
 
   window.claimDailyBonus = () => {
     const today = todayStr();
     if (state.dailyBonusClaimed === today) { showToast('Бонус уже получен'); return; }
     const bonus = 50 + state.loginStreak * 10;
-    state.xp += bonus;
-    state.totalXp += bonus;
+    state.xp += bonus; state.totalXp += bonus;
     state.dailyBonusClaimed = today;
     saveToCloud();
     showToast(` Бонус: +${bonus} XP! (Серия: ${state.loginStreak})`);
@@ -1176,29 +2183,234 @@
     const text = document.getElementById('newTodayTask').value.trim();
     const xp = parseInt(document.getElementById('newTodayXp').value) || 20;
     if (!text) return;
-    const key = 'custom:' + Date.now() + ':' + todayStr();
-    state.completedTasks[key] = false;
-    // Добавляем временно
-    const container = document.getElementById('todayTasks');
-    const li = document.createElement('li');
-    li.className = 'task-item';
-    li.innerHTML = `<input type="checkbox" data-key="${key}" data-xp="${xp}"><span class="task-text">${escapeHtml(text)}</span><span class="task-xp">+${xp}</span><button class="task-del" data-key="${key}">×</button>`;
-    container.appendChild(li);
-    li.querySelector('input').addEventListener('change', e => {
-      if (e.target.checked) { state.completedTasks[key] = true; window.addXp(xp); li.classList.add('done'); }
-      else { delete state.completedTasks[key]; window.addXp(-xp); li.classList.remove('done'); }
-      updateTodayProgress();
-      renderHeader();
-    });
-    li.querySelector('.task-del').addEventListener('click', () => li.remove());
-    document.getElementById('newTodayTask').value = '';
+    const dateKey = 'today:'+todayStr();
+    if (!state.customTasks[dateKey]) state.customTasks[dateKey] = [];
+    state.customTasks[dateKey].push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), text, xp });
+    window.debouncedSave();
+    renderToday();
   };
 
-  function renderAchievements() {
-    const panel = document.getElementById('panel-achievements');
+  function renderMessages() {
+    const panel = document.getElementById('panel-messages');
+    
+    // Собираем все чаты
+    const chatEntries = [];
+    Object.entries(state.chats || {}).forEach(([uid, data]) => {
+      if (allUsersCache[uid]) chatEntries.push({ uid, ...data, user: allUsersCache[uid] });
+    });
+    chatEntries.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+    
     panel.innerHTML = `
       <div class="card">
-        <h2>🏆 Достижения (${state.achievements.length}/${ACHIEVEMENTS.length})</h2>
+        <h2> Сообщения</h2>
+        <div class="add-task" style="margin-bottom:12px;">
+          <input type="text" id="searchUser" placeholder="Поиск пользователя..." oninput="searchUsers()">
+        </div>
+        <div id="userSearchResults"></div>
+        <h3 style="margin:16px 0 8px; font-size:14px;">Диалоги</h3>
+        ${chatEntries.length === 0 ? '<p style="color:var(--muted);">Нет диалогов. Найди пользователя выше.</p>' : ''}
+        ${chatEntries.map(c => `
+          <div class="msg-item" onclick="openUserChat('${c.uid}')">
+            <div class="msg-avatar" style="background:${c.user.color || 'var(--accent)'};">${c.user.avatar || '👤'}</div>
+            <div class="msg-info">
+              <div class="msg-name">${escapeHtml(c.user.name)}</div>
+              <div class="msg-last">${escapeHtml(c.lastMsg || '')}</div>
+            </div>
+          </div>
+        `).join('')}
+        ${state.guildId ? `
+          <h3 style="margin:16px 0 8px; font-size:14px;">Гильдия</h3>
+          <div class="msg-item" onclick="openGuildChat()">
+            <div class="msg-avatar" style="background:var(--accent);">🏰</div>
+            <div class="msg-info">
+              <div class="msg-name">Чат гильдии</div>
+              <div class="msg-last">${escapeHtml(window.currentGuild?.name || '')}</div>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  window.searchUsers = () => {
+    const q = document.getElementById('searchUser').value.trim().toLowerCase();
+    const results = document.getElementById('userSearchResults');
+    if (!q) { results.innerHTML = ''; return; }
+    const matches = Object.values(allUsersCache).filter(u => u.name?.toLowerCase().includes(q) && u.uid !== currentUser.uid).slice(0, 5);
+    results.innerHTML = matches.map(u => `
+      <div class="msg-item" onclick="openUserChat('${u.uid}')">
+        <div class="msg-avatar" style="background:${u.color || 'var(--accent)'};">${u.avatar || '👤'}</div>
+        <div class="msg-info">
+          <div class="msg-name">${escapeHtml(u.name)}</div>
+          <div class="msg-last">Нажми чтобы написать</div>
+        </div>
+      </div>
+    `).join('') || '<p style="color:var(--muted);">Никого не найдено</p>';
+  };
+
+  function renderGuilds() {
+    const panel = document.getElementById('panel-guilds');
+    
+    if (!state.guildId) {
+      panel.innerHTML = `
+        <div class="card">
+          <h2>🏰 Гильдии</h2>
+          <p style="color:var(--muted); margin-bottom:16px;">Объединяйся с друзьями, выполняйте задания вместе и получайте баллы!</p>
+          <button class="btn" onclick="createGuild()" style="width:100%; margin-bottom:8px;">+ Создать гильдию</button>
+          <button class="btn ghost" onclick="joinGuild()" style="width:100%;">Вступить по ID</button>
+        </div>
+        <div class="card">
+          <h3>🏆 Рейтинг гильдий</h3>
+          <div id="guildRanking">Загрузка...</div>
+        </div>
+      `;
+      loadGuildRanking('guildRanking');
+      return;
+    }
+    
+    const g = window.currentGuild;
+    if (!g) { panel.innerHTML = '<div class="card">Загрузка...</div>'; return; }
+    const members = Object.entries(g.members || {}).sort((a, b) => (b[1].contribution || 0) - (a[1].contribution || 0));
+    const myRole = g.members?.[currentUser.uid]?.role || 'member';
+    const isOwner = myRole === 'owner';
+    
+    panel.innerHTML = `
+      <div class="guild-card" style="border-color:${g.color || 'var(--accent)'};">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+          <div class="guild-icon" style="background:${g.color || 'var(--accent)'}; font-size:32px;">${g.icon || ''}</div>
+          <div style="flex:1;">
+            <h2 style="margin:0; font-size:20px;">${escapeHtml(g.name)}</h2>
+            <div class="guild-id">${g.id}</div>
+          </div>
+        </div>
+        ${g.desc ? `<p style="color:var(--muted); font-size:14px; margin-bottom:12px;">${escapeHtml(g.desc)}</p>` : ''}
+        <div style="font-size:14px; color:var(--muted);">Код для приглашения:</div>
+        <div class="guild-code">${g.id}</div>
+        <div style="margin-top:12px; font-size:24px; font-weight:700; color:var(--yellow);">${g.totalPoints || 0} баллов</div>
+        <button class="btn danger small" onclick="leaveGuild()" style="margin-top:12px;">Покинуть гильдию</button>
+      </div>
+      <div class="card">
+        <h3> Участники (${members.length})</h3>
+        ${members.map(([uid, m], i) => `
+          <div class="guild-member" style="display:flex; justify-content:space-between; padding:10px; background:var(--card-2); border-radius:8px; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:32px; height:32px; border-radius:50%; background:${m.color || 'var(--accent)'}; display:flex; align-items:center; justify-content:center;">${m.avatar || '👤'}</div>
+              <div>
+                <strong>#${i + 1} ${escapeHtml(m.name || 'Аноним')}</strong>
+                <span style="font-size:11px; color:var(--muted); margin-left:6px;">${m.role === 'owner' ? '👑 Владелец' : m.role === 'admin' ? '️ Админ' : m.role === 'moderator' ? '🛡️ Модератор' : '👤 Участник'}</span>
+                ${uid === currentUser.uid ? ' (ты)' : ''}
+              </div>
+            </div>
+            <div style="color:var(--yellow); font-weight:600;">${m.contribution || 0}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card">
+        <h3>💬 Чат гильдии</h3>
+        <button class="btn" onclick="openGuildChat()" style="width:100%;">Открыть чат</button>
+      </div>
+      <div class="card">
+        <h3>🛒 Магазин гильдии</h3>
+        <div class="shop-grid">
+          ${GUILD_SHOP.map(item => `
+            <div class="shop-item">
+              <div class="shop-item-icon">${item.icon}</div>
+              <div class="shop-item-name">${item.name}</div>
+              <div style="font-size:12px; color:var(--yellow); margin-bottom:4px;">${item.price} баллов</div>
+              <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">${item.desc}</div>
+              <button class="btn small" onclick="buyGuildItem('${item.id}')" ${(g.totalPoints || 0) < item.price ? 'disabled style="opacity:0.5;"' : ''}>Купить</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <h3>🏆 Рейтинг гильдий</h3>
+        <div id="guildRanking2"></div>
+      </div>
+    `;
+    loadGuildRanking('guildRanking2');
+  }
+
+  async function loadGuildRanking(containerId) {
+    try {
+      const snapshot = await get(child(ref(db), 'guilds'));
+      const guilds = Object.entries(snapshot.val() || {}).sort((a, b) => (b[1].totalPoints || 0) - (a[1].totalPoints || 0)).slice(0, 10);
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = guilds.map(([id, g], i) => `
+        <div class="guild-list-item" style="${id === state.guildId ? 'border:1px solid var(--accent);' : ''}" onclick="viewGuild('${id}')">
+          <div class="guild-rank-num">#${i + 1}</div>
+          <div class="guild-icon" style="background:${g.color || 'var(--accent)'};">${g.icon || '🏰'}</div>
+          <div style="flex:1;">
+            <div style="font-weight:600;">${escapeHtml(g.name)}</div>
+            <div style="font-size:12px; color:var(--muted);">${g.id} · Участников: ${Object.keys(g.members || {}).length}</div>
+          </div>
+          <div style="font-weight:700; color:var(--yellow);">${g.totalPoints || 0}</div>
+        </div>
+      `).join('');
+    } catch(e) {
+      const container = document.getElementById(containerId);
+      if (container) container.innerHTML = 'Ошибка загрузки';
+    }
+  }
+
+  window.viewGuild = async (id) => {
+    const snapshot = await get(ref(db, 'guilds/' + id));
+    const g = snapshot.val();
+    if (!g) { showToast('Гильдия не найдена'); return; }
+    if (state.guildId === id) { renderGuilds(); return; }
+    if (confirm(`Вступить в гильдию "${g.name}" (${g.id})?`)) {
+      await update(ref(db, 'guilds/' + id + '/members/' + currentUser.uid), { 
+        name: state.profile.name, role: 'member', contribution: 0,
+        avatar: state.profile.avatar, color: state.profile.color
+      });
+      if (state.guildId) await remove(ref(db, 'guilds/' + state.guildId + '/members/' + currentUser.uid));
+      state.guildId = id;
+      state.guildContribution = 0;
+      saveToCloud();
+      subscribeToGuild(id);
+      showToast('Ты в гильдии ' + g.name + '!');
+      renderGuilds();
+    }
+  };
+
+  function renderProfile() {
+    const panel = document.getElementById('panel-profile');
+    const lvl = levelFromXp(state.xp);
+    const forecast = calcForecast();
+    const burnout = calcBurnout();
+    
+    panel.innerHTML = `
+      <div class="profile-header">
+        <div class="profile-avatar" style="background:${state.profile.color || 'var(--accent)'};">${state.profile.avatar || '🚀'}</div>
+        <div class="profile-name">${escapeHtml(state.profile.name)}</div>
+        <div class="profile-bio">${escapeHtml(state.profile.bio || 'Начинающий разработчик')}</div>
+        <div style="font-size:13px; color:var(--muted);">${state.profile.age} лет · ${state.profile.level || 'Новичок'} · ${state.profile.lang === 'py' ? '🐍 Python' : '🟨 JavaScript'}</div>
+        <div style="font-size:13px; color:var(--accent-2); margin-top:4px;">Цель: ${escapeHtml(state.profile.goal)}</div>
+        <button class="btn small" onclick="editProfile()" style="margin-top:12px;">Редактировать профиль</button>
+      </div>
+      <div class="profile-stats">
+        <div class="profile-stat">
+          <div class="profile-stat-value">${lvl}</div>
+          <div class="profile-stat-label">Уровень</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-value">${state.totalXp}</div>
+          <div class="profile-stat-label">Всего XP</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-value">${state.loginStreak || 0}🔥</div>
+          <div class="profile-stat-label">Серия</div>
+        </div>
+      </div>
+      <div class="forecast-card" style="margin-top:12px;">
+        <h3 style="margin-bottom:8px;">📈 Прогноз до Junior</h3>
+        <div style="font-size:28px; font-weight:700; color:var(--green);">${forecast.daysLeft} дней</div>
+        <div style="color:var(--muted); font-size:13px;">При текущем темпе (${forecast.tasksPerDay} задач/день)</div>
+        <div style="margin-top:8px; font-size:12px;">Выполнено: ${Object.keys(state.completedTasks).length} задач · Цель: ~500</div>
+      </div>
+      <div class="card">
+        <h3>🏆 Достижения (${state.achievements.length}/${ACHIEVEMENTS.length})</h3>
         <div class="achievement-grid">
           ${ACHIEVEMENTS.map(a => `
             <div class="achievement ${state.achievements.includes(a.id) ? 'unlocked' : ''}">
@@ -1209,132 +2421,9 @@
           `).join('')}
         </div>
       </div>
-    `;
-  }
-
-  function renderHeatmap() {
-    const panel = document.getElementById('panel-heatmap');
-    const today = todayStr();
-    let cells = '';
-    for (let week = 51; week >= 0; week--) {
-      for (let day = 0; day < 7; day++) {
-        const d = addDays(today, -(week * 7 + day));
-        let count = 0;
-        for (const key in state.completedTasks) if (key.includes(d)) count++;
-        const level = count === 0 ? '' : count <= 2 ? 'l1' : count <= 4 ? 'l2' : count <= 6 ? 'l3' : 'l4';
-        cells += `<div class="heatmap-cell ${level}" title="${d}: ${count} задач"></div>`;
-      }
-    }
-    panel.innerHTML = `
       <div class="card">
-        <h2>📊 Тепловая карта активности</h2>
-        <div class="heatmap">${cells}</div>
-        <div style="display:flex; gap:8px; margin-top:12px; align-items:center; font-size:12px; color:var(--muted);">
-          <span>Меньше</span>
-          <div class="heatmap-cell"></div>
-          <div class="heatmap-cell l1"></div>
-          <div class="heatmap-cell l2"></div>
-          <div class="heatmap-cell l3"></div>
-          <div class="heatmap-cell l4"></div>
-          <span>Больше</span>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderQuizzes() {
-    const panel = document.getElementById('panel-quizzes');
-    const langs = Object.keys(QUIZZES);
-    panel.innerHTML = `
-      <div class="card">
-        <h2>🎓 Квизы по языкам</h2>
-        <p style="color:var(--muted); margin-bottom:12px;">Проверь свои знания. +20 XP за правильный ответ</p>
-        <div style="display:grid; gap:10px;">
-          ${langs.map(l => `
-            <button class="btn ghost" onclick="startQuiz('${l}')" style="padding:16px; text-align:left;">
-              <strong style="font-size:16px;">${l.toUpperCase()}</strong>
-              <div style="font-size:12px; color:var(--muted);">5 вопросов</div>
-            </button>
-          `).join('')}
-        </div>
-        <div style="margin-top:16px;">
-          <h3 style="margin-bottom:8px;">История:</h3>
-          ${Object.entries(state.quizScores).slice(-5).reverse().map(([_, v]) => 
-            `<div style="padding:8px; background:var(--card-2); border-radius:8px; margin-bottom:6px;">${v.date}: <strong>${v.score}%</strong></div>`
-          ).join('') || '<p style="color:var(--muted);">Пока нет результатов</p>'}
-        </div>
-      </div>
-      <div class="card" id="quizArea"></div>
-    `;
-  }
-
-  function renderQuizQuestion() {
-    const q = currentQuiz[currentQuizIdx];
-    const area = document.getElementById('quizArea');
-    if (!area) return;
-    area.innerHTML = `
-      <h3>Вопрос ${currentQuizIdx + 1}/${currentQuiz.length}</h3>
-      <p style="font-size:16px; margin:16px 0;">${q.q}</p>
-      ${q.options.map((o, i) => `<button class="quiz-option" onclick="answerQuiz(${i})">${o}</button>`).join('')}
-    `;
-  }
-
-  function renderFlashcards() {
-    const panel = document.getElementById('panel-flashcards');
-    if (state.flashcards.length === 0) {
-      panel.innerHTML = `<div class="card"><h2>🧠 Карточки</h2><p>Нет карточек</p></div>`;
-      return;
-    }
-    const card = state.flashcards[currentCardIdx % state.flashcards.length];
-    panel.innerHTML = `
-      <div class="card">
-        <h2>🧠 Flashcards (${currentCardIdx % state.flashcards.length + 1}/${state.flashcards.length})</h2>
-        <div class="flashcard" id="flashcard" onclick="flipCard()">
-          <div class="flashcard-front"><strong>${escapeHtml(card.front)}</strong><br><small style="color:var(--muted);">Нажми чтобы перевернуть</small></div>
-          <div class="flashcard-back">${escapeHtml(card.back)}</div>
-        </div>
-        <div style="display:flex; gap:8px; margin-top:12px;">
-          <button class="btn ghost" onclick="nextCard()" style="flex:1;">Следующая →</button>
-          <button class="btn" onclick="addFlashcard()" style="flex:1;">+ Добавить</button>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderExpenses() {
-    const panel = document.getElementById('panel-expenses');
-    const total = state.expenses.reduce((s, e) => s + e.amount, 0);
-    const byCategory = {};
-    state.expenses.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + e.amount; });
-    panel.innerHTML = `
-      <div class="card">
-        <h2>💰 Трекер расходов</h2>
-        <div style="font-size:24px; font-weight:700; color:var(--green); margin:12px 0;">${total.toFixed(0)} ₽ всего</div>
-        <button class="btn" onclick="addExpense()" style="width:100%; margin-bottom:12px;">+ Добавить расход</button>
-        <h3 style="margin:12px 0 8px;">По категориям:</h3>
-        ${Object.entries(byCategory).map(([c, v]) => `
-          <div style="display:flex; justify-content:space-between; padding:8px; background:var(--card-2); border-radius:8px; margin-bottom:6px;">
-            <span><span class="expense-category">${c}</span></span>
-            <strong>${v.toFixed(0)} ₽</strong>
-          </div>
-        `).join('') || '<p style="color:var(--muted);">Нет расходов</p>'}
-        <h3 style="margin:16px 0 8px;">История:</h3>
-        ${state.expenses.slice().reverse().slice(0, 20).map(e => `
-          <div class="expense-item">
-            <div><span class="expense-category">${e.category}</span>${e.desc}</div>
-            <strong>${e.amount} ₽</strong>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
-
-  function renderProjects() {
-    const panel = document.getElementById('panel-projects');
-    panel.innerHTML = `
-      <div class="card">
-        <h2>🚀 Pet-проекты</h2>
-        <button class="btn" onclick="addProject()" style="width:100%; margin-bottom:12px;">+ Новый проект</button>
+        <h3>🚀 Pet-проекты</h3>
+        <button class="btn small" onclick="addProject()" style="width:100%; margin-bottom:12px;">+ Новый проект</button>
         ${state.projects.map(p => `
           <div class="project-card">
             <h4 style="margin-bottom:8px;">${escapeHtml(p.name)}</h4>
@@ -1349,40 +2438,94 @@
               Прогресс: ${p.stages.filter(s => s.done).length}/${p.stages.length}
             </div>
           </div>
-        `).join('') || '<p style="color:var(--muted);">Нет проектов</p>'}
+        `).join('') || '<p style="color:var(--muted);">Нет проектов. Создай первый!</p>'}
+      </div>
+      <div class="card" style="${burnout.level === 'low' ? 'border-color:var(--green);' : burnout.level === 'med' ? 'border-color:var(--yellow);' : 'border-color:var(--red);'}">
+        <h3>🔋 Индекс выгорания</h3>
+        <div style="font-size:32px; font-weight:700;">${burnout.score}%</div>
+        <div style="font-size:13px; margin-top:4px;">${burnout.level === 'low' ? 'Отлично! Ты в форме 💪' : burnout.level === 'med' ? 'Нормально, но следи за собой ⚠️' : 'Высокий риск выгорания! Отдохни 🛑'}</div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">Среднее настроение за 7 дней: ${burnout.avg}/5</div>
+      </div>
+      <div class="card">
+        <h3>⭐ Настроение сегодня</h3>
+        <div class="mood-stars" id="moodStars" style="display:flex; gap:8px; justify-content:center; margin:12px 0;">
+          ${[1,2,3,4,5].map(v => `<span class="mood-star ${state.moods?.[todayStr()]?.value >= v ? 'active' : ''}" data-value="${v}" onclick="setMood(${v})" style="font-size:32px; cursor:pointer; opacity:${state.moods?.[todayStr()]?.value >= v ? 1 : 0.3};">⭐</span>`).join('')}
+        </div>
+        <input type="text" id="moodComment" class="auth-input" placeholder="Комментарий (необязательно)" value="${state.moods?.[todayStr()]?.comment || ''}" style="margin-top:8px;">
+        <button class="btn small" onclick="saveMood()" style="width:100%; margin-top:8px;">Сохранить</button>
       </div>
     `;
   }
 
-  function renderForecast() {
-    const panel = document.getElementById('panel-forecast');
-    const forecast = calcForecast();
-    const burnout = calcBurnout();
-    const burnoutClass = burnout.level === 'low' ? 'burnout-low' : burnout.level === 'med' ? 'burnout-med' : 'burnout-high';
-    const burnoutText = burnout.level === 'low' ? 'Отлично! Ты в форме 💪' : burnout.level === 'med' ? 'Нормально, но следи за собой ️' : 'Высокий риск выгорания! Отдохни 🛑';
-    
+  window.setMood = (value) => {
+    if (!state.moods) state.moods = {};
+    const today = todayStr();
+    state.moods[today] = { ...(state.moods[today] || {}), value };
+    saveToCloud();
+    renderProfile();
+  };
+
+  window.saveMood = () => {
+    const today = todayStr();
+    if (!state.moods) state.moods = {};
+    state.moods[today] = { ...(state.moods[today] || {}), comment: document.getElementById('moodComment').value.trim() };
+    saveToCloud();
+    showToast('Настроение сохранено');
+  };
+
+  window.editProfile = () => {
+    const name = prompt('Имя:', state.profile.name);
+    if (name === null) return;
+    const bio = prompt('О себе:', state.profile.bio || '');
+    if (bio === null) return;
+    const avatar = prompt('Аватар (эмодзи):', state.profile.avatar || '');
+    if (avatar === null) return;
+    const color = prompt('Цвет профиля (hex):', state.profile.color || '#8b5cf6');
+    if (color === null) return;
+    state.profile.name = name;
+    state.profile.bio = bio;
+    state.profile.avatar = avatar;
+    state.profile.color = color;
+    saveToCloud();
+    renderProfile();
+    renderHeader();
+  };
+
+  function calcForecast() {
+    const daysSinceReg = state.registrationDate ? daysBetween(state.registrationDate, todayStr()) : 1;
+    const tasksPerDay = Object.keys(state.completedTasks).length / Math.max(daysSinceReg, 1);
+    const tasksToJunior = 500;
+    const daysLeft = Math.ceil((tasksToJunior - Object.keys(state.completedTasks).length) / Math.max(tasksPerDay, 0.1));
+    return { daysLeft: Math.max(0, daysLeft), tasksPerDay: tasksPerDay.toFixed(1) };
+  }
+
+  function calcBurnout() {
+    const recentMoods = Object.entries(state.moods || {})
+      .filter(([d]) => daysBetween(d, todayStr()) <= 7)
+      .map(([_, v]) => v.value);
+    if (recentMoods.length === 0) return { score: 50, level: 'med', avg: '—' };
+    const avg = recentMoods.reduce((a, b) => a + b, 0) / recentMoods.length;
+    const score = Math.round(avg / 5 * 100);
+    const level = score >= 70 ? 'low' : score >= 40 ? 'med' : 'high';
+    return { score, level, avg: avg.toFixed(1) };
+  }
+
+  function renderMore() {
+    const panel = document.getElementById('panel-more');
     panel.innerHTML = `
-      <div class="forecast-card">
-        <h2>📈 Прогноз до Junior</h2>
-        <div style="font-size:32px; font-weight:700; color:var(--green);">${forecast.daysLeft} дней</div>
-        <div style="color:var(--muted);">При текущем темпе (${forecast.tasksPerDay} задач/день)</div>
-        <div style="margin-top:12px; font-size:13px;">
-          Выполнено: ${Object.keys(state.completedTasks).length} задач<br>
-          Цель: ~500 задач для Junior уровня
-        </div>
-      </div>
-      <div class="card ${burnoutClass}">
-        <h2>🔋 Индекс выгорания</h2>
-        <div style="font-size:32px; font-weight:700;">${burnout.score}%</div>
-        <div style="margin-top:8px;">${burnoutText}</div>
-        <div style="font-size:12px; color:var(--muted); margin-top:8px;">Среднее настроение за 7 дней: ${burnout.avg}/5</div>
+      <div class="card">
+        <h2>⚙️ Настройки</h2>
+        <button class="btn ghost" onclick="exportData()" style="width:100%; margin-bottom:8px;"> Экспорт данных</button>
+        <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
+        <button class="btn ghost" onclick="document.getElementById('importFile').click()" style="width:100%; margin-bottom:8px;"> Импорт данных</button>
+        <button class="btn ghost" onclick="changeLang()" style="width:100%; margin-bottom:8px;">🌐 Сменить язык обучения</button>
       </div>
       <div class="card">
-        <h2> Статистика</h2>
+        <h3>📊 Статистика</h3>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div style="padding:12px; background:var(--card-2); border-radius:10px;">
-            <div style="font-size:12px; color:var(--muted);">Серия входов</div>
-            <div style="font-size:24px; font-weight:700; color:var(--yellow);">${state.loginStreak || 0} 🔥</div>
+            <div style="font-size:12px; color:var(--muted);">Задач выполнено</div>
+            <div style="font-size:24px; font-weight:700; color:var(--green);">${Object.keys(state.completedTasks).length}</div>
           </div>
           <div style="padding:12px; background:var(--card-2); border-radius:10px;">
             <div style="font-size:12px; color:var(--muted);">Достижений</div>
@@ -1393,144 +2536,27 @@
             <div style="font-size:24px; font-weight:700; color:var(--green);">${state.projects.length}</div>
           </div>
           <div style="padding:12px; background:var(--card-2); border-radius:10px;">
-            <div style="font-size:12px; color:var(--muted);">Квизов</div>
-            <div style="font-size:24px; font-weight:700; color:var(--blue);">${Object.keys(state.quizScores).length}</div>
+            <div style="font-size:12px; color:var(--muted);">Дней в системе</div>
+            <div style="font-size:24px; font-weight:700; color:var(--yellow);">${state.registrationDate ? daysBetween(state.registrationDate, todayStr()) + 1 : 0}</div>
           </div>
         </div>
+      </div>
+      <div class="card">
+        <button class="btn danger" style="width:100%; margin-bottom:8px;" onclick="resetAll()">️ Сбросить прогресс</button>
+        <button class="btn ghost" style="width:100%;" onclick="logout()">🚪 Выйти из аккаунта</button>
       </div>
     `;
   }
 
-  async function renderGuilds() {
-    const panel = document.getElementById('panel-guilds');
-    if (!state.guildId) {
-      panel.innerHTML = `
-        <div class="card">
-          <h2>🏰 Гильдии</h2>
-          <p style="color:var(--muted); margin-bottom:16px;">Объединяйся с друзьями, выполняйте задания вместе и получайте баллы гильдии!</p>
-          <button class="btn" onclick="createGuild()" style="width:100%; margin-bottom:8px;">+ Создать гильдию</button>
-          <button class="btn ghost" onclick="joinGuild()" style="width:100%;">Вступить по коду</button>
-        </div>
-        <div class="card">
-          <h3>🏆 Топ гильдий</h3>
-          <div id="guildRanking">Загрузка...</div>
-        </div>
-      `;
-      // Загрузка рейтинга
-      try {
-        const snapshot = await get(child(ref(db), 'guilds'));
-        const guilds = Object.entries(snapshot.val() || []).sort((a, b) => (b[1].totalPoints || 0) - (a[1].totalPoints || 0)).slice(0, 10);
-        document.getElementById('guildRanking').innerHTML = guilds.map(([id, g], i) => `
-          <div class="guild-rank-item">
-            <div class="guild-rank-num">#${i + 1}</div>
-            <div style="flex:1;">
-              <div style="font-weight:600;">${escapeHtml(g.name)}</div>
-              <div style="font-size:12px; color:var(--muted);">Код: ${g.code} · Участников: ${Object.keys(g.members || {}).length}</div>
-            </div>
-            <div style="font-weight:700; color:var(--yellow);">${g.totalPoints || 0}</div>
-          </div>
-        `).join('');
-      } catch(e) {
-        document.getElementById('guildRanking').innerHTML = 'Ошибка загрузки';
-      }
-      return;
+  window.changeLang = () => {
+    const newLang = state.profile.lang === 'js' ? 'py' : 'js';
+    if (confirm(`Сменить язык обучения на ${newLang === 'js' ? 'JavaScript' : 'Python'}? Прогресс задач сохранится.`)) {
+      state.profile.lang = newLang;
+      saveToCloud();
+      showToast('Язык изменён: ' + (newLang === 'js' ? 'JavaScript' : 'Python'));
+      renderToday();
     }
-    
-    const g = window.currentGuild;
-    if (!g) { panel.innerHTML = '<div class="card">Загрузка...</div>'; return; }
-    const members = Object.entries(g.members || {}).sort((a, b) => (b[1].contribution || 0) - (a[1].contribution || 0));
-    
-    panel.innerHTML = `
-      <div class="guild-card">
-        <h2>🏰 ${escapeHtml(g.name)}</h2>
-        <div>Код приглашения:</div>
-        <div class="guild-code">${g.code}</div>
-        <div style="font-size:14px; color:var(--muted);">По делись с друзьями!</div>
-        <div style="margin-top:12px; font-size:24px; font-weight:700; color:var(--yellow);">${g.totalPoints || 0} баллов</div>
-        <button class="btn danger small" onclick="leaveGuild()" style="margin-top:12px;">Покинуть гильдию</button>
-      </div>
-      <div class="card">
-        <h3>👥 Участники (${members.length})</h3>
-        ${members.map(([uid, m], i) => `
-          <div class="guild-member">
-            <div>
-              <strong>#${i + 1} ${escapeHtml(m.name || 'Аноним')}</strong>
-              ${uid === currentUser.uid ? ' (ты)' : ''}
-            </div>
-            <div style="color:var(--yellow); font-weight:600;">${m.contribution || 0}</div>
-          </div>
-        `).join('')}
-      </div>
-      <div class="card">
-        <h3>🛒 Магазин гильдии</h3>
-        <div class="shop-grid">
-          ${GUILD_SHOP.map(item => `
-            <div class="shop-item">
-              <div class="shop-item-icon">${item.icon}</div>
-              <div class="shop-item-name">${item.name}</div>
-              <div class="shop-item-price">${item.price} баллов</div>
-              <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">${item.desc}</div>
-              <button class="btn small" onclick="buyGuildItem('${item.id}')" ${(g.totalPoints || 0) < item.price ? 'disabled style="opacity:0.5;"' : ''}>Купить</button>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      <div class="card">
-        <h3>🏆 Топ гильдий</h3>
-        <div id="guildRanking2"></div>
-      </div>
-    `;
-    
-    try {
-      const snapshot = await get(child(ref(db), 'guilds'));
-      const guilds = Object.entries(snapshot.val() || {}).sort((a, b) => (b[1].totalPoints || 0) - (a[1].totalPoints || 0)).slice(0, 10);
-      document.getElementById('guildRanking2').innerHTML = guilds.map(([id, gg], i) => `
-        <div class="guild-rank-item" style="${id === state.guildId ? 'border:1px solid var(--accent);' : ''}">
-          <div class="guild-rank-num">#${i + 1}</div>
-          <div style="flex:1;">
-            <div style="font-weight:600;">${escapeHtml(gg.name)} ${id === state.guildId ? '(ты)' : ''}</div>
-            <div style="font-size:12px; color:var(--muted);">Участников: ${Object.keys(gg.members || {}).length}</div>
-          </div>
-          <div style="font-weight:700; color:var(--yellow);">${gg.totalPoints || 0}</div>
-        </div>
-      `).join('');
-    } catch(e) {}
-  }
-
-  function renderSettings() {
-    const panel = document.getElementById('panel-settings');
-    panel.innerHTML = `
-      <div class="card">
-        <h2>⚙️ Настройки</h2>
-        <h3 style="margin:12px 0 8px;">Тема</h3>
-        <div class="theme-grid">
-          ${THEMES.map(t => `<div class="theme-swatch ${state.theme === t.id ? 'active' : ''}" style="background:${t.bg};" onclick="applyTheme('${t.id}')" title="${t.name}"></div>`).join('')}
-        </div>
-        <h3 style="margin:16px 0 8px;">Акцентный цвет</h3>
-        <div class="theme-grid">
-          ${ACCENTS.map(c => `<div class="theme-swatch ${state.accentColor === c ? 'active' : ''}" style="background:${c};" onclick="applyAccent('${c}')"></div>`).join('')}
-        </div>
-        <h3 style="margin:16px 0 8px;">Язык интерфейса</h3>
-        <select class="auth-select" onchange="changeInterfaceLang(this.value); state.profile.interfaceLang = this.value; saveToCloud();">
-          ${Object.keys(i18n).map(l => `<option value="${l}" ${interfaceLang === l ? 'selected' : ''}>${l.toUpperCase()}</option>`).join('')}
-        </select>
-        <h3 style="margin:16px 0 8px;">Изучаемые языки</h3>
-        <div class="lang-grid">
-          ${programmingLangs.map(l => `<div class="lang-chip ${state.profile.langs?.includes(l.id) ? 'active' : ''}">${l.flag} ${l.name}</div>`).join('')}
-        </div>
-      </div>
-      <div class="card">
-        <h3>📤 Экспорт / Импорт данных</h3>
-        <button class="btn ghost" onclick="exportData()" style="width:100%; margin-bottom:8px;">Скачать резервную копию</button>
-        <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
-        <button class="btn ghost" onclick="document.getElementById('importFile').click()" style="width:100%;">Восстановить из файла</button>
-      </div>
-      <div class="card">
-        <button class="btn danger" style="width:100%; margin-bottom:8px;" onclick="resetAll()">Сбросить прогресс</button>
-        <button class="btn ghost" style="width:100%;" onclick="logout()">Выйти из аккаунта</button>
-      </div>
-    `;
-  }
+  };
 
   window.exportData = () => {
     const data = JSON.stringify(state, null, 2);
@@ -1575,30 +2601,13 @@
   }
 
   function initApp() {
-    // Применяем тему
-    if (state.theme) {
-      document.documentElement.setAttribute('data-theme', state.theme === 'light' ? 'light' : 'dark');
-      if (state.theme === 'midnight') {
-        document.documentElement.style.setProperty('--bg', '#000000');
-        document.documentElement.style.setProperty('--bg-2', '#0a0a0a');
-      } else if (state.theme === 'forest') {
-        document.documentElement.style.setProperty('--bg', '#0f1f15');
-        document.documentElement.style.setProperty('--bg-2', '#1a2f22');
-      }
-    }
-    if (state.accentColor) {
-      document.documentElement.style.setProperty('--accent-color', state.accentColor);
-      document.documentElement.style.setProperty('--accent-color-2', state.accentColor);
-    }
-    
-    buildTabs();
+    buildNav();
     renderHeader();
     renderToday();
     checkAchievements();
   }
 
-  // Запуск
-  buildTabs();
+  buildNav();
 </script>
 </body>
 </html>
