@@ -4,15 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0a0e1a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>LifeOS — Твой путь за 5 лет</title>
-
+<title>LifeOS</title>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
   const firebaseConfig = {
     apiKey: "AIzaSyA97O7tkAir-P1A2-7sr3Ashj0XjewV0Zs",
     authDomain: "academ-ad3db.firebaseapp.com",
@@ -23,40 +19,50 @@
     appId: "1:69950197764:web:40d86b32fc7168c8e76551",
     measurementId: "G-RB6KWP8046"
   };
-
   const app = initializeApp(firebaseConfig);
   window.fbAuth = getAuth(app);
   window.fbDb = getDatabase(app);
   window.fbFn = { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, ref, set, onValue };
 </script>
-
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   :root {
     --bg: #0a0e1a; --bg-2: #111827; --card: #1a1f2e; --card-2: #232938;
     --border: #2a3142; --text: #e5e7eb; --muted: #9ca3af;
-    --accent: #6366f1; --accent-2: #8b5cf6; --green: #10b981;
-    --yellow: #f59e0b; --red: #ef4444; --blue: #3b82f6; --pink: #ec4899;
+    --accent: #8b5cf6; --accent-2: #a78bfa; --green: #10b981;
+    --yellow: #f59e0b; --red: #ef4444; --pink: #ec4899;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
   html, body { overscroll-behavior: none; height: 100%; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg); color: var(--text); line-height: 1.5;
-    background-image: radial-gradient(circle at 10% 0%, rgba(99,102,241,0.15), transparent 40%), radial-gradient(circle at 90% 100%, rgba(139,92,246,0.12), transparent 40%);
-    padding-bottom: calc(80px + var(--safe-bottom));
+    background-image: radial-gradient(circle at 10% 0%, rgba(139,92,246,0.15), transparent 40%), radial-gradient(circle at 90% 100%, rgba(236,72,153,0.12), transparent 40%);
+    padding-bottom: calc(100px + var(--safe-bottom));
   }
   .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
   
+  /* SVG Icons */
+  .icon { display: inline-block; width: 20px; height: 20px; vertical-align: middle; }
+  .icon-lg { width: 32px; height: 32px; }
+  .icon-xl { width: 48px; height: 48px; }
+  .icon-gradient { stroke: url(#iconGrad); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  
+  /* Auth */
   #authScreen {
     position: fixed; inset: 0; background: var(--bg); z-index: 9999;
     display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px;
+    overflow-y: auto;
   }
   .auth-box {
-    background: var(--card); border: 1px solid var(--border); border-radius: 20px;
-    padding: 32px 24px; width: 100%; max-width: 400px; text-align: center;
+    background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(236,72,153,0.05));
+    border: 1px solid var(--border); border-radius: 24px;
+    padding: 32px 24px; width: 100%; max-width: 420px; text-align: center;
+    backdrop-filter: blur(10px);
   }
-  .auth-box h2 { margin-bottom: 8px; font-size: 24px; }
+  .auth-logo { margin-bottom: 12px; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  .auth-box h2 { margin-bottom: 8px; font-size: 28px; background: linear-gradient(135deg, #a78bfa, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .auth-box p { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
   .auth-input {
     width: 100%; padding: 14px; background: var(--bg-2); border: 1px solid var(--border);
@@ -64,39 +70,44 @@
   }
   .auth-input:focus { border-color: var(--accent); }
   .auth-btn {
-    width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), var(--pink));
     color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px;
   }
   .auth-btn:active { transform: scale(0.98); }
   .auth-toggle { margin-top: 16px; font-size: 14px; color: var(--muted); cursor: pointer; }
   .auth-toggle span { color: var(--accent); font-weight: 600; }
   .guest-btn { margin-top: 24px; background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .auth-step { display: none; }
+  .auth-step.active { display: block; animation: fadeIn 0.3s; }
+  .auth-progress { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; }
+  .auth-progress-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .auth-progress-dot.active { background: var(--accent); }
 
+  /* Header */
   header {
-    background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.05));
-    border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px;
+    background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.08));
+    border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 16px;
   }
   .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-  h1 { font-size: 22px; background: linear-gradient(135deg, #a5b4fc, #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  h1 { font-size: 24px; background: linear-gradient(135deg, #a78bfa, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center; gap: 8px; }
   .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
   .level-block { flex: 1; min-width: 240px; }
   .level-info { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
   .level-info .lvl { color: var(--accent-2); font-weight: 700; font-size: 15px; }
   .xp-bar { height: 12px; background: var(--card-2); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
-  .xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--pink)); border-radius: 6px; transition: width 0.5s; }
+  .xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--pink)); border-radius: 6px; transition: width 0.5s; }
   .xp-text { font-size: 11px; color: var(--muted); margin-top: 4px; display: flex; justify-content: space-between; }
-  .sync-status { font-size: 11px; color: var(--green); display: flex; align-items: center; gap: 4px; }
   
   .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
-  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 8px; text-align: center; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px; text-align: center; }
   .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
   .stat-value { font-size: 18px; font-weight: 700; margin-top: 2px; }
   .stat-value.green { color: var(--green); } .stat-value.yellow { color: var(--yellow); } .stat-value.blue { color: var(--blue); }
 
   .tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; background: var(--card); padding: 4px; border-radius: 12px; border: 1px solid var(--border); scrollbar-width: none; }
   .tabs::-webkit-scrollbar { display: none; }
-  .tab { padding: 10px 16px; border-radius: 8px; cursor: pointer; white-space: nowrap; color: var(--muted); font-weight: 500; border: none; background: transparent; font-size: 14px; transition: all 0.2s; }
-  .tab.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+  .tab { padding: 10px 16px; border-radius: 8px; cursor: pointer; white-space: nowrap; color: var(--muted); font-weight: 500; border: none; background: transparent; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+  .tab.active { background: linear-gradient(135deg, var(--accent), var(--pink)); color: white; box-shadow: 0 2px 8px rgba(139,92,246,0.3); }
 
   .mobile-nav {
     display: none; position: fixed; bottom: 0; left: 0; right: 0;
@@ -109,25 +120,24 @@
     padding: 8px 0; color: var(--muted); font-size: 10px; cursor: pointer; border: none; background: transparent;
   }
   .mobile-nav-item.active { color: var(--accent-2); }
-  .mobile-nav-item svg { width: 24px; height: 24px; }
 
   .panel { display: none; }
   .panel.active { display: block; animation: fadeIn 0.3s; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
-  .card h2 { font-size: 17px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 12px; }
+  .card h2 { font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   
   .task-list { list-style: none; }
   .task-item {
-    display: flex; align-items: flex-start; gap: 12px; padding: 12px;
+    display: flex; align-items: flex-start; gap: 12px; padding: 14px;
     background: var(--card-2); border-radius: 12px; margin-bottom: 8px;
     border: 1px solid transparent; transition: all 0.2s;
   }
   .task-item:active { transform: scale(0.99); background: var(--border); }
   .task-item.done { opacity: 0.5; }
   .task-item.done .task-text { text-decoration: line-through; color: var(--muted); }
-  .task-item.routine { background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.04)); border-left: 3px solid var(--accent); }
+  .task-item.routine { background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(236,72,153,0.05)); border-left: 3px solid var(--accent); }
   .task-item.next { border: 1px solid var(--green); box-shadow: 0 0 0 1px rgba(16,185,129,0.3); }
   
   .task-item input[type="checkbox"] {
@@ -137,7 +147,7 @@
   .task-text { flex: 1; font-size: 15px; line-height: 1.4; min-width: 0; }
   .task-text small { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; word-break: break-word; }
   .task-time { color: var(--accent-2); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; margin-right: 4px; }
-  .task-xp { background: rgba(99,102,241,0.15); color: var(--accent-2); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; flex-shrink: 0; align-self: center; }
+  .task-xp { background: rgba(139,92,246,0.15); color: var(--accent-2); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; flex-shrink: 0; align-self: center; }
   .task-del { background: transparent; border: none; color: var(--red); cursor: pointer; font-size: 20px; opacity: 0.5; padding: 0 4px; }
 
   .add-task { display: flex; gap: 8px; margin-top: 12px; }
@@ -149,7 +159,7 @@
   .add-task input[type="number"] { width: 70px; text-align: center; }
   
   button.btn {
-    padding: 12px 16px; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    padding: 12px 16px; background: linear-gradient(135deg, var(--accent), var(--pink));
     color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 15px;
   }
   button.btn:active { transform: scale(0.96); }
@@ -162,86 +172,46 @@
   .progress-mini-fill { height: 100%; background: linear-gradient(90deg, var(--green), #059669); border-radius: 4px; transition: width 0.4s; }
   .progress-mini-value { font-size: 13px; font-weight: 600; color: var(--green); white-space: nowrap; }
 
-  .quick-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .quick-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
   .quick-actions button {
-    flex: 1; padding: 12px; background: var(--card-2); border: 1px solid var(--border);
+    flex: 1; min-width: 140px; padding: 12px; background: var(--card-2); border: 1px solid var(--border);
     border-radius: 10px; color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
   }
   .quick-actions button:active { background: var(--border); }
 
-  .habit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-  .habit-card { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-  .habit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .habit-name { font-weight: 600; font-size: 14px; }
-  .habit-streak { display: inline-flex; align-items: center; gap: 4px; background: rgba(245,158,11,0.15); color: var(--yellow); padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-  .habit-streak.hot { background: rgba(239,68,68,0.15); color: var(--red); }
-  .habit-days { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
-  .habit-day {
-    width: 28px; height: 28px; border-radius: 6px; background: var(--card);
-    border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-size: 11px; color: var(--muted);
+  /* Timer Modal */
+  .timer-modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9998;
+    display: none; align-items: center; justify-content: center; padding: 24px;
   }
-  .habit-day:active { transform: scale(0.9); }
-  .habit-day.done { background: linear-gradient(135deg, var(--green), #059669); border-color: var(--green); color: white; }
-  .habit-day.today { box-shadow: 0 0 0 2px var(--accent); }
-
-  .chart-container { background: var(--card-2); border-radius: 12px; padding: 16px; margin-top: 12px; }
-  canvas { width: 100%; height: auto; display: block; }
-
-  .day-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
-  .day-nav input[type="date"] {
-    padding: 10px; background: var(--card-2); border: 1px solid var(--border);
-    border-radius: 10px; color: var(--text); font-size: 14px; outline: none; flex: 1; text-align: center;
+  .timer-modal.active { display: flex; }
+  .timer-box {
+    background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+    padding: 32px; max-width: 400px; width: 100%; text-align: center;
   }
-  .day-nav .day-info { font-size: 12px; color: var(--muted); text-align: center; width: 100%; margin-top: 4px; }
+  .timer-display { font-size: 64px; font-weight: 700; color: var(--accent-2); margin: 20px 0; font-variant-numeric: tabular-nums; }
+  .timer-controls { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
 
-  .month-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-  .month-card { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-  .month-card h4 { color: var(--accent-2); margin-bottom: 10px; font-size: 15px; }
-  .month-card ul { list-style: none; font-size: 13px; }
-  .month-card li { padding: 4px 0; color: var(--muted); border-bottom: 1px dashed var(--border); }
-  .month-card li:last-child { border-bottom: none; }
-  .month-card li.money::before { content: "💰 "; }
-  .month-card li::before { content: "▸ "; color: var(--accent); }
-
-  .year-tabs { display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; }
-  .year-tab { padding: 8px 14px; background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--muted); white-space: nowrap; }
-  .year-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
-
-  .book-card { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-  .book-card h4 { color: var(--accent-2); margin-bottom: 8px; font-size: 16px; }
-  .book-card .book-author { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
-  .book-progress { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-  .book-progress-bar { flex: 1; height: 8px; background: var(--card); border-radius: 4px; overflow: hidden; }
-  .book-progress-fill { height: 100%; background: linear-gradient(90deg, var(--green), #059669); border-radius: 4px; transition: width 0.4s; }
-  .book-progress-text { font-size: 12px; color: var(--green); font-weight: 600; }
-  .chapter-list { list-style: none; margin-top: 10px; }
-  .chapter-item { display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--card); border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
-  .chapter-item:active { background: var(--border); }
-  .chapter-item.done { opacity: 0.5; }
-  .chapter-item.done .chapter-text { text-decoration: line-through; }
-  .chapter-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
-  .chapter-text { flex: 1; font-size: 14px; }
-
-  .badge { display: inline-block; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 600; margin-left: 4px; vertical-align: middle; }
-  .badge.js { background: rgba(245,158,11,0.15); color: var(--yellow); }
-  .badge.ts { background: rgba(59,130,246,0.15); color: var(--blue); }
-  .badge.react { background: rgba(96,165,250,0.15); color: #60a5fa; }
-  .badge.node { background: rgba(16,185,129,0.15); color: var(--green); }
-  .badge.en { background: rgba(236,72,153,0.15); color: var(--pink); }
-  .badge.py { background: rgba(139,92,246,0.15); color: var(--accent-2); }
-  .badge.cpp { background: rgba(156,163,175,0.15); color: var(--muted); }
-  .badge.html { background: rgba(239,68,68,0.15); color: #f87171; }
-  .badge.git { background: rgba(249,115,22,0.15); color: #fb923c; }
-  .badge.book { background: rgba(236,72,153,0.15); color: var(--pink); }
-  .badge.project { background: rgba(16,185,129,0.15); color: var(--green); }
-  .badge.routine { background: rgba(99,102,241,0.15); color: var(--accent); }
+  /* Typing Trainer */
+  .typing-area {
+    background: var(--card-2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; font-family: 'Courier New', monospace; font-size: 18px; line-height: 1.6;
+    margin: 12px 0; min-height: 100px; white-space: pre-wrap; word-break: break-all;
+  }
+  .typing-area .correct { color: var(--green); }
+  .typing-area .incorrect { color: var(--red); background: rgba(239,68,68,0.2); }
+  .typing-area .current { background: var(--accent); color: white; }
+  .typing-stats { display: flex; gap: 16px; justify-content: space-around; margin-top: 12px; }
+  .typing-stat { text-align: center; }
+  .typing-stat-value { font-size: 24px; font-weight: 700; color: var(--accent-2); }
+  .typing-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
 
   .toast {
-    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
+    position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px);
     background: var(--accent); color: white; padding: 12px 24px; border-radius: 24px;
     font-size: 14px; font-weight: 600; z-index: 1000; opacity: 0; transition: all 0.3s; pointer-events: none;
-    box-shadow: 0 4px 20px rgba(99,102,241,0.4); white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(139,92,246,0.4); white-space: nowrap;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -251,7 +221,6 @@
     .container { padding: 12px; }
     h1 { font-size: 20px; }
     .stats-row { grid-template-columns: repeat(2, 1fr); }
-    .habit-grid { grid-template-columns: 1fr; }
     .add-task { flex-wrap: wrap; }
     .add-task input[type="number"] { width: 100%; }
   }
@@ -259,18 +228,78 @@
 </head>
 <body>
 
+<svg style="position: absolute; width: 0; height: 0;">
+  <defs>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#ec4899"/>
+    </linearGradient>
+  </defs>
+</svg>
+
 <div id="authScreen">
   <div class="auth-box">
-    <h2>🚀 LifeOS</h2>
-    <p>Синхронизируй прогресс на всех устройствах</p>
-    <input type="email" id="authEmail" class="auth-input" placeholder="Email" autocomplete="email">
-    <input type="password" id="authPass" class="auth-input" placeholder="Пароль (мин. 6 символов)" autocomplete="current-password">
-    <button class="auth-btn" id="authActionBtn" onclick="handleAuth('login')">Войти</button>
-    <div class="auth-toggle" onclick="toggleAuthMode()">
-      <span id="authToggleText">Нет аккаунта? Зарегистрироваться</span>
+    <div class="auth-progress">
+      <div class="auth-progress-dot active"></div>
+      <div class="auth-progress-dot"></div>
+      <div class="auth-progress-dot"></div>
+      <div class="auth-progress-dot"></div>
     </div>
-    <button class="auth-btn guest-btn" onclick="continueAsGuest()">Продолжить локально (без облака)</button>
-    <p id="authError" style="color: var(--red); font-size: 13px; margin-top: 12px; display: none;"></p>
+    
+    <div class="auth-step active" id="authStep1">
+      <div class="auth-logo">
+        <svg class="icon-xl" viewBox="0 0 24 24"><path class="icon-gradient" d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path class="icon-gradient" d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path class="icon-gradient" d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path class="icon-gradient" d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+      </div>
+      <h2>LifeOS</h2>
+      <p>Твой путь за 5 лет · Junior → Senior</p>
+      <input type="email" id="authEmail" class="auth-input" placeholder="Email">
+      <input type="password" id="authPass" class="auth-input" placeholder="Пароль (мин. 6 символов)">
+      <button class="auth-btn" id="authActionBtn" onclick="handleAuth('login')">Войти</button>
+      <div class="auth-toggle" onclick="toggleAuthMode()">
+        <span id="authToggleText">Нет аккаунта? Зарегистрироваться</span>
+      </div>
+      <button class="auth-btn guest-btn" onclick="continueAsGuest()">Продолжить локально</button>
+      <p id="authError" style="color: var(--red); font-size: 13px; margin-top: 12px; display: none;"></p>
+    </div>
+
+    <div class="auth-step" id="authStep2">
+      <div class="auth-logo">
+        <svg class="icon-xl" viewBox="0 0 24 24"><path class="icon-gradient" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle class="icon-gradient" cx="12" cy="7" r="4"/></svg>
+      </div>
+      <h2>Расскажи о себе</h2>
+      <p>Это поможет настроить план под тебя</p>
+      <input type="text" id="userName" class="auth-input" placeholder="Как тебя зовут?">
+      <input type="number" id="userAge" class="auth-input" placeholder="Возраст" min="14" max="99">
+      <input type="text" id="userCity" class="auth-input" placeholder="Город">
+      <button class="auth-btn" onclick="nextAuthStep(3)">Далее →</button>
+    </div>
+
+    <div class="auth-step" id="authStep3">
+      <div class="auth-logo">
+        <svg class="icon-xl" viewBox="0 0 24 24"><path class="icon-gradient" d="M12 2L2 7l10 5 10-5-10-5z"/><path class="icon-gradient" d="M2 17l10 5 10-5"/><path class="icon-gradient" d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <h2>Твои цели</h2>
+      <p>К чему стремишься?</p>
+      <input type="text" id="userGoal" class="auth-input" placeholder="Цель на этот год (например: стать Junior Frontend)">
+      <select id="userLevel" class="auth-input" style="appearance: none;">
+        <option value="">Текущий уровень</option>
+        <option value="beginner">Полный новичок</option>
+        <option value="basic">Знаю основы HTML/CSS</option>
+        <option value="intermediate">Учу JavaScript</option>
+        <option value="advanced">Уже пишу на React</option>
+      </select>
+      <button class="auth-btn" onclick="nextAuthStep(4)">Далее →</button>
+    </div>
+
+    <div class="auth-step" id="authStep4">
+      <div class="auth-logo">
+        <svg class="icon-xl" viewBox="0 0 24 24"><path class="icon-gradient" d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path class="icon-gradient" d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <h2>Уведомления</h2>
+      <p>Напоминаем о задачах и привычках</p>
+      <button class="auth-btn" onclick="enableNotifications()">Включить уведомления</button>
+      <button class="auth-btn guest-btn" onclick="skipNotifications()">Пропустить</button>
+    </div>
   </div>
 </div>
 
@@ -278,8 +307,11 @@
   <header>
     <div class="header-top">
       <div>
-        <h1>🚀 LifeOS</h1>
-        <div class="subtitle">Твой путь за 5 лет · Junior → Senior</div>
+        <h1>
+          <svg class="icon-lg" viewBox="0 0 24 24"><path class="icon-gradient" d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path class="icon-gradient" d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path class="icon-gradient" d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path class="icon-gradient" d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+          LifeOS
+        </h1>
+        <div class="subtitle" id="userGreeting">Привет!</div>
       </div>
       <div class="level-block">
         <div class="level-info">
@@ -289,31 +321,49 @@
         <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
         <div class="xp-text">
           <span>Всего: <span id="totalXp">0</span> XP</span>
-          <span class="sync-status" id="syncStatus">💾 Локально</span>
+          <span class="sync-status" id="syncStatus">Локально</span>
         </div>
       </div>
     </div>
     <div class="stats-row">
       <div class="stat-card"><div class="stat-label">Сегодня</div><div class="stat-value green" id="todayDone">0</div></div>
       <div class="stat-card"><div class="stat-label">Всего</div><div class="stat-value blue" id="totalTasks">0</div></div>
-      <div class="stat-card"><div class="stat-label">Серия 🔥</div><div class="stat-value yellow" id="bestStreak">0</div></div>
+      <div class="stat-card"><div class="stat-label">Серия</div><div class="stat-value yellow" id="bestStreak">0</div></div>
       <div class="stat-card"><div class="stat-label">Привычки</div><div class="stat-value green" id="habitsToday">0%</div></div>
     </div>
   </header>
 
   <div class="tabs">
-    <button class="tab active" data-tab="today">📅 Сегодня</button>
-    <button class="tab" data-tab="year1">📘 Год 1</button>
-    <button class="tab" data-tab="years">📚 2–5</button>
-    <button class="tab" data-tab="habits">🔥 Привычки</button>
-    <button class="tab" data-tab="books">📖 Книги</button>
-    <button class="tab" data-tab="charts">📊 Графики</button>
-    <button class="tab" data-tab="rules">🎖️ Система</button>
+    <button class="tab active" data-tab="today">
+      <svg class="icon" viewBox="0 0 24 24"><rect class="icon-gradient" x="3" y="4" width="18" height="18" rx="2" ry="2"/><line class="icon-gradient" x1="16" y1="2" x2="16" y2="6"/><line class="icon-gradient" x1="8" y1="2" x2="8" y2="6"/><line class="icon-gradient" x1="3" y1="10" x2="21" y2="10"/></svg>
+      Сегодня
+    </button>
+    <button class="tab" data-tab="timers">
+      <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="10"/><polyline class="icon-gradient" points="12 6 12 12 16 14"/></svg>
+      Таймеры
+    </button>
+    <button class="tab" data-tab="typing">
+      <svg class="icon" viewBox="0 0 24 24"><rect class="icon-gradient" x="2" y="4" width="20" height="16" rx="2"/><path class="icon-gradient" d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
+      Печать
+    </button>
+    <button class="tab" data-tab="more">
+      <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="1"/><circle class="icon-gradient" cx="12" cy="5" r="1"/><circle class="icon-gradient" cx="12" cy="19" r="1"/></svg>
+      Ещё
+    </button>
   </div>
 
   <div class="panel active" id="panel-today">
     <div class="card">
-      <h2>🎯 Сегодня <span id="todayDateLabel" style="font-size:13px;color:var(--muted);font-weight:400;margin-left:auto"></span></h2>
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline class="icon-gradient" points="22 4 12 14.01 9 11.01"/></svg>
+        Задачи на сегодня
+        <span id="todayDateLabel" style="font-size:13px;color:var(--muted);font-weight:400;margin-left:auto"></span>
+      </h2>
+      <div id="welcomeMessage" style="display:none; padding:20px; text-align:center;">
+        <svg class="icon-xl" viewBox="0 0 24 24" style="margin-bottom:16px;"><path class="icon-gradient" d="M12 2L2 7l10 5 10-5-10-5z"/><path class="icon-gradient" d="M2 17l10 5 10-5"/><path class="icon-gradient" d="M2 12l10 5 10-5"/></svg>
+        <h3 style="color:var(--accent-2); margin-bottom:8px;">Добро пожаловать, <span id="welcomeName"></span>!</h3>
+        <p style="color:var(--muted);">Твой план начнётся завтра. Сегодня настрой профиль и изучи интерфейс.</p>
+      </div>
       <div id="todayWeekBanner"></div>
       <ul class="task-list" id="todayTasks"></ul>
       <div class="progress-mini">
@@ -322,8 +372,14 @@
         <span class="progress-mini-value" id="todayProgressValue">0%</span>
       </div>
       <div class="quick-actions">
-        <button onclick="completeNextTask()">✅ Следующая задача</button>
-        <button onclick="switchTab('habits')">🔥 Привычки</button>
+        <button onclick="completeNextTask()">
+          <svg class="icon" viewBox="0 0 24 24"><polyline class="icon-gradient" points="20 6 9 17 4 12"/></svg>
+          Следующая задача
+        </button>
+        <button onclick="switchTab('timers')">
+          <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="10"/><polyline class="icon-gradient" points="12 6 12 12 16 14"/></svg>
+          Таймеры
+        </button>
       </div>
       <div class="add-task">
         <input type="text" id="newTodayTask" placeholder="Своя задача...">
@@ -333,23 +389,123 @@
     </div>
   </div>
 
+  <div class="panel" id="panel-timers">
+    <div class="card">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="10"/><polyline class="icon-gradient" points="12 6 12 12 16 14"/></svg>
+        Таймеры здоровья
+      </h2>
+      <div style="display:grid; gap:12px;">
+        <button class="btn ghost" onclick="startTimer('teeth', 120)" style="display:flex; align-items:center; gap:12px; padding:16px;">
+          <svg class="icon-lg" viewBox="0 0 24 24"><path class="icon-gradient" d="M12 2C8 2 6 6 6 10c0 4 2 8 2 12h8c0-4 2-8 2-12 0-4-2-8-6-8z"/></svg>
+          <div style="text-align:left;">
+            <div style="font-weight:600;">Чистка зубов</div>
+            <div style="font-size:12px; color:var(--muted);">2 минуты</div>
+          </div>
+        </button>
+        <button class="btn ghost" onclick="showExerciseTimer()" style="display:flex; align-items:center; gap:12px; padding:16px;">
+          <svg class="icon-lg" viewBox="0 0 24 24"><path class="icon-gradient" d="M18 8h1a4 4 0 0 1 0 8h-1"/><path class="icon-gradient" d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line class="icon-gradient" x1="6" y1="1" x2="6" y2="4"/><line class="icon-gradient" x1="10" y1="1" x2="10" y2="4"/><line class="icon-gradient" x1="14" y1="1" x2="14" y2="4"/></svg>
+          <div style="text-align:left;">
+            <div style="font-weight:600;">Зарядка</div>
+            <div style="font-size:12px; color:var(--muted);">5/10/15 минут</div>
+          </div>
+        </button>
+        <button class="btn ghost" onclick="startTimer('pomodoro', 1500)" style="display:flex; align-items:center; gap:12px; padding:16px;">
+          <svg class="icon-lg" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="10"/><polyline class="icon-gradient" points="12 6 12 12 16 14"/></svg>
+          <div style="text-align:left;">
+            <div style="font-weight:600;">Помодоро</div>
+            <div style="font-size:12px; color:var(--muted);">25 минут учёбы</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-typing">
+    <div class="card">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24"><rect class="icon-gradient" x="2" y="4" width="20" height="16" rx="2"/><path class="icon-gradient" d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
+        Тренажёр печати JS
+      </h2>
+      <p style="color:var(--muted); font-size:13px; margin-bottom:12px;">Печатай код как можно быстрее и точнее</p>
+      <div class="typing-stats">
+        <div class="typing-stat">
+          <div class="typing-stat-value" id="typingWpm">0</div>
+          <div class="typing-stat-label">WPM</div>
+        </div>
+        <div class="typing-stat">
+          <div class="typing-stat-value" id="typingAccuracy">100%</div>
+          <div class="typing-stat-label">Точность</div>
+        </div>
+        <div class="typing-stat">
+          <div class="typing-stat-value" id="typingTime">0с</div>
+          <div class="typing-stat-label">Время</div>
+        </div>
+      </div>
+      <div class="typing-area" id="typingArea" onclick="document.getElementById('typingInput').focus()"></div>
+      <input type="text" id="typingInput" style="width:100%; padding:12px; background:var(--card-2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:16px; font-family:'Courier New',monospace; outline:none; margin-top:12px;" placeholder="Начни печатать..." oninput="handleTyping(event)">
+      <button class="btn" onclick="resetTyping()" style="width:100%; margin-top:12px;">Новый текст</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-more">
+    <div class="card">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path class="icon-gradient" d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        План обучения
+      </h2>
+      <div style="display:grid; gap:8px;">
+        <button class="btn ghost" onclick="switchTab('year1')" style="text-align:left; padding:16px;">Год 1 — Junior Frontend</button>
+        <button class="btn ghost" onclick="switchTab('years')" style="text-align:left; padding:16px;">Годы 2-5 — Рост до Senior</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path class="icon-gradient" d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Книги
+      </h2>
+      <div id="booksList"></div>
+    </div>
+    <div class="card">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        Привычки
+      </h2>
+      <div id="habitsList" style="margin-bottom:12px;"></div>
+      <div class="add-task">
+        <input type="text" id="newHabitName" placeholder="Новая привычка...">
+        <button class="btn" onclick="addHabit()">+</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24"><line class="icon-gradient" x1="18" y1="20" x2="18" y2="10"/><line class="icon-gradient" x1="12" y1="20" x2="12" y2="4"/><line class="icon-gradient" x1="6" y1="20" x2="6" y2="14"/></svg>
+        Графики
+      </h2>
+      <canvas id="chart7" width="800" height="200" style="width:100%; height:auto;"></canvas>
+    </div>
+    <div class="card">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="3"/><path class="icon-gradient" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Настройки
+      </h2>
+      <button class="btn danger" style="width:100%; margin-bottom:8px;" onclick="resetAll()">Сбросить прогресс</button>
+      <button class="btn ghost" style="width:100%;" onclick="logout()">Выйти из аккаунта</button>
+    </div>
+  </div>
+
   <div class="panel" id="panel-year1">
     <div class="card">
-      <h2>📘 Год 1 — Junior Frontend</h2>
+      <h2>Год 1 — Junior Frontend</h2>
       <p style="color:var(--muted);font-size:13px;margin-bottom:12px">52 недели · 365 дней</p>
-      <div class="day-nav">
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
         <button class="btn ghost" onclick="changeDay(-1)">←</button>
-        <input type="date" id="dayPicker">
+        <input type="date" id="dayPicker" style="flex:1; padding:10px; background:var(--card-2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:14px; outline:none; text-align:center;">
         <button class="btn ghost" onclick="changeDay(1)">→</button>
-        <div class="day-info" id="dayInfo"></div>
       </div>
+      <div class="day-info" id="dayInfo" style="font-size:12px; color:var(--muted); text-align:center; margin-bottom:12px;"></div>
       <div id="dayWeekBanner"></div>
       <ul class="task-list" id="dayTasks"></ul>
-      <div class="progress-mini">
-        <span class="progress-mini-label">Прогресс:</span>
-        <div class="progress-mini-bar"><div class="progress-mini-fill" id="dayProgress" style="width:0%"></div></div>
-        <span class="progress-mini-value" id="dayProgressValue">0%</span>
-      </div>
       <div class="add-task">
         <input type="text" id="newDayTask" placeholder="Своя задача...">
         <input type="number" id="newDayXp" placeholder="XP" value="20" min="1" max="500">
@@ -360,85 +516,39 @@
 
   <div class="panel" id="panel-years">
     <div class="card">
-      <h2>📚 Годы 2–5 + Инвестиции 💰</h2>
-      <div class="year-tabs">
-        <button class="year-tab active" data-year="2">Год 2 · Middle</button>
-        <button class="year-tab" data-year="3">Год 3 · Strong</button>
-        <button class="year-tab" data-year="4">Год 4 · Senior</button>
-        <button class="year-tab" data-year="5">Год 5 · Lead</button>
-      </div>
+      <h2>Годы 2-5 + Инвестиции</h2>
       <div id="yearContent"></div>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-habits">
-    <div class="card">
-      <h2>🔥 Ежедневные привычки</h2>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Кликай по ячейке · последние 30 дней</p>
-      <div class="habit-grid" id="dailyHabits"></div>
-    </div>
-    <div class="card">
-      <h2>📅 Еженедельные</h2>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Последние 12 недель</p>
-      <div class="habit-grid" id="weeklyHabits"></div>
-    </div>
-    <div class="card">
-      <h2>➕ Добавить привычку</h2>
-      <div class="add-task">
-        <input type="text" id="newHabitName" placeholder="Название...">
-        <select id="newHabitType" style="padding:12px;background:var(--card-2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:16px;flex:1;">
-          <option value="daily">Ежедневная</option>
-          <option value="weekly">Еженедельная</option>
-        </select>
-        <button class="btn" onclick="addHabit()">+</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-books">
-    <div class="card">
-      <h2>📖 Книги по программированию</h2>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Отслеживай прогресс чтения</p>
-      <div id="booksList"></div>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-charts">
-    <div class="card"><h2>📊 Привычки за 30 дней</h2><div class="chart-container"><canvas id="chart30" width="800" height="280"></canvas></div></div>
-    <div class="card"><h2>📈 За 7 дней</h2><div class="chart-container"><canvas id="chart7" width="800" height="260"></canvas></div></div>
-    <div class="card"><h2> Серии (streak)</h2><div class="chart-container"><canvas id="chartStreak" width="800" height="260"></canvas></div></div>
-  </div>
-
-  <div class="panel" id="panel-rules">
-    <div class="card">
-      <h2>🎖️ Система уровней</h2>
-      <div id="levelTable" style="font-size:13px;color:var(--muted);margin-bottom:16px;"></div>
-      <div style="margin-top:16px"><button class="btn danger" style="width:100%" onclick="resetAll()">⚠️ Сбросить весь прогресс</button></div>
-      <div style="margin-top:12px"><button class="btn ghost" style="width:100%" onclick="logout()">🚪 Выйти из аккаунта</button></div>
     </div>
   </div>
 
   <div class="mobile-nav">
     <button class="mobile-nav-item active" data-tab="today">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      <svg class="icon" viewBox="0 0 24 24"><rect class="icon-gradient" x="3" y="4" width="18" height="18" rx="2" ry="2"/><line class="icon-gradient" x1="16" y1="2" x2="16" y2="6"/><line class="icon-gradient" x1="8" y1="2" x2="8" y2="6"/><line class="icon-gradient" x1="3" y1="10" x2="21" y2="10"/></svg>
       Сегодня
     </button>
-    <button class="mobile-nav-item" data-tab="year1">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-      Год 1
+    <button class="mobile-nav-item" data-tab="timers">
+      <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="10"/><polyline class="icon-gradient" points="12 6 12 12 16 14"/></svg>
+      Таймеры
     </button>
-    <button class="mobile-nav-item" data-tab="habits">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
-      Привычки
+    <button class="mobile-nav-item" data-tab="typing">
+      <svg class="icon" viewBox="0 0 24 24"><rect class="icon-gradient" x="2" y="4" width="20" height="16" rx="2"/><path class="icon-gradient" d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
+      Печать
     </button>
-    <button class="mobile-nav-item" data-tab="books">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-      Книги
-    </button>
-    <button class="mobile-nav-item" data-tab="rules">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    <button class="mobile-nav-item" data-tab="more">
+      <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="1"/><circle class="icon-gradient" cx="12" cy="5" r="1"/><circle class="icon-gradient" cx="12" cy="19" r="1"/></svg>
       Ещё
     </button>
+  </div>
+</div>
+
+<div class="timer-modal" id="timerModal">
+  <div class="timer-box">
+    <h3 id="timerTitle" style="color:var(--accent-2); margin-bottom:8px;">Таймер</h3>
+    <div class="timer-display" id="timerDisplay">02:00</div>
+    <div class="timer-controls">
+      <button class="btn" onclick="toggleTimer()">Старт/Пауза</button>
+      <button class="btn ghost" onclick="closeTimer()">Закрыть</button>
+    </div>
   </div>
 </div>
 
@@ -453,34 +563,39 @@
   let currentUser = null;
   let isGuest = false;
   let authMode = 'login';
+  let authStep = 1;
   let saveTimeout = null;
+  let timerInterval = null;
+  let timerSeconds = 0;
+  let timerRunning = false;
+  let typingStartTime = null;
+  let typingErrors = 0;
+  let typingText = '';
 
-  const STORAGE_KEY = 'lifeos_v5';
+  const STORAGE_KEY = 'lifeos_v6';
   const defaultState = {
     xp: 0, totalXp: 0, completedTasks: {}, customTasks: {},
-    habits: {
-      daily: [
-        { id: 'wake', name: 'Подъём до 08:00' }, { id: 'shower', name: 'Душ + сборы' },
-        { id: 'study', name: 'Учёба 3+ часа' }, { id: 'english', name: 'Английский 30 мин' },
-        { id: 'sport', name: 'Спорт / прогулка 30 мин' }, { id: 'sleep', name: 'Отбой до 00:00' },
-        { id: 'water', name: '2 литра воды' }, { id: 'no_junk', name: 'Без фастфуда / сахара' }
-      ],
-      weekly: [
-        { id: 'linens', name: 'Смена белья' }, { id: 'clean', name: 'Генеральная уборка' },
-        { id: 'friends', name: 'Встреча с другом (Вадик/Полина/Никита)' }, { id: 'review', name: 'Ревью недели' }
-      ]
-    },
+    habits: [],
     habitLog: {}, bestStreak: 0,
-    books: {
-      'eloquent-js': { title: 'Выразительный JavaScript', author: 'Marijn Haverbeke', chapters: 22, completed: 0 },
-      'clean-code': { title: 'Чистый код', author: 'Robert C. Martin', chapters: 17, completed: 0 },
-      'algorithms': { title: 'Грокаем алгоритмы', author: 'Aditya Bhargava', chapters: 11, completed: 0 },
-      'you-dont-know-js': { title: 'You Don\'t Know JS', author: 'Kyle Simpson', chapters: 6, completed: 0 },
-      'react-patterns': { title: 'React Patterns', author: 'Michael Chan', chapters: 10, completed: 0 }
-    }
+    registrationDate: null,
+    profile: { name: '', age: 0, city: '', goal: '', level: '' },
+    notifications: false
   };
 
   let state = structuredClone(defaultState);
+
+  const typingTexts = [
+    'const user = { name: "Alex", age: 20, skills: ["JS", "React"] };',
+    'function calculate(a, b) { return a + b; }',
+    'if (condition) { doSomething(); } else { doOther(); }',
+    'array.map(item => item.value).filter(x => x > 0);',
+    'class Component extends React.Component { render() { return <div>Hello</div>; } }',
+    'async function fetchData() { const res = await fetch(url); return res.json(); }',
+    'const [state, setState] = useState(initialValue);',
+    'try { riskyOperation(); } catch (error) { console.error(error); }',
+    'import { useState, useEffect } from "react";',
+    'export default function App() { return <Main />; }'
+  ];
 
   window.toggleAuthMode = () => {
     authMode = authMode === 'login' ? 'register' : 'login';
@@ -494,17 +609,73 @@
     const pass = document.getElementById('authPass').value;
     const errEl = document.getElementById('authError');
     if (!email || !pass) { errEl.textContent = 'Введите email и пароль'; errEl.style.display = 'block'; return; }
+    if (pass.length < 6) { errEl.textContent = 'Пароль минимум 6 символов'; errEl.style.display = 'block'; return; }
     try {
-      if (action === 'login') await signInWithEmailAndPassword(auth, email, pass);
-      else await createUserWithEmailAndPassword(auth, email, pass);
+      if (action === 'login') {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } else {
+        await createUserWithEmailAndPassword(auth, email, pass);
+      }
     } catch (error) {
-      errEl.textContent = error.message.replace('Firebase:', '').trim();
+      const code = error.code;
+      if (code === 'auth/too-many-requests') errEl.textContent = 'Слишком много попыток. Подожди 10 минут.';
+      else if (code === 'auth/email-already-in-use') errEl.textContent = 'Email уже зарегистрирован. Нажми "Войти".';
+      else if (code === 'auth/weak-password') errEl.textContent = 'Пароль слишком слабый.';
+      else if (code === 'auth/user-not-found' || code === 'auth/wrong-password') errEl.textContent = 'Неверный email или пароль.';
+      else errEl.textContent = error.message.replace('Firebase:', '').trim();
       errEl.style.display = 'block';
     }
   };
 
+  window.nextAuthStep = (step) => {
+    if (step === 3) {
+      const name = document.getElementById('userName').value.trim();
+      const age = parseInt(document.getElementById('userAge').value);
+      const city = document.getElementById('userCity').value.trim();
+      if (!name || !age || !city) { showToast('Заполни все поля'); return; }
+      state.profile = { name, age, city, goal: '', level: '' };
+    } else if (step === 4) {
+      const goal = document.getElementById('userGoal').value.trim();
+      const level = document.getElementById('userLevel').value;
+      if (!goal || !level) { showToast('Заполни все поля'); return; }
+      state.profile.goal = goal;
+      state.profile.level = level;
+    }
+    document.querySelectorAll('.auth-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('authStep' + step).classList.add('active');
+    document.querySelectorAll('.auth-progress-dot').forEach((d, i) => {
+      d.classList.toggle('active', i < step);
+    });
+    authStep = step;
+  };
+
+  window.enableNotifications = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        state.notifications = true;
+        showToast('Уведомления включены!');
+      }
+    }
+    finishRegistration();
+  };
+
+  window.skipNotifications = () => {
+    state.notifications = false;
+    finishRegistration();
+  };
+
+  function finishRegistration() {
+    state.registrationDate = todayStr();
+    window.debouncedSave();
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    initApp();
+  }
+
   window.continueAsGuest = () => {
     isGuest = true;
+    state.registrationDate = todayStr();
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     loadLocalState();
@@ -512,7 +683,7 @@
   };
 
   window.logout = async () => {
-    if (confirm('Выйти из аккаунта? Прогресс останется в облаке.')) {
+    if (confirm('Выйти из аккаунта?')) {
       await signOut(auth);
       location.reload();
     }
@@ -522,23 +693,19 @@
     if (user) {
       currentUser = user;
       isGuest = false;
-      document.getElementById('authScreen').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'block';
-      document.getElementById('syncStatus').innerHTML = '️ Синхронизировано';
-      
       const userRef = ref(db, 'users/' + user.uid);
       onValue(userRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
           state = { ...defaultState, ...data };
-          if (!state.books) state.books = defaultState.books;
         } else {
           loadLocalState();
           saveToCloud();
         }
-        renderAll();
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        initApp();
       });
-      initApp();
     }
   });
 
@@ -548,11 +715,6 @@
       if (raw) {
         const parsed = JSON.parse(raw);
         state = { ...defaultState, ...parsed };
-        state.habits = {
-          daily: parsed.habits?.daily?.length ? parsed.habits.daily : defaultState.habits.daily,
-          weekly: parsed.habits?.weekly?.length ? parsed.habits.weekly : defaultState.habits.weekly
-        };
-        if (!state.books) state.books = defaultState.books;
       }
     } catch(e) {}
   }
@@ -560,17 +722,17 @@
   function saveToCloud() {
     if (isGuest || !currentUser) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      document.getElementById('syncStatus').innerHTML = '💾 Локально';
+      document.getElementById('syncStatus').textContent = 'Локально';
       return;
     }
-    document.getElementById('syncStatus').innerHTML = '⏳ Сохранение...';
+    document.getElementById('syncStatus').textContent = 'Сохранение...';
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(async () => {
       try {
         await set(ref(db, 'users/' + currentUser.uid), state);
-        document.getElementById('syncStatus').innerHTML = '☁️ Синхронизировано';
+        document.getElementById('syncStatus').textContent = 'Синхронизировано';
       } catch (e) {
-        document.getElementById('syncStatus').innerHTML = '❌ Ошибка сети';
+        document.getElementById('syncStatus').textContent = 'Ошибка сети';
       }
     }, 800);
   }
@@ -583,7 +745,7 @@
     if (lvl < 6) return 'Новичок'; if (lvl < 11) return 'Ученик';
     if (lvl < 16) return 'Junior'; if (lvl < 21) return 'Junior+';
     if (lvl < 31) return 'Middle'; if (lvl < 41) return 'Strong Middle';
-    if (lvl < 51) return 'Senior'; return 'Tech Lead 🏆';
+    if (lvl < 51) return 'Senior'; return 'Tech Lead';
   }
   
   window.addXp = (amount) => {
@@ -599,11 +761,7 @@
   function addDays(iso, n) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
   function daysBetween(a, b) { return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000); }
   function getDayOfWeek(iso) { return new Date(iso + 'T00:00:00').getDay(); }
-  function getWeekStart(iso) {
-    const d = new Date(iso + 'T00:00:00');
-    d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1));
-    return d.toISOString().slice(0,10);
-  }
+
   function getYear1Start() {
     const saved = localStorage.getItem('lifeos_year1_start');
     if (saved) return saved;
@@ -613,34 +771,23 @@
   }
 
   const YEAR1 = [
-    { title: 'Месяц 1 · Неделя 1 — Старт: HTML/CSS/Git', topic: 'Установка инструментов, Git, основы HTML и CSS', goal: 'Настроить рабочее место, сверстать первую страницу', project: '🎯 Проект: Страница-визитка',
+    { title: 'Неделя 1 — HTML/CSS/Git', topic: 'Основы веб-разработки', goal: 'Сверстать первую страницу', project: 'Страница-визитка',
       days: {
-        1: [{t:'🛠️ VS Code, Node, Git',s:'node -v, git --version',xp:30,b:'git'},{t:'📚 Владилен: Git и GitHub (1-я часть)',s:'~1.5 часа, конспект',xp:60,b:'git'}],
-        2: [{t:'📚 Git: ветки, merge, PR',xp:60,b:'git'},{t:'🌐 HTML: теги, семантика',xp:70,b:'html'},{t:'🎨 CSS: селекторы, box-model',xp:70,b:'html'}],
-        3: [{t:'🌐 HTML: формы, таблицы',xp:60,b:'html'},{t:'🎨 CSS: Flexbox',s:'Flexbox Froggy 1-10',xp:70,b:'html'},{t:'💻 Практика: карточка товара',xp:50,b:'project'}],
-        4: [{t:'🎨 CSS: Grid, позиционирование',xp:70,b:'html'},{t:'🎨 CSS: адаптивность',xp:70,b:'html'},{t:'💻 Практика: адаптивная галерея',xp:60,b:'project'}],
-        5: [{t:'🎨 CSS: переменные, transitions',xp:60,b:'html'},{t:' Проект: Визитка (HTML)',s:'Обо мне, навыки, контакты',xp:70,b:'project'}],
-        6: [{t:'🚀 Проект: Визитка (CSS+адаптив)',xp:80,b:'project'},{t:'📤 GitHub + README',xp:30,b:'git'},{t:'🍻 Встреча с другом',xp:20,b:'routine'}],
-        0: [{t:'🧘 Отдых (2+ часа)',xp:10,b:'routine'},{t:'📝 Ревью недели + план',xp:40,b:'routine'}]
+        1: [{t:'Установка VS Code, Node, Git',s:'node -v, git --version',xp:30,b:'git'},{t:'Git и GitHub — основы',s:'Владилен Минин',xp:60,b:'git'}],
+        2: [{t:'Git: ветки, merge, PR',xp:60,b:'git'},{t:'HTML: теги, семантика',xp:70,b:'html'},{t:'CSS: селекторы, box-model',xp:70,b:'html'}],
+        3: [{t:'HTML: формы, таблицы',xp:60,b:'html'},{t:'CSS: Flexbox',s:'Flexbox Froggy',xp:70,b:'html'},{t:'Практика: карточка товара',xp:50,b:'project'}],
+        4: [{t:'CSS: Grid, позиционирование',xp:70,b:'html'},{t:'CSS: адаптивность',xp:70,b:'html'},{t:'Практика: адаптивная галерея',xp:60,b:'project'}],
+        5: [{t:'CSS: переменные, transitions',xp:60,b:'html'},{t:'Проект: Визитка (HTML)',s:'Обо мне, навыки, контакты',xp:70,b:'project'}],
+        6: [{t:'Проект: Визитка (CSS+адаптив)',xp:80,b:'project'},{t:'GitHub + README',xp:30,b:'git'},{t:'Встреча с другом',xp:20,b:'routine'}],
+        0: [{t:'Отдых (2+ часа)',xp:10,b:'routine'},{t:'Ревью недели + план',xp:40,b:'routine'}]
       }
     },
-    { title: 'Месяц 1 · Неделя 2 — JS Основы', topic: 'Переменные, типы данных, условия, циклы', goal: 'Понять основы JS, написать первые скрипты', project: '🎯 Проект: Консольный калькулятор',
+    { title: 'Неделя 52 — Итоги года', topic: 'Подведение итогов', goal: 'Осознать прогресс', project: 'Итоговый пост',
       days: {
-        1: [{t:'📚 Владилен: JS Основы (1-я часть)',s:'let, const, var, типы',xp:80,b:'js'},{t:'🎓 Stepik: JS для начинающих (раздел 1)',xp:60,b:'js'}],
-        2: [{t:'📚 Операторы, сравнения, логика',xp:70,b:'js'},{t:'📚 Условия: if/else, switch',xp:70,b:'js'},{t:'🎓 Stepik: условия (10 задач)',xp:60,b:'js'}],
-        3: [{t:'📚 Циклы: for, while, break',xp:70,b:'js'},{t:'💻 Практика: 10 задач на циклы',xp:70,b:'js'},{t:'🎓 Stepik: циклы',xp:60,b:'js'}],
-        4: [{t:'📚 Функции: declaration, return',xp:70,b:'js'},{t:'💻 Практика: 5 функций',xp:70,b:'project'},{t:'🎓 Stepik: функции',xp:60,b:'js'}],
-        5: [{t:'📚 Массивы: push/pop/shift',xp:70,b:'js'},{t:'📚 Объекты: свойства, this',xp:70,b:'js'},{t:'💻 Начало консольного калькулятора',xp:60,b:'project'}],
-        6: [{t:' Завершение калькулятора',xp:70,b:'project'},{t:'📤 Залить на GitHub',xp:30,b:'git'},{t:'🍻 Встреча с другом',xp:20,b:'routine'}],
-        0: [{t:'🧘 Отдых',xp:10,b:'routine'},{t:'📝 Ревью недели + план',xp:40,b:'routine'}]
-      }
-    },
-    { title: 'Месяц 12 · Неделя 52 — Итоги года 🎉', topic: 'Подведение итогов', goal: 'Осознать прогресс', project: '🎯 Проект: Итоговый пост + план на год 2',
-      days: {
-        1: [{t:'📝 Итоги года: список проектов, навыков',xp:70,b:'book'},{t:'💻 Обновление GitHub',xp:50,b:'git'}],
-        5: [{t:'🎉 Празднование окончания года 1!',xp:100,b:'routine'},{t:'📝 Благодарность себе',xp:50,b:'book'}],
-        6: [{t:'🍻 Встреча с друзьями (Вадик + Полина + Никита)',xp:40,b:'routine'}],
-        0: [{t:' ГОД 1 ЗАВЕРШЁН! Ты — Junior Frontend Developer 🎉',xp:200,b:'routine'},{t:' Переход к Году 2',xp:50,b:'routine'}]
+        1: [{t:'Итоги года: список проектов',xp:70,b:'book'},{t:'Обновление GitHub',xp:50,b:'git'}],
+        5: [{t:'Празднование окончания года 1!',xp:100,b:'routine'},{t:'Благодарность себе',xp:50,b:'book'}],
+        6: [{t:'Встреча с друзьями',xp:40,b:'routine'}],
+        0: [{t:'ГОД 1 ЗАВЕРШЁН! Ты — Junior Frontend Developer',xp:200,b:'routine'},{t:'Переход к Году 2',xp:50,b:'routine'}]
       }
     }
   ];
@@ -666,27 +813,27 @@
     const bgTopic = bgLang === 'py' ? (pyTopics[monthIdx] || 'Практика') : bgLang === 'cpp' ? (cppTopics[monthIdx] || 'Практика') : null;
 
     const tasks = [];
-    tasks.push({ key: 'r_wake', time: '08:00', text: '🌅 Подъём, стакан воды', xp: 30, badge: 'routine' });
-    tasks.push({ key: 'r_shower', time: '08:15', text: '🚿 Душ, сборы', xp: 0, badge: 'routine' });
-    tasks.push({ key: 'r_breakfast', time: '08:45', text: '🍳 Завтрак', xp: 0, badge: 'routine' });
-    tasks.push({ key: 'r_study1', time: '09:00', text: `📚 Учёба (3 часа): ${mainTopicText}`, sub: mainTopicSub, xp: 100, badge: mainTopic?.b || 'routine' });
-    tasks.push({ key: 'r_english', time: '12:00', text: `🇬🇧 Английский (30 мин)`, sub: 'Duolingo / слова / чтение документации', xp: 40, badge: 'en' });
-    tasks.push({ key: 'r_lunch', time: '12:30', text: '🍱 Обед, отдых', xp: 0, badge: 'routine' });
+    tasks.push({ key: 'r_wake', time: '08:00', text: 'Подъём, стакан воды', xp: 30, badge: 'routine' });
+    tasks.push({ key: 'r_shower', time: '08:15', text: 'Душ, сборы', xp: 0, badge: 'routine' });
+    tasks.push({ key: 'r_breakfast', time: '08:45', text: 'Завтрак', xp: 0, badge: 'routine' });
+    tasks.push({ key: 'r_study1', time: '09:00', text: `Учёба (3 часа): ${mainTopicText}`, sub: mainTopicSub, xp: 100, badge: mainTopic?.b || 'routine' });
+    tasks.push({ key: 'r_english', time: '12:00', text: 'Английский (30 мин)', sub: 'Duolingo / слова / чтение документации', xp: 40, badge: 'en' });
+    tasks.push({ key: 'r_lunch', time: '12:30', text: 'Обед, отдых', xp: 0, badge: 'routine' });
     
-    if (bgLang === 'py') tasks.push({ key: 'r_study2', time: '13:30', text: ` Python (1 час): ${bgTopic}`, sub: 'Синтаксис, задачи на Codewars', xp: 50, badge: 'py' });
-    else if (bgLang === 'cpp') tasks.push({ key: 'r_study2', time: '13:30', text: `️ C++ (1 час): ${bgTopic}`, sub: 'Основы, алгоритмы, STL', xp: 50, badge: 'cpp' });
-    else tasks.push({ key: 'r_study2', time: '13:30', text: '💻 Лёгкая учёба / повторение', xp: 50, badge: 'routine' });
+    if (bgLang === 'py') tasks.push({ key: 'r_study2', time: '13:30', text: `Python (1 час): ${bgTopic}`, sub: 'Синтаксис, задачи на Codewars', xp: 50, badge: 'py' });
+    else if (bgLang === 'cpp') tasks.push({ key: 'r_study2', time: '13:30', text: `C++ (1 час): ${bgTopic}`, sub: 'Основы, алгоритмы, STL', xp: 50, badge: 'cpp' });
+    else tasks.push({ key: 'r_study2', time: '13:30', text: 'Лёгкая учёба / повторение', xp: 50, badge: 'routine' });
 
-    tasks.push({ key: 'r_road', time: '14:30', text: '🚶 Дорога на работу', xp: 0, badge: 'routine' });
-    tasks.push({ key: 'r_work', time: '15:00', text: '💼 Работа (до 23:00)', xp: 0, badge: 'routine' });
+    tasks.push({ key: 'r_road', time: '14:30', text: 'Дорога на работу', xp: 0, badge: 'routine' });
+    tasks.push({ key: 'r_work', time: '15:00', text: 'Работа (до 23:00)', xp: 0, badge: 'routine' });
     
     if (dowKey === 6 || dowKey === 0) {
-      tasks.push({ key: 'r_friends', time: '16:00', text: '🍻 Встреча с другом (Вадик / Полина / Никита)', xp: 20, badge: 'routine' });
-      tasks.push({ key: 'r_rest', time: '19:00', text: '🧘 Отдых без чувства вины', xp: 10, badge: 'routine' });
+      tasks.push({ key: 'r_friends', time: '16:00', text: 'Встреча с другом (Вадик / Полина / Никита)', xp: 20, badge: 'routine' });
+      tasks.push({ key: 'r_rest', time: '19:00', text: 'Отдых без чувства вины', xp: 10, badge: 'routine' });
     } else {
-      tasks.push({ key: 'r_dinner', time: '23:00', text: '🍽️ Ужин, свободное время', xp: 0, badge: 'routine' });
+      tasks.push({ key: 'r_dinner', time: '23:00', text: 'Ужин, свободное время', xp: 0, badge: 'routine' });
     }
-    tasks.push({ key: 'r_sleep', time: '00:00', text: '🌙 Отбой (8 часов сна)', xp: 20, badge: 'routine' });
+    tasks.push({ key: 'r_sleep', time: '00:00', text: 'Отбой (8 часов сна)', xp: 20, badge: 'routine' });
 
     dayTasks.forEach((t, i) => {
       if (t === mainTopic) return;
@@ -703,7 +850,7 @@
     const bannerId = containerId === 'todayTasks' ? 'todayWeekBanner' : 'dayWeekBanner';
     const banner = document.getElementById(bannerId);
     if (banner && weekInfo) {
-      banner.innerHTML = `<div style="background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.08));border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;"><h3 style="font-size:15px;color:var(--accent-2);margin-bottom:4px;">${weekInfo.title}</h3><p style="font-size:13px;color:var(--muted);"><strong>Тема:</strong> ${weekInfo.topic}</p>${weekInfo.project ? `<div style="margin-top:8px;padding:8px 12px;background:rgba(16,185,129,0.1);border-left:3px solid var(--green);border-radius:6px;font-size:13px;"><strong style="color:var(--green);">Проект недели:</strong> ${weekInfo.project}</div>` : ''}</div>`;
+      banner.innerHTML = `<div style="background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(236,72,153,0.08));border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;"><h3 style="font-size:15px;color:var(--accent-2);margin-bottom:4px;">${weekInfo.title}</h3><p style="font-size:13px;color:var(--muted);"><strong>Тема:</strong> ${weekInfo.topic}</p>${weekInfo.project ? `<div style="margin-top:8px;padding:8px 12px;background:rgba(16,185,129,0.1);border-left:3px solid var(--green);border-radius:6px;font-size:13px;"><strong style="color:var(--green);">Проект недели:</strong> ${weekInfo.project}</div>` : ''}</div>`;
     } else if (banner) { banner.innerHTML = ''; }
 
     const customs = state.customTasks[dateKey] || [];
@@ -765,16 +912,33 @@
 
   window.completeNextTask = () => {
     const cb = document.querySelector('#todayTasks .task-item:not(.done) input[type="checkbox"]');
-    if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change')); showToast('✅ Задача выполнена!'); }
-    else { showToast(' Все задачи выполнены!'); }
+    if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change')); showToast('Задача выполнена!'); }
+    else { showToast('Все задачи выполнены!'); }
   };
 
   window.renderToday = () => {
     const today = todayStr();
     document.getElementById('todayDateLabel').textContent = formatDate(today);
+    
+    // Проверяем, первый ли это день после регистрации
+    const welcomeMsg = document.getElementById('welcomeMessage');
+    const taskList = document.getElementById('todayTasks');
+    
+    if (state.registrationDate && today === state.registrationDate) {
+      // Первый день — только приветствие
+      welcomeMsg.style.display = 'block';
+      document.getElementById('welcomeName').textContent = state.profile.name || 'друг';
+      taskList.innerHTML = '';
+      document.getElementById('todayProgress').style.width = '0%';
+      document.getElementById('todayProgressValue').textContent = '0%';
+      return;
+    } else {
+      welcomeMsg.style.display = 'none';
+    }
+    
     const result = buildDayTasks(today);
     if (!result || !result.tasks.length) {
-      renderTaskList([{ key: 'generic', text: '📚 Учёба по текущему плану', xp: 100 }], 'todayTasks', 'today:'+today, 'today', null);
+      renderTaskList([{ key: 'generic', text: 'Учёба по текущему плану', xp: 100 }], 'todayTasks', 'today:'+today, 'today', null);
       return;
     }
     renderTaskList(result.tasks, 'todayTasks', 'today:'+today, 'today', result.week);
@@ -808,12 +972,12 @@
     picker.value = currentDay; picker.min = start; picker.max = addDays(start, 364);
     const info = document.getElementById('dayInfo');
     if (dayNum < 0) info.textContent = 'До старта года';
-    else if (dayNum >= 365) info.textContent = 'Год 1 завершён 🎉';
+    else if (dayNum >= 365) info.textContent = 'Год 1 завершён';
     else info.innerHTML = `М${Math.floor(dayNum/30)+1} · Н${Math.floor(dayNum/7)+1} · День ${dayNum+1}/365`;
     
     const result = buildDayTasks(currentDay);
     if (!result || !result.tasks.length) {
-      renderTaskList([{ key: 'generic', text: '📚 Учёба по плану', xp: 100 }], 'dayTasks', currentDay, 'day', null);
+      renderTaskList([{ key: 'generic', text: 'Учёба по плану', xp: 100 }], 'dayTasks', currentDay, 'day', null);
       return;
     }
     renderTaskList(result.tasks, 'dayTasks', currentDay, 'day', result.week);
@@ -829,192 +993,173 @@
   };
   document.getElementById('dayPicker').addEventListener('change', e => { currentDay = e.target.value; renderDay(); });
 
-  function renderHabits() {
-    ['daily', 'weekly'].forEach(type => {
-      const containerId = type === 'daily' ? 'dailyHabits' : 'weeklyHabits';
-      const container = document.getElementById(containerId);
-      container.innerHTML = '';
-      const count = type === 'daily' ? 30 : 12;
-      const today = todayStr();
-      
-      state.habits[type].forEach(h => {
-        const log = state.habitLog[h.id] || {};
-        let streak = 0;
-        if (type === 'daily') {
-          let d = today; while (log[d]) { streak++; d = addDays(d, -1); }
-        } else {
-          let w = getWeekStart(today); while (hasAnyMarkInWeek(log, w)) { streak++; w = addDays(w, -7); }
-        }
-        
-        const card = document.createElement('div');
-        card.className = 'habit-card';
-        let cells = '';
-        if (type === 'daily') {
-          for (let i = count - 1; i >= 0; i--) {
-            const date = addDays(today, -i);
-            const done = log[date];
-            const label = new Date(date+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'short'});
-            cells += `<div class="habit-day ${done?'done':''} ${date===today?'today':''}" data-habit="${h.id}" data-date="${date}" title="${label}">${new Date(date+'T00:00:00').getDate()}</div>`;
-          }
-        } else {
-          for (let i = count - 1; i >= 0; i--) {
-            const ws = addDays(getWeekStart(today), -i*7);
-            const done = hasAnyMarkInWeek(log, ws);
-            cells += `<div class="habit-day ${done?'done':''} ${ws===getWeekStart(today)?'today':''}" data-habit="${h.id}" data-week="${ws}">W${count-i}</div>`;
-          }
-        }
-        card.innerHTML = `<div class="habit-header"><span class="habit-name">${h.name}</span><span class="habit-streak ${streak>=7?'hot':''}">🔥 ${streak}</span></div><div class="habit-days">${cells}</div>`;
-        container.appendChild(card);
-      });
-
-      container.querySelectorAll('.habit-day').forEach(cell => {
-        cell.addEventListener('click', () => {
-          const habitId = cell.dataset.habit;
-          const date = cell.dataset.date;
-          const week = cell.dataset.week;
-          if (!state.habitLog[habitId]) state.habitLog[habitId] = {};
-          
-          if (date) {
-            if (state.habitLog[habitId][date]) { delete state.habitLog[habitId][date]; window.addXp(-20); }
-            else {
-              state.habitLog[habitId][date] = true; window.addXp(20);
-              let s = 0; let d = today; while(state.habitLog[habitId][d]) { s++; d = addDays(d,-1); }
-              if (s === 7) window.addXp(50); if (s === 30) window.addXp(150); if (s === 100) window.addXp(500);
-              if (s > state.bestStreak) state.bestStreak = s;
-            }
-          } else if (week) {
-            if (hasAnyMarkInWeek(state.habitLog[habitId], week)) {
-              for (let i = 0; i < 7; i++) delete state.habitLog[habitId][addDays(week, i)];
-              window.addXp(-30);
-            } else {
-              state.habitLog[habitId][addDays(week, getDayOfWeek(today))] = true;
-              window.addXp(30);
-            }
-          }
-          window.debouncedSave();
-          renderHabits();
-          renderHeader();
-        });
-      });
-    });
-  }
-
-  function hasAnyMarkInWeek(log, weekStart) {
-    for (let i = 0; i < 7; i++) if (log[addDays(weekStart, i)]) return true;
-    return false;
-  }
-
   window.addHabit = () => {
     const name = document.getElementById('newHabitName').value.trim();
-    const type = document.getElementById('newHabitType').value;
     if (!name) return;
-    state.habits[type].push({ id: 'h_' + Date.now().toString(36), name });
+    state.habits.push({ id: 'h_' + Date.now().toString(36), name });
     window.debouncedSave();
     document.getElementById('newHabitName').value = '';
     renderHabits();
+    showToast('Привычка добавлена!');
   };
 
-  function renderBooks() {
-    const container = document.getElementById('booksList');
+  function renderHabits() {
+    const container = document.getElementById('habitsList');
+    if (!container) return;
     container.innerHTML = '';
-    Object.entries(state.books).forEach(([id, book]) => {
-      const card = document.createElement('div');
-      card.className = 'book-card';
-      const progress = book.completed / book.chapters * 100;
-      card.innerHTML = `
-        <h4>${book.title}</h4>
-        <div class="book-author">${book.author}</div>
-        <div class="book-progress">
-          <div class="book-progress-bar"><div class="book-progress-fill" style="width:${progress}%"></div></div>
-          <div class="book-progress-text">${book.completed}/${book.chapters}</div>
-        </div>
-        <ul class="chapter-list">
-          ${Array.from({length: book.chapters}, (_, i) => `
-            <li class="chapter-item ${i < book.completed ? 'done' : ''}" data-book="${id}" data-chapter="${i}">
-              <input type="checkbox" ${i < book.completed ? 'checked' : ''}>
-              <span class="chapter-text">Глава ${i + 1}</span>
-            </li>
-          `).join('')}
-        </ul>
-      `;
-      container.appendChild(card);
-    });
-
-    container.querySelectorAll('.chapter-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        if (e.target.tagName === 'INPUT') return;
-        const checkbox = item.querySelector('input');
-        checkbox.checked = !checkbox.checked;
-        checkbox.dispatchEvent(new Event('change'));
-      });
-    });
-
-    container.querySelectorAll('.chapter-item input').forEach(cb => {
-      cb.addEventListener('change', (e) => {
-        const bookId = e.target.closest('.chapter-item').dataset.book;
-        const chapter = parseInt(e.target.closest('.chapter-item').dataset.chapter);
-        const book = state.books[bookId];
-        
-        if (e.target.checked) {
-          if (chapter >= book.completed) {
-            book.completed = chapter + 1;
-            window.addXp(50);
-          }
-        } else {
-          if (chapter < book.completed) {
-            book.completed = chapter;
-            window.addXp(-50);
-          }
-        }
-        window.debouncedSave();
-        renderBooks();
-        renderHeader();
-      });
-    });
-  }
-
-  function drawChart30() {
-    const canvas = document.getElementById('chart30');
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.width, H = canvas.height;
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, W, H);
-    if (!state.habits.daily.length) return;
-    
     const today = todayStr();
-    const data = [];
-    for (let i = 29; i >= 0; i--) {
-      const date = addDays(today, -i);
-      let done = 0;
-      state.habits.daily.forEach(h => { if (state.habitLog[h.id]?.[date]) done++; });
-      data.push({ date, pct: done / state.habits.daily.length });
-    }
     
-    const pad = { l: 40, r: 20, t: 20, b: 40 };
-    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    ctx.strokeStyle = '#2a3142'; ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = pad.t + ch * (i/4);
-      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
-      ctx.fillStyle = '#9ca3af'; ctx.font = '11px sans-serif';
-      ctx.fillText((100 - i*25) + '%', 5, y + 4);
-    }
-    const barW = cw / 30 * 0.7;
-    data.forEach((d, i) => {
-      const x = pad.l + (cw / 30) * i + (cw / 30 - barW) / 2;
-      const h = ch * d.pct;
-      const grad = ctx.createLinearGradient(0, pad.t + ch - h, 0, pad.t + ch);
-      grad.addColorStop(0, '#8b5cf6'); grad.addColorStop(1, '#6366f1');
-      ctx.fillStyle = grad;
-      ctx.fillRect(x, pad.t + ch - h, barW, h);
+    state.habits.forEach(h => {
+      const log = state.habitLog[h.id] || {};
+      let streak = 0;
+      let d = today;
+      while (log[d]) { streak++; d = addDays(d, -1); }
+      
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--card-2); border-radius:10px; margin-bottom:8px;';
+      item.innerHTML = `
+        <div>
+          <div style="font-weight:600;">${h.name}</div>
+          <div style="font-size:12px; color:var(--yellow);">Серия: ${streak} дней</div>
+        </div>
+        <button class="btn" onclick="toggleHabit('${h.id}')" style="padding:8px 12px;">${log[today] ? 'Выполнено' : 'Отметить'}</button>
+      `;
+      container.appendChild(item);
     });
   }
+
+  window.toggleHabit = (habitId) => {
+    const today = todayStr();
+    if (!state.habitLog[habitId]) state.habitLog[habitId] = {};
+    
+    if (state.habitLog[habitId][today]) {
+      delete state.habitLog[habitId][today];
+      window.addXp(-20);
+    } else {
+      state.habitLog[habitId][today] = true;
+      window.addXp(20);
+      let s = 0; let d = today;
+      while(state.habitLog[habitId][d]) { s++; d = addDays(d,-1); }
+      if (s === 7) window.addXp(50);
+      if (s === 30) window.addXp(150);
+      if (s > state.bestStreak) state.bestStreak = s;
+      showToast('Привычка отмечена! +' + 20 + ' XP');
+    }
+    window.debouncedSave();
+    renderHabits();
+    renderHeader();
+  };
+
+  // Timer functions
+  window.startTimer = (type, seconds) => {
+    timerSeconds = seconds;
+    timerRunning = false;
+    document.getElementById('timerTitle').textContent = type === 'teeth' ? 'Чистка зубов' : type === 'pomodoro' ? 'Помодоро' : 'Зарядка';
+    updateTimerDisplay();
+    document.getElementById('timerModal').classList.add('active');
+  };
+
+  window.showExerciseTimer = () => {
+    const duration = prompt('Выбери длительность зарядки (минуты): 5, 10 или 15', '10');
+    const minutes = parseInt(duration);
+    if (minutes && [5, 10, 15].includes(minutes)) {
+      startTimer('exercise', minutes * 60);
+    }
+  };
+
+  window.toggleTimer = () => {
+    timerRunning = !timerRunning;
+    if (timerRunning) {
+      timerInterval = setInterval(() => {
+        timerSeconds--;
+        updateTimerDisplay();
+        if (timerSeconds <= 0) {
+          clearInterval(timerInterval);
+          timerRunning = false;
+          showToast('Таймер завершён! +20 XP');
+          window.addXp(20);
+          closeTimer();
+        }
+      }, 1000);
+    } else {
+      clearInterval(timerInterval);
+    }
+  };
+
+  window.closeTimer = () => {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    document.getElementById('timerModal').classList.remove('active');
+  };
+
+  function updateTimerDisplay() {
+    const mins = Math.floor(timerSeconds / 60);
+    const secs = timerSeconds % 60;
+    document.getElementById('timerDisplay').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  // Typing trainer
+  function initTyping() {
+    typingText = typingTexts[Math.floor(Math.random() * typingTexts.length)];
+    document.getElementById('typingArea').innerHTML = typingText.split('').map((c, i) => `<span id="char${i}">${c}</span>`).join('');
+    document.getElementById('typingInput').value = '';
+    typingStartTime = null;
+    typingErrors = 0;
+    document.getElementById('typingWpm').textContent = '0';
+    document.getElementById('typingAccuracy').textContent = '100%';
+    document.getElementById('typingTime').textContent = '0с';
+  }
+
+  window.handleTyping = (e) => {
+    const input = e.target.value;
+    if (!typingStartTime && input.length > 0) typingStartTime = Date.now();
+    
+    let errors = 0;
+    for (let i = 0; i < typingText.length; i++) {
+      const charEl = document.getElementById('char' + i);
+      if (!charEl) continue;
+      if (i < input.length) {
+        if (input[i] === typingText[i]) {
+          charEl.className = 'correct';
+        } else {
+          charEl.className = 'incorrect';
+          errors++;
+        }
+      } else if (i === input.length) {
+        charEl.className = 'current';
+      } else {
+        charEl.className = '';
+      }
+    }
+    
+    typingErrors = errors;
+    const accuracy = Math.round((1 - errors / Math.max(input.length, 1)) * 100);
+    document.getElementById('typingAccuracy').textContent = accuracy + '%';
+    
+    if (typingStartTime) {
+      const elapsed = (Date.now() - typingStartTime) / 1000;
+      document.getElementById('typingTime').textContent = Math.round(elapsed) + 'с';
+      const words = input.length / 5;
+      const wpm = Math.round(words / (elapsed / 60));
+      document.getElementById('typingWpm').textContent = wpm;
+    }
+    
+    if (input.length >= typingText.length) {
+      const elapsed = (Date.now() - typingStartTime) / 1000;
+      const words = typingText.length / 5;
+      const wpm = Math.round(words / (elapsed / 60));
+      const xp = Math.round(wpm * accuracy / 10);
+      showToast(`Отлично! ${wpm} WPM, ${accuracy}% точности. +${xp} XP`);
+      window.addXp(xp);
+      setTimeout(resetTyping, 2000);
+    }
+  };
+
+  window.resetTyping = initTyping;
 
   function drawChart7() {
     const canvas = document.getElementById('chart7');
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const W = canvas.width, H = canvas.height;
@@ -1022,15 +1167,16 @@
     canvas.width = W * dpr; canvas.height = H * dpr;
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
-    if (!state.habits.daily.length) return;
-
+    
     const today = todayStr();
     const data = [];
     for (let i = 6; i >= 0; i--) {
       const date = addDays(today, -i);
-      let done = 0;
-      state.habits.daily.forEach(h => { if (state.habitLog[h.id]?.[date]) done++; });
-      data.push({ pct: done / state.habits.daily.length, day: new Date(date+'T00:00:00').toLocaleDateString('ru-RU', {weekday:'short'}) });
+      let done = 0, total = 10;
+      for (const key in state.completedTasks) {
+        if (key.includes(date)) done++;
+      }
+      data.push({ pct: Math.min(done / total, 1), day: new Date(date+'T00:00:00').toLocaleDateString('ru-RU', {weekday:'short'}) });
     }
     
     const pad = { l: 40, r: 20, t: 20, b: 40 };
@@ -1046,10 +1192,10 @@
     ctx.lineTo(pad.l, pad.t + ch);
     ctx.closePath();
     const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ch);
-    grad.addColorStop(0, 'rgba(16,185,129,0.4)'); grad.addColorStop(1, 'rgba(16,185,129,0)');
+    grad.addColorStop(0, 'rgba(139,92,246,0.4)'); grad.addColorStop(1, 'rgba(236,72,153,0)');
     ctx.fillStyle = grad; ctx.fill();
     
-    ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3;
+    ctx.strokeStyle = '#8b5cf6'; ctx.lineWidth = 3;
     ctx.beginPath();
     data.forEach((d, i) => {
       const x = pad.l + (cw / 6) * i;
@@ -1061,56 +1207,11 @@
     data.forEach((d, i) => {
       const x = pad.l + (cw / 6) * i;
       const y = pad.t + ch - ch * d.pct;
-      ctx.fillStyle = '#10b981'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#8b5cf6'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
       ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 11px sans-serif';
       ctx.fillText(Math.round(d.pct*100)+'%', x - 12, y - 10);
       ctx.fillStyle = '#9ca3af'; ctx.font = '11px sans-serif';
       ctx.fillText(d.day, x - 10, H - pad.b + 15);
-    });
-  }
-
-  function drawChartStreak() {
-    const canvas = document.getElementById('chartStreak');
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.width, H = canvas.height;
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, W, H);
-    
-    const all = [...state.habits.daily.map(h => ({...h, type: 'daily'})), ...state.habits.weekly.map(h => ({...h, type: 'weekly'}))];
-    if (!all.length) return;
-    
-    const pad = { l: 140, r: 40, t: 20, b: 20 };
-    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    const barH = Math.min(24, ch / all.length - 4);
-    const maxStreak = Math.max(1, ...all.map(h => {
-      let s = 0;
-      if (h.type === 'daily') { let d = todayStr(); while(state.habitLog[h.id]?.[d]) { s++; d = addDays(d,-1); } }
-      else { let w = getWeekStart(todayStr()); while(hasAnyMarkInWeek(state.habitLog[h.id]||{}, w)) { s++; w = addDays(w,-7); } }
-      return s;
-    }), state.bestStreak);
-
-    all.forEach((h, i) => {
-      let streak = 0;
-      if (h.type === 'daily') { let d = todayStr(); while(state.habitLog[h.id]?.[d]) { streak++; d = addDays(d,-1); } }
-      else { let w = getWeekStart(todayStr()); while(hasAnyMarkInWeek(state.habitLog[h.id]||{}, w)) { streak++; w = addDays(w,-7); } }
-      
-      const y = pad.t + (ch / all.length) * i + (ch / all.length - barH) / 2;
-      const w = cw * (streak / maxStreak);
-      ctx.fillStyle = '#e5e7eb'; ctx.font = '12px sans-serif';
-      ctx.fillText(h.name.slice(0, 22), 10, y + barH/2 + 4);
-      
-      const grad = ctx.createLinearGradient(pad.l, 0, pad.l + w, 0);
-      if (streak >= 30) { grad.addColorStop(0, '#ef4444'); grad.addColorStop(1, '#f59e0b'); }
-      else if (streak >= 7) { grad.addColorStop(0, '#f59e0b'); grad.addColorStop(1, '#10b981'); }
-      else { grad.addColorStop(0, '#6366f1'); grad.addColorStop(1, '#8b5cf6'); }
-      ctx.fillStyle = grad;
-      ctx.fillRect(pad.l, y, Math.max(w, 4), barH);
-      
-      ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 12px sans-serif';
-      ctx.fillText(`${streak} 🔥`, pad.l + Math.max(w, 4) + 6, y + barH/2 + 4);
     });
   }
 
@@ -1131,18 +1232,12 @@
     
     let hDone = 0;
     const today = todayStr();
-    state.habits.daily.forEach(h => { if (state.habitLog[h.id]?.[today]) hDone++; });
-    document.getElementById('habitsToday').textContent = state.habits.daily.length ? Math.round(hDone/state.habits.daily.length*100) + '%' : '0%';
-  }
-
-  function renderLevelTable() {
-    let html = '<table style="width:100%;border-collapse:collapse">';
-    html += '<tr style="color:var(--accent-2)"><th style="text-align:left;padding:6px">Ур.</th><th style="text-align:left;padding:6px">Титул</th><th style="text-align:right;padding:6px">XP</th></tr>';
-    for (let i = 1; i <= 20; i++) {
-      html += `<tr style="border-top:1px dashed var(--border)"><td style="padding:6px">${i}</td><td style="padding:6px">${levelTitle(i)}</td><td style="padding:6px;text-align:right">${xpForLevel(i)}</td></tr>`;
+    state.habits.forEach(h => { if (state.habitLog[h.id]?.[today]) hDone++; });
+    document.getElementById('habitsToday').textContent = state.habits.length ? Math.round(hDone/state.habits.length*100) + '%' : '0%';
+    
+    if (state.profile.name) {
+      document.getElementById('userGreeting').textContent = `Привет, ${state.profile.name}!`;
     }
-    html += '</table>';
-    document.getElementById('levelTable').innerHTML = html;
   }
 
   window.switchTab = (tabName) => {
@@ -1150,10 +1245,8 @@
     document.querySelectorAll(`[data-tab="${tabName}"]`).forEach(t => t.classList.add('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     document.getElementById('panel-' + tabName).classList.add('active');
-    if (tabName === 'charts') setTimeout(() => { drawChart30(); drawChart7(); drawChartStreak(); }, 50);
-    if (tabName === 'habits') renderHabits();
-    if (tabName === 'books') renderBooks();
-    if (tabName === 'rules') renderLevelTable();
+    if (tabName === 'more') { drawChart7(); renderHabits(); }
+    if (tabName === 'typing') initTyping();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1162,7 +1255,7 @@
   });
 
   window.resetAll = () => {
-    if (!confirm('Сбросить ВЕСЬ прогресс? Это необратимо.')) return;
+    if (!confirm('Сбросить ВЕСЬ прогресс?')) return;
     state = structuredClone(defaultState);
     window.debouncedSave();
     renderAll();
@@ -1181,38 +1274,7 @@
     renderToday();
     renderDay();
     renderHabits();
-    renderBooks();
-    renderLevelTable();
-    
-    const yearsPlan = {
-      2: { title: 'Год 2 · Middle + Инвестиции 💰', months: [{m:'Месяц 1', items:['Впитывай кодбейз','Читай чужой код 1ч/день','💰 Открыть брокерский счёт','💰 Откладывать 10-20% зарплаты']}, {m:'Месяц 2', items:['Самостоятельный таск end-to-end','Паттерны: Module, Observer','💰 Подушка = 1 зарплата','💰 Открыть ИИС']}, {m:'Месяц 3', items:['Testing: Jest, RTL','2 статьи на Хабр','💰 Купить первые облигации (ОФЗ)','💰 «Разумный инвестор» Грэм']}, {m:'Месяц 4', items:['Lighthouse, profiling','Next.js на практике','💰 Акции голубых фишек','💰 Автопополнение счёта']}, {m:'Месяц 5', items:['CI/CD, Docker основы','TypeScript advanced','💰 Изучить ETF','💰 Подушка = 2 зарплаты']}, {m:'Месяц 6', items:['Перфоманс-ревью: повышение','Обнови портфолио','💰 Рефинансирование кредитов','💰 Криптовалюта (макс 5%)']}, {m:'Месяц 7', items:['GraphQL, WebSocket','Оптимизация бандла','💰 Накопительный счёт','💰 Первый ETF на широкий рынок']}, {m:'Месяц 8', items:['Redux Toolkit, Zustand','Micro-frontends','💰 Подушка = 3 зарплаты','💰 Налоговые вычеты']}, {m:'Месяц 9', items:['Feature-Sliced Design','Storybook + tokens','💰 Налоговый вычет за год','💰 Реинвестировать дивиденды']}, {m:'Месяц 10', items:['Node.js + Nest.js основы','BFF-паттерн','💰 Отчисления 25-30%','💰 P2P-кредитование (5%)']}, {m:'Месяц 11', items:['Soft skills, эстимейты','Подготовка к Middle','💰 Годовой инвест. отчёт','💰 Портфель: 40% облиг, 40% акций, 10% ETF, 10% крипта']}, {m:'Месяц 12', items:['Рост зарплаты на 30-50%','Цели на год 3','💰 Подушка = 3-4 зарплаты','💰 Доход от инвестиций: цель 15-20%']}] },
-      3: { title: 'Год 3 · Strong Middle → Senior + Активные инвестиции 💰', months: [{m:'Месяц 1', items:['Архитектурные решения: ADR','Веди технический долг','💰 Отчисления 30-35%','💰 Зарубежные акции']}, {m:'Месяц 2', items:['Observability: Sentry, метрики','Error tracking','💰 Диверсификация: золото']}, {m:'Месяц 3', items:['Performance budgets','Оптимизация рендера','💰 Подушка = 4-5 зарплат',' Изучать недвижимость']}, {m:'Месяц 4', items:['Security: XSS, CSRF, CSP','OWASP Top 10',' Рассчитать выгоду покупки жилья']}, {m:'Месяц 5', items:['E2E тесты: Playwright','Тестовая пирамида','💰 Накопить на взнос 20-30%']}, {m:'Месяц 6', items:['Выступление на митапе','Статья в издание','💰 Второй брокерский счёт']}, {m:'Месяц 7', items:['System Design для фронтенда','Event-driven, CQRS','💰 Изучить REIT']}, {m:'Месяц 8', items:['Nx, Turborepo','Workspace-менеджмент','💰 Подушка = 6 зарплат','💰 Капитал на недвижимость']}, {m:'Месяц 9', items:['Менторство 2+ джунов','Построение онбординга','💰 Повышение зарплаты (+20-30%)']}, {m:'Месяц 10', items:['Переговоры о Senior','Расширение зоны ответственности','💰 Отчисления 40% от новой ЗП']}, {m:'Месяц 11', items:['React Native (обзорно)','Инвестиции в себя','💰 Венчурные инвестиции (базово)']}, {m:'Месяц 12', items:['Оффер Senior или повышение','💰 Капитал = 6-12 месячных ЗП',' Цель: пассивный доход 10-15% расходов']}] },
-      4: { title: 'Год 4 · Senior Frontend + Масштабирование капитала 💰', months: [{m:'Месяц 1', items:['Tech lead команды','Ответственность за архитектуру',' ЗП: 250-350к ₽','💰 Отчисления 40-50%']}, {m:'Месяц 2', items:['Стратегия продукта: OKR','Работа с бизнесом','💰 Рассмотреть покупку недвижимости']}, {m:'Месяц 3', items:['Культура code review','Гайдлайны команды','💰 Рефинансирование ипотеки']}, {m:'Месяц 4', items:['PoC новых технологий','AI-инструменты','💰 Зарубежные активы']}, {m:'Месяц 5', items:['Масштабирование команды','Делегирование','💰 Подушка = 12 зарплат']}, {m:'Месяц 6', items:['Крупная конференция','Нетворкинг','💰 Бизнес-ангелинг']}, {m:'Месяц 7', items:['Cross-team проекты','Тех. стратегия на квартал','💰 Релокация для налогов']}, {m:'Месяц 8', items:['Оптимизация time-to-market','DevEx','💰 ИП/самозанятость для консультаций']}, {m:'Месяц 9', items:['Финансы: пассивный доход','Недвижимость','💰 Цель: пассивный доход 20% расходов']}, {m:'Месяц 10', items:['Open-source проект','Личный бренд','💰 Побочный доход: курсы, фриланс']}, {m:'Месяц 11', items:['Подготовка к Tech Lead','Management skills','💰 Инвестиции в образование']}, {m:'Месяц 12', items:['Компенсация top-10% рынка','💰 Капитал = 2-3 годовых дохода','💰 Цель: фин. независимость']}] },
-      5: { title: 'Год 5 · Tech Lead + Финансовая свобода ', months: [{m:'Месяц 1', items:['Tech Lead направления','Видение стратегии','💰 ЗП: 400-600к ₽','💰 Отчисления 50%+']}, {m:'Месяц 2', items:['Архитектура всей платформы','Сквозные решения','💰 Ускоренное погашение ипотеки']}, {m:'Месяц 3', items:['Инженерная культура','Тех. бренд компании','💰 Ребалансировка портфеля']}, {m:'Месяц 4', items:['Менторство middle/senior','Карьерные треки','💰 Пассивный доход 30% расходов']}, {m:'Месяц 5', items:['Работа с CTO / VP Eng','Бизнес-метрики','💰 Частные инвестиции']}, {m:'Месяц 6', items:['Международное комьюнити','Английский C1','💰 Remote на глобальный рынок']}, {m:'Месяц 7', items:['Релокация / global remote','💰 ЗП $8k+ / ₽600k+','💰 Налоговая оптимизация']}, {m:'Месяц 8', items:['Пассивный доход: курсы, менторство','Свой стартап','💰 Капитал = 5+ годовых доходов']}, {m:'Месяц 9', items:['Фин. свобода: активы > 3 годовых доходов','💰 FIRE-стратегия']}, {m:'Месяц 10', items:['Баланс: здоровье, отношения','Путешествия','💰 Страхование жизни']}, {m:'Месяц 11', items:['Возврат комьюнити','Твой вклад в индустрию','💰 Благотворительность 5-10%']}, {m:'Месяц 12', items:['🏆 25 лет. Senior/Tech Lead с опытом и капиталом',' Подушка = 10+ лет жизни','💰 Следующие 5 лет — на твоих условиях']}]}
-    };
-    
-    let currentYear = 2;
-    const renderYears = () => {
-      const data = yearsPlan[currentYear];
-      const container = document.getElementById('yearContent');
-      container.innerHTML = `<h3 style="margin-bottom:12px;color:var(--accent-2)">${data.title}</h3><div class="month-grid"></div>`;
-      const grid = container.querySelector('.month-grid');
-      data.months.forEach(m => {
-        const card = document.createElement('div');
-        card.className = 'month-card';
-        card.innerHTML = `<h4>${m.m}</h4><ul>${m.items.map(i => `<li class="${i.startsWith('💰')?'money':''}">${i}</li>`).join('')}</ul>`;
-        grid.appendChild(card);
-      });
-    };
-    renderYears();
-    document.querySelectorAll('.year-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.year-tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentYear = parseInt(btn.dataset.year);
-        renderYears();
-      });
-    });
+    initTyping();
   }
 
   function renderAll() {
@@ -1220,13 +1282,11 @@
     renderToday();
     renderDay();
     renderHabits();
-    renderBooks();
-    renderLevelTable();
   }
 
   window.addEventListener('resize', () => {
-    if (document.getElementById('panel-charts').classList.contains('active')) {
-      drawChart30(); drawChart7(); drawChartStreak();
+    if (document.getElementById('panel-more').classList.contains('active')) {
+      drawChart7();
     }
   });
 
