@@ -2,120 +2,133 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LifeOS — Чек-лист жизни на 5 лет</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a0e1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>LifeOS — Твой путь за 5 лет</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   :root {
     --bg: #0a0e1a; --bg-2: #111827; --card: #1a1f2e; --card-2: #232938;
     --border: #2a3142; --text: #e5e7eb; --muted: #9ca3af;
     --accent: #6366f1; --accent-2: #8b5cf6; --green: #10b981;
     --yellow: #f59e0b; --red: #ef4444; --blue: #3b82f6; --pink: #ec4899;
+    --tg-bg: var(--tg-theme-bg-color, var(--bg));
+    --tg-text: var(--tg-theme-text-color, var(--text));
+    --tg-hint: var(--tg-theme-hint-color, var(--muted));
+    --tg-link: var(--tg-theme-link-color, var(--accent));
+    --tg-btn: var(--tg-theme-button-color, var(--accent));
+    --tg-btn-text: var(--tg-theme-button-text-color, #fff);
+    --tg-secondary-bg: var(--tg-theme-secondary-bg-color, var(--bg-2));
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
+  html, body { overscroll-behavior: none; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5;
+    background: var(--tg-bg); color: var(--tg-text); min-height: 100vh; line-height: 1.5;
+    padding-top: var(--safe-top); padding-bottom: calc(var(--safe-bottom) + 80px);
     background-image:
       radial-gradient(circle at 10% 0%, rgba(99,102,241,0.15), transparent 40%),
       radial-gradient(circle at 90% 100%, rgba(139,92,246,0.12), transparent 40%);
   }
-  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 12px; }
   header {
     background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.05));
-    border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 24px;
-    backdrop-filter: blur(10px);
+    border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px;
   }
-  .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
-  h1 { font-size: 28px; background: linear-gradient(135deg, #a5b4fc, #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .subtitle { color: var(--muted); font-size: 14px; margin-top: 4px; }
-  .level-block { flex: 1; min-width: 280px; }
-  .level-info { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
-  .level-info .lvl { color: var(--accent-2); font-weight: 700; font-size: 16px; }
-  .xp-bar { height: 14px; background: var(--card-2); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); position: relative; }
-  .xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--pink)); border-radius: 8px; transition: width 0.5s ease; box-shadow: 0 0 12px rgba(139,92,246,0.5); }
-  .xp-text { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 20px; }
-  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-  .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  h1 { font-size: 22px; background: linear-gradient(135deg, #a5b4fc, #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { color: var(--tg-hint); font-size: 13px; margin-top: 4px; }
+  .level-block { flex: 1; min-width: 240px; }
+  .level-info { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+  .level-info .lvl { color: var(--accent-2); font-weight: 700; font-size: 15px; }
+  .xp-bar { height: 12px; background: var(--card-2); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+  .xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--pink)); border-radius: 6px; transition: width 0.5s; box-shadow: 0 0 10px rgba(139,92,246,0.5); }
+  .xp-text { font-size: 11px; color: var(--tg-hint); margin-top: 4px; }
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-top: 12px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+  .stat-label { font-size: 10px; color: var(--tg-hint); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-size: 18px; font-weight: 700; margin-top: 2px; }
   .stat-value.green { color: var(--green); }
   .stat-value.yellow { color: var(--yellow); }
-  .stat-value.red { color: var(--red); }
   .stat-value.blue { color: var(--blue); }
-  .tabs { display: flex; gap: 4px; margin-bottom: 20px; overflow-x: auto; background: var(--card); padding: 6px; border-radius: 12px; border: 1px solid var(--border); }
-  .tab { padding: 10px 18px; border-radius: 8px; cursor: pointer; white-space: nowrap; color: var(--muted); font-weight: 500; transition: all 0.2s; border: none; background: transparent; font-size: 14px; }
-  .tab:hover { color: var(--text); background: var(--card-2); }
-  .tab.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; overflow-x: auto; background: var(--card); padding: 4px; border-radius: 10px; border: 1px solid var(--border); scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 8px 14px; border-radius: 6px; cursor: pointer; white-space: nowrap; color: var(--tg-hint); font-weight: 500; transition: all 0.2s; border: none; background: transparent; font-size: 13px; }
+  .tab.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
   .panel { display: none; }
   .panel.active { display: block; animation: fadeIn 0.3s; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
-  .card h2 { font-size: 18px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
-  .card h3 { font-size: 15px; margin: 14px 0 10px; color: var(--accent-2); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .card h2 { font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card h3 { font-size: 14px; margin: 12px 0 8px; color: var(--accent-2); }
   .task-list { list-style: none; }
-  .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; background: var(--card-2); border-radius: 10px; margin-bottom: 6px; border: 1px solid transparent; transition: all 0.2s; }
+  .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px; background: var(--card-2); border-radius: 8px; margin-bottom: 5px; border: 1px solid transparent; transition: all 0.2s; }
   .task-item:hover { border-color: var(--border); }
-  .task-item.done { opacity: 0.55; }
-  .task-item.done .task-text { text-decoration: line-through; color: var(--muted); }
+  .task-item.done { opacity: 0.5; }
+  .task-item.done .task-text { text-decoration: line-through; color: var(--tg-hint); }
   .task-item.routine { background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.04)); border-left: 3px solid var(--accent); }
-  .task-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0; margin-top: 2px; }
-  .task-text { flex: 1; font-size: 14px; line-height: 1.4; }
-  .task-text small { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
-  .task-time { color: var(--accent-2); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .task-xp { background: rgba(99,102,241,0.15); color: var(--accent-2); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
-  .task-del { background: transparent; border: none; color: var(--red); cursor: pointer; font-size: 16px; opacity: 0.5; transition: opacity 0.2s; }
-  .task-del:hover { opacity: 1; }
-  .add-task { display: flex; gap: 8px; margin-top: 12px; }
-  .add-task input { flex: 1; padding: 10px 14px; background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; }
+  .task-item.next { border: 1px solid var(--green); box-shadow: 0 0 0 1px rgba(16,185,129,0.3); }
+  .task-item input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+  .task-text { flex: 1; font-size: 14px; line-height: 1.4; min-width: 0; }
+  .task-text small { display: block; color: var(--tg-hint); font-size: 12px; margin-top: 2px; word-break: break-word; }
+  .task-time { color: var(--accent-2); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .task-xp { background: rgba(99,102,241,0.15); color: var(--accent-2); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; flex-shrink: 0; }
+  .task-del { background: transparent; border: none; color: var(--red); cursor: pointer; font-size: 18px; opacity: 0.5; padding: 0 4px; }
+  .add-task { display: flex; gap: 6px; margin-top: 10px; }
+  .add-task input { flex: 1; padding: 10px 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; color: var(--tg-text); font-size: 14px; outline: none; min-width: 0; }
   .add-task input:focus { border-color: var(--accent); }
-  .add-task input[type="number"] { width: 80px; }
-  button.btn { padding: 10px 18px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; }
-  button.btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(99,102,241,0.4); }
+  .add-task input[type="number"] { width: 70px; }
+  button.btn { padding: 10px 16px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; }
+  button.btn:active { transform: scale(0.97); }
   button.btn.danger { background: linear-gradient(135deg, var(--red), #dc2626); }
-  button.btn.ghost { background: var(--card-2); border: 1px solid var(--border); }
-  .habit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-  .habit-card { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; position: relative; }
-  .habit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .habit-name { font-weight: 600; font-size: 14px; }
+  button.btn.ghost { background: var(--card-2); border: 1px solid var(--border); color: var(--tg-text); }
+  .habit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .habit-card { background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .habit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+  .habit-name { font-weight: 600; font-size: 13px; }
   .habit-streak { display: inline-flex; align-items: center; gap: 4px; background: rgba(245,158,11,0.15); color: var(--yellow); padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
   .habit-streak.hot { background: rgba(239,68,68,0.15); color: var(--red); }
-  .habit-days { display: flex; gap: 3px; margin-top: 10px; flex-wrap: wrap; }
-  .habit-day { width: 22px; height: 22px; border-radius: 5px; background: var(--card); border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--muted); }
-  .habit-day:hover { transform: scale(1.15); }
-  .habit-day.done { background: linear-gradient(135deg, var(--green), #059669); border-color: var(--green); color: white; }
+  .habit-days { display: flex; gap: 3px; margin-top: 8px; flex-wrap: wrap; }
+  .habit-day { width: 24px; height: 24px; border-radius: 5px; background: var(--card); border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--tg-hint); }
+  .habit-day.done { background: linear-gradient(135deg, var(--green), #059669); border-color: var(--green); color: #fff; }
   .habit-day.today { box-shadow: 0 0 0 2px var(--accent); }
-  .chart-container { background: var(--card-2); border-radius: 12px; padding: 16px; margin-top: 12px; }
+  .chart-container { background: var(--card-2); border-radius: 10px; padding: 12px; margin-top: 10px; }
   canvas { width: 100%; height: auto; display: block; }
-  .legend { background: var(--card-2); border-radius: 12px; padding: 16px; margin-top: 12px; border-left: 3px solid var(--accent); }
-  .legend h4 { margin-bottom: 8px; color: var(--accent-2); font-size: 14px; }
-  .legend ul { list-style: none; font-size: 13px; }
-  .legend li { padding: 3px 0; color: var(--muted); }
-  .legend li strong { color: var(--text); }
-  .day-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 10px; flex-wrap: wrap; }
-  .day-nav input[type="date"] { padding: 8px 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; }
-  .day-nav .day-info { font-size: 13px; color: var(--muted); }
-  .month-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
-  .month-card { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-  .month-card h4 { color: var(--accent-2); margin-bottom: 10px; font-size: 15px; }
-  .month-card ul { list-style: none; font-size: 13px; }
-  .month-card li { padding: 4px 0; color: var(--muted); border-bottom: 1px dashed var(--border); }
+  .legend { background: var(--card-2); border-radius: 10px; padding: 14px; margin-top: 10px; border-left: 3px solid var(--accent); }
+  .legend h4 { margin-bottom: 6px; color: var(--accent-2); font-size: 13px; }
+  .legend ul { list-style: none; font-size: 12px; }
+  .legend li { padding: 2px 0; color: var(--tg-hint); }
+  .legend li strong { color: var(--tg-text); }
+  .day-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; flex-wrap: wrap; }
+  .day-nav input[type="date"] { padding: 8px 10px; background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; color: var(--tg-text); font-size: 13px; outline: none; }
+  .day-nav .day-info { font-size: 12px; color: var(--tg-hint); }
+  .month-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+  .month-card { background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .month-card h4 { color: var(--accent-2); margin-bottom: 8px; font-size: 14px; }
+  .month-card ul { list-style: none; font-size: 12px; }
+  .month-card li { padding: 3px 0; color: var(--tg-hint); border-bottom: 1px dashed var(--border); }
   .month-card li:last-child { border-bottom: none; }
   .month-card li::before { content: "▸ "; color: var(--accent); }
-  .year-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-  .year-tab { padding: 6px 14px; background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--muted); }
-  .year-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
-  .reward-block { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
-  .reward-block > div { padding: 12px; border-radius: 10px; font-size: 13px; }
-  .reward-good { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); }
-  .reward-bad { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); }
-  .reward-good h5 { color: var(--green); margin-bottom: 6px; }
-  .reward-bad h5 { color: var(--red); margin-bottom: 6px; }
-  .week-banner { background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08)); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
-  .week-banner h3 { font-size: 15px; color: var(--accent-2); margin-bottom: 6px; }
-  .week-banner p { font-size: 13px; color: var(--muted); }
-  .week-banner .week-project { margin-top: 8px; padding: 8px 12px; background: rgba(16,185,129,0.1); border-left: 3px solid var(--green); border-radius: 6px; font-size: 13px; }
+  .month-card li.money::before { color: var(--yellow); }
+  .year-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+  .year-tab { padding: 6px 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--tg-hint); }
+  .year-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .reward-block { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .reward-good { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); padding: 12px; border-radius: 10px; font-size: 12px; }
+  .reward-bad { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 12px; border-radius: 10px; font-size: 12px; }
+  .reward-good h5 { color: var(--green); margin-bottom: 6px; font-size: 13px; }
+  .reward-bad h5 { color: var(--red); margin-bottom: 6px; font-size: 13px; }
+  .week-banner { background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08)); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+  .week-banner h3 { font-size: 14px; color: var(--accent-2); margin-bottom: 4px; }
+  .week-banner p { font-size: 12px; color: var(--tg-hint); }
+  .week-banner .week-project { margin-top: 6px; padding: 6px 10px; background: rgba(16,185,129,0.1); border-left: 3px solid var(--green); border-radius: 4px; font-size: 12px; }
   .week-banner .week-project strong { color: var(--green); }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-left: 4px; }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 3px; vertical-align: middle; }
   .badge.js { background: rgba(245,158,11,0.15); color: var(--yellow); }
   .badge.ts { background: rgba(59,130,246,0.15); color: var(--blue); }
   .badge.react { background: rgba(96,165,250,0.15); color: #60a5fa; }
@@ -128,16 +141,20 @@
   .badge.book { background: rgba(236,72,153,0.15); color: var(--pink); }
   .badge.project { background: rgba(16,185,129,0.15); color: var(--green); }
   .badge.routine { background: rgba(99,102,241,0.15); color: var(--accent); }
-  .badge.money { background: rgba(245,158,11,0.15); color: var(--yellow); }
-  .progress-mini { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 14px; background: var(--card-2); border-radius: 10px; }
-  .progress-mini-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
-  .progress-mini-bar { flex: 1; height: 8px; background: var(--card); border-radius: 4px; overflow: hidden; }
-  .progress-mini-fill { height: 100%; background: linear-gradient(90deg, var(--green), #059669); border-radius: 4px; transition: width 0.4s ease; }
-  .progress-mini-value { font-size: 13px; font-weight: 600; color: var(--green); white-space: nowrap; }
+  .progress-mini { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 12px; background: var(--card-2); border-radius: 8px; }
+  .progress-mini-label { font-size: 11px; color: var(--tg-hint); white-space: nowrap; }
+  .progress-mini-bar { flex: 1; height: 6px; background: var(--card); border-radius: 3px; overflow: hidden; }
+  .progress-mini-fill { height: 100%; background: linear-gradient(90deg, var(--green), #059669); border-radius: 3px; transition: width 0.4s; }
+  .progress-mini-value { font-size: 12px; font-weight: 600; color: var(--green); white-space: nowrap; }
+  .quick-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .quick-actions button { flex: 1; min-width: 120px; padding: 10px; background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; color: var(--tg-text); font-size: 12px; cursor: pointer; font-weight: 500; }
+  .quick-actions button:active { background: var(--border); }
+  .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; box-shadow: 0 4px 20px rgba(99,102,241,0.4); }
+  .toast.show { opacity: 1; }
   @media (max-width: 640px) {
-    .container { padding: 12px; }
-    h1 { font-size: 22px; }
+    h1 { font-size: 18px; }
     .reward-block { grid-template-columns: 1fr; }
+    .task-text { font-size: 13px; }
   }
 </style>
 </head>
@@ -146,8 +163,8 @@
   <header>
     <div class="header-top">
       <div>
-        <h1>🚀 LifeOS — Твой путь за 5 лет</h1>
-        <div class="subtitle">Чек-лист жизни, обучения и привычек · от Junior до Senior</div>
+        <h1>🚀 LifeOS</h1>
+        <div class="subtitle">Твой путь за 5 лет · Junior → Senior</div>
       </div>
       <div class="level-block">
         <div class="level-info">
@@ -155,22 +172,21 @@
           <span id="xpNumbers">0 / 100 XP</span>
         </div>
         <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
-        <div class="xp-text">Всего заработано: <span id="totalXp">0</span> XP</div>
+        <div class="xp-text">Всего: <span id="totalXp">0</span> XP</div>
       </div>
     </div>
     <div class="stats-row">
       <div class="stat-card"><div class="stat-label">Сегодня</div><div class="stat-value green" id="todayDone">0</div></div>
-      <div class="stat-card"><div class="stat-label">Всего задач</div><div class="stat-value blue" id="totalTasks">0</div></div>
-      <div class="stat-card"><div class="stat-label">Лучшая серия</div><div class="stat-value yellow" id="bestStreak">0 🔥</div></div>
+      <div class="stat-card"><div class="stat-label">Всего</div><div class="stat-value blue" id="totalTasks">0</div></div>
+      <div class="stat-card"><div class="stat-label">Серия 🔥</div><div class="stat-value yellow" id="bestStreak">0</div></div>
       <div class="stat-card"><div class="stat-label">Привычки</div><div class="stat-value green" id="habitsToday">0%</div></div>
-      <div class="stat-card"><button class="btn danger" style="width:100%;margin-top:4px" onclick="resetAll()">⚠️ Сбросить прогресс</button></div>
     </div>
   </header>
 
   <div class="tabs">
     <button class="tab active" data-tab="today">📅 Сегодня</button>
     <button class="tab" data-tab="year1">📘 Год 1</button>
-    <button class="tab" data-tab="years">📚 Годы 2–5</button>
+    <button class="tab" data-tab="years">📚 2–5</button>
     <button class="tab" data-tab="habits">🔥 Привычки</button>
     <button class="tab" data-tab="charts">📊 Графики</button>
     <button class="tab" data-tab="rules">🎖️ Система</button>
@@ -178,16 +194,20 @@
 
   <div class="panel active" id="panel-today">
     <div class="card">
-      <h2>🎯 Сегодня <span id="todayDateLabel" style="font-size:13px;color:var(--muted);font-weight:400;margin-left:auto"></span></h2>
+      <h2>🎯 Сегодня <span id="todayDateLabel" style="font-size:12px;color:var(--tg-hint);font-weight:400;margin-left:auto"></span></h2>
       <div id="todayWeekBanner"></div>
       <ul class="task-list" id="todayTasks"></ul>
       <div class="progress-mini">
-        <span class="progress-mini-label">Прогресс дня:</span>
+        <span class="progress-mini-label">Прогресс:</span>
         <div class="progress-mini-bar"><div class="progress-mini-fill" id="todayProgress" style="width:0%"></div></div>
         <span class="progress-mini-value" id="todayProgressValue">0%</span>
       </div>
+      <div class="quick-actions">
+        <button onclick="completeNextTask()">✅ Следующая задача</button>
+        <button onclick="switchTab('habits')">🔥 Привычки</button>
+      </div>
       <div class="add-task">
-        <input type="text" id="newTodayTask" placeholder="Добавить свою задачу...">
+        <input type="text" id="newTodayTask" placeholder="Своя задача...">
         <input type="number" id="newTodayXp" placeholder="XP" value="20" min="1" max="500">
         <button class="btn" onclick="addCustomTask('today')">+</button>
       </div>
@@ -196,23 +216,23 @@
 
   <div class="panel" id="panel-year1">
     <div class="card">
-      <h2>📘 Год 1 — Путь к Junior Frontend</h2>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:14px">52 недели · 365 дней · конкретные курсы, видео, книги и проекты на каждый день.</p>
+      <h2>📘 Год 1 — Junior Frontend</h2>
+      <p style="color:var(--tg-hint);font-size:12px;margin-bottom:10px">52 недели · 365 дней</p>
       <div class="day-nav">
-        <button class="btn ghost" onclick="changeDay(-1)">← Предыдущий</button>
+        <button class="btn ghost" onclick="changeDay(-1)">←</button>
         <input type="date" id="dayPicker">
-        <button class="btn ghost" onclick="changeDay(1)">Следующий →</button>
+        <button class="btn ghost" onclick="changeDay(1)">→</button>
         <div class="day-info" id="dayInfo"></div>
       </div>
       <div id="dayWeekBanner"></div>
       <ul class="task-list" id="dayTasks"></ul>
       <div class="progress-mini">
-        <span class="progress-mini-label">Прогресс дня:</span>
+        <span class="progress-mini-label">Прогресс:</span>
         <div class="progress-mini-bar"><div class="progress-mini-fill" id="dayProgress" style="width:0%"></div></div>
         <span class="progress-mini-value" id="dayProgressValue">0%</span>
       </div>
       <div class="add-task">
-        <input type="text" id="newDayTask" placeholder="Добавить задачу на этот день...">
+        <input type="text" id="newDayTask" placeholder="Своя задача...">
         <input type="number" id="newDayXp" placeholder="XP" value="20" min="1" max="500">
         <button class="btn" onclick="addCustomTask('day')">+</button>
       </div>
@@ -221,12 +241,12 @@
 
   <div class="panel" id="panel-years">
     <div class="card">
-      <h2>📚 Годы 2–5 · Рост до Senior + Инвестиции</h2>
+      <h2>📚 Годы 2–5 + Инвестиции 💰</h2>
       <div class="year-tabs">
         <button class="year-tab active" data-year="2">Год 2 · Middle</button>
-        <button class="year-tab" data-year="3">Год 3 · Strong Middle</button>
+        <button class="year-tab" data-year="3">Год 3 · Strong</button>
         <button class="year-tab" data-year="4">Год 4 · Senior</button>
-        <button class="year-tab" data-year="5">Год 5 · Tech Lead</button>
+        <button class="year-tab" data-year="5">Год 5 · Lead</button>
       </div>
       <div id="yearContent"></div>
     </div>
@@ -235,83 +255,114 @@
   <div class="panel" id="panel-habits">
     <div class="card">
       <h2>🔥 Ежедневные привычки</h2>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Кликай по ячейке, чтобы отметить день. Последние 30 дней.</p>
+      <p style="color:var(--tg-hint);font-size:12px;margin-bottom:10px">Кликай по ячейке · последние 30 дней</p>
       <div class="habit-grid" id="dailyHabits"></div>
     </div>
     <div class="card">
-      <h2>📅 Еженедельные привычки</h2>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Последние 12 недель.</p>
+      <h2>📅 Еженедельные</h2>
+      <p style="color:var(--tg-hint);font-size:12px;margin-bottom:10px">Последние 12 недель</p>
       <div class="habit-grid" id="weeklyHabits"></div>
     </div>
     <div class="card">
-      <h2>➕ Добавить свою привычку</h2>
+      <h2>➕ Добавить привычку</h2>
       <div class="add-task">
-        <input type="text" id="newHabitName" placeholder="Название привычки...">
-        <select id="newHabitType" style="padding:10px;background:var(--card-2);border:1px solid var(--border);border-radius:8px;color:var(--text)">
+        <input type="text" id="newHabitName" placeholder="Название...">
+        <select id="newHabitType" style="padding:10px;background:var(--card-2);border:1px solid var(--border);border-radius:8px;color:var(--tg-text)">
           <option value="daily">Ежедневная</option>
           <option value="weekly">Еженедельная</option>
         </select>
-        <button class="btn" onclick="addHabit()">Добавить</button>
+        <button class="btn" onclick="addHabit()">+</button>
       </div>
     </div>
   </div>
 
   <div class="panel" id="panel-charts">
-    <div class="card"><h2>📊 Выполнение привычек за 30 дней</h2><div class="chart-container"><canvas id="chart30" width="800" height="280"></canvas></div></div>
-    <div class="card"><h2>📈 Выполнение за 7 дней</h2><div class="chart-container"><canvas id="chart7" width="800" height="260"></canvas></div></div>
-    <div class="card"><h2>🔥 Серии (streak) по привычкам</h2><div class="chart-container"><canvas id="chartStreak" width="800" height="260"></canvas></div></div>
+    <div class="card"><h2>📊 Привычки за 30 дней</h2><div class="chart-container"><canvas id="chart30" width="800" height="280"></canvas></div></div>
+    <div class="card"><h2>📈 За 7 дней</h2><div class="chart-container"><canvas id="chart7" width="800" height="260"></canvas></div></div>
+    <div class="card"><h2>🔥 Серии (streak)</h2><div class="chart-container"><canvas id="chartStreak" width="800" height="260"></canvas></div></div>
   </div>
 
   <div class="panel" id="panel-rules">
     <div class="card">
-      <h2>🎖️ Система уровней и XP</h2>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:10px">Каждый уровень требует больше XP. Прогресс накапливается навсегда.</p>
-      <div id="levelTable" style="font-size:13px;color:var(--muted)"></div>
-      <h3 style="margin-top:20px">💰 Награды и ⚠️ наказания</h3>
+      <h2>🎖️ Система уровней</h2>
+      <div id="levelTable" style="font-size:12px;color:var(--tg-hint)"></div>
+      <h3 style="margin-top:16px">💰 Награды и ⚠️ наказания</h3>
       <div class="reward-block">
         <div class="reward-good"><h5>✅ Поощрения</h5><ul style="list-style:none">
-          <li>• +10 XP за задачу</li><li>• +20 XP за привычку (день)</li>
-          <li>• +50 XP бонус за серию 7 дней 🔥</li><li>• +150 XP бонус за серию 30 дней 🔥🔥</li>
-          <li>• +500 XP бонус за серию 100 дней 🔥🔥🔥</li><li>• +100 XP за новый уровень</li>
+          <li>• +10–100 XP за задачу</li><li>• +20 XP за привычку</li>
+          <li>• +50 XP серия 7 🔥</li><li>• +150 XP серия 30 🔥🔥</li>
+          <li>• +500 XP серия 100 🔥🔥🔥</li>
         </ul></div>
         <div class="reward-bad"><h5>❌ Наказания</h5><ul style="list-style:none">
-          <li>• −30 XP за пропуск ежедневной привычки</li><li>• Серия обнуляется при пропуске</li>
-          <li>• −50 XP за срыв на доставки >2 часов</li><li>• −100 XP за пропуск 2 учебных дней подряд</li>
-          <li>• −200 XP за пропуск недели учёбы</li>
+          <li>• −30 XP пропуск привычки</li><li>• Серия обнуляется</li>
+          <li>• −50 XP срыв доставки</li><li>• −100 XP пропуск 2 дней</li>
         </ul></div>
       </div>
-      <div class="legend" style="margin-top:20px"><h4>📖 Легенда системы</h4><ul>
-        <li><strong>Уровень 1–5:</strong> Новичок — осваиваешь базу JS</li>
-        <li><strong>Уровень 6–10:</strong> Ученик — уверенный JS + TS</li>
-        <li><strong>Уровень 11–15:</strong> Junior — React, первые проекты</li>
-        <li><strong>Уровень 16–20:</strong> Junior+ — первый оффер, Node.js</li>
-        <li><strong>Уровень 21–30:</strong> Middle — рост на работе</li>
-        <li><strong>Уровень 31–40:</strong> Strong Middle — архитектура</li>
-        <li><strong>Уровень 41–50:</strong> Senior — менторство, система</li>
-        <li><strong>Уровень 50+:</strong> Tech Lead — твой уровень 🏆</li>
+      <div class="legend" style="margin-top:12px"><h4>📖 Уровни</h4><ul>
+        <li><strong>1–5:</strong> Новичок · <strong>6–10:</strong> Ученик · <strong>11–15:</strong> Junior</li>
+        <li><strong>16–20:</strong> Junior+ · <strong>21–30:</strong> Middle · <strong>31–40:</strong> Strong</li>
+        <li><strong>41–50:</strong> Senior · <strong>50+:</strong> Tech Lead 🏆</li>
       </ul></div>
-      <div class="legend" style="margin-top:12px"><h4>📆 Распорядок дня (встроен в задачи)</h4><ul>
-        <li>• <strong>08:00</strong> — Подъём, стакан воды</li>
-        <li>• <strong>08:15</strong> — Душ, сборы</li>
-        <li>• <strong>08:45</strong> — Завтрак</li>
-        <li>• <strong>09:00–12:00</strong> — Учёба (основной блок)</li>
-        <li>• <strong>12:00–12:30</strong> — Английский</li>
-        <li>• <strong>12:30–13:30</strong> — Обед, отдых</li>
-        <li>• <strong>13:30–14:30</strong> — Лёгкая учёба / Python / C++</li>
-        <li>• <strong>14:30</strong> — Дорога на работу</li>
-        <li>• <strong>15:00–23:00</strong> — Работа</li>
-        <li>• <strong>23:00–23:30</strong> — Ужин, свободное время</li>
-        <li>• <strong>00:00</strong> — Отбой</li>
+      <div class="legend" style="margin-top:10px"><h4>📆 Распорядок дня</h4><ul>
+        <li>• <strong>08:00</strong> Подъём · <strong>09:00–12:00</strong> Учёба</li>
+        <li>• <strong>12:00</strong> Английский · <strong>12:30</strong> Обед</li>
+        <li>• <strong>13:30</strong> Python/C++ · <strong>15:00–23:00</strong> Работа</li>
+        <li>• <strong>00:00</strong> Отбой</li>
       </ul></div>
+      <div style="margin-top:12px"><button class="btn danger" style="width:100%" onclick="resetAll()">⚠️ Сбросить весь прогресс</button></div>
     </div>
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
+/* =========================
+   TELEGRAM WEB APP
+   ========================= */
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.enableClosingConfirmation();
+  // Применяем тему Telegram
+  if (tg.themeParams) {
+    const tp = tg.themeParams;
+    const root = document.documentElement;
+    if (tp.bg_color) root.style.setProperty('--tg-theme-bg-color', tp.bg_color);
+    if (tp.text_color) root.style.setProperty('--tg-theme-text-color', tp.text_color);
+    if (tp.hint_color) root.style.setProperty('--tg-theme-hint-color', tp.hint_color);
+    if (tp.link_color) root.style.setProperty('--tg-theme-link-color', tp.link_color);
+    if (tp.button_color) root.style.setProperty('--tg-theme-button-color', tp.button_color);
+    if (tp.button_text_color) root.style.setProperty('--tg-theme-button-text-color', tp.button_text_color);
+    if (tp.secondary_bg_color) root.style.setProperty('--tg-theme-secondary-bg-color', tp.secondary_bg_color);
+  }
+}
+
+function haptic(type = 'light') {
+  try {
+    if (tg?.HapticFeedback) {
+      if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+      else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+      else tg.HapticFeedback.impactOccurred(type);
+    }
+  } catch(e) {}
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+  if (tg?.showPopup) {
+    // не показываем popup для каждого тоста, только showToast
+  }
+}
+
 /* =========================
    STATE
    ========================= */
-const STORAGE_KEY = 'lifeos_v2';
+const STORAGE_KEY = 'lifeos_v3';
 const defaultState = {
   xp: 0, totalXp: 0, completedTasks: {}, customTasks: {},
   habits: {
@@ -323,8 +374,7 @@ const defaultState = {
     ],
     weekly: [
       { id: 'linens', name: 'Смена белья' }, { id: 'clean', name: 'Генеральная уборка' },
-      { id: 'friends', name: 'Встреча с другом (Вадик/Полина/Никита)' },
-      { id: 'review', name: 'Ревью недели + план на следующую' }
+      { id: 'friends', name: 'Встреча с другом' }, { id: 'review', name: 'Ревью недели' }
     ]
   },
   habitLog: {}, bestStreak: 0
@@ -347,11 +397,13 @@ function loadState() {
 }
 function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 function resetAll() {
-  if (!confirm('Точно сбросить ВЕСЬ прогресс? Это действие необратимо.')) return;
+  if (!confirm('Сбросить ВЕСЬ прогресс?')) return;
   localStorage.removeItem(STORAGE_KEY);
   state = structuredClone(defaultState);
   saveState();
   renderAll();
+  showToast('Прогресс сброшен');
+  haptic('error');
 }
 
 /* =========================
@@ -383,42 +435,25 @@ function addXp(amount) {
    ========================= */
 function todayStr() { return new Date().toISOString().slice(0,10); }
 function formatDate(iso) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  return new Date(iso + 'T00:00:00').toLocaleDateString('ru-RU', { weekday:'short', day:'numeric', month:'short' });
 }
 function addDays(iso, n) {
   const d = new Date(iso + 'T00:00:00');
   d.setDate(d.getDate() + n);
   return d.toISOString().slice(0,10);
 }
-function daysBetween(a, b) {
-  return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000);
-}
+function daysBetween(a, b) { return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000); }
 function getDayOfWeek(iso) { return new Date(iso + 'T00:00:00').getDay(); }
 function getWeekStart(iso) {
   const d = new Date(iso + 'T00:00:00');
   const day = d.getDay();
-  const diff = day === 0 ? 6 : day - 1;
-  d.setDate(d.getDate() - diff);
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
   return d.toISOString().slice(0,10);
 }
 
 /* =========================
-   ROUTINE (распорядок дня как задачи)
+   YEAR 1 START
    ========================= */
-const ROUTINE = [
-  { key: 'r_wake',     time: '08:00', text: '🌅 Подъём, стакан воды',                xp: 30,  badge: 'routine' },
-  { key: 'r_shower',   time: '08:15', text: '🚿 Душ, сборы',                          xp: 0,   badge: 'routine' },
-  { key: 'r_breakfast',time: '08:45', text: '🍳 Завтрак',                              xp: 0,   badge: 'routine' },
-  { key: 'r_study1',   time: '09:00', text: '📚 Учёба — основной блок (3 часа)',       xp: 100, badge: 'routine' },
-  { key: 'r_english',  time: '12:00', text: '🇬🇧 Английский (30 мин)',                 xp: 40,  badge: 'routine' },
-  { key: 'r_lunch',    time: '12:30', text: '🍱 Обед, отдых',                          xp: 0,   badge: 'routine' },
-  { key: 'r_study2',   time: '13:30', text: '💻 Лёгкая учёба / Python / C++ (1 час)',  xp: 50,  badge: 'routine' },
-  { key: 'r_road',     time: '14:30', text: '🚶 Дорога на работу',                     xp: 0,   badge: 'routine' },
-  { key: 'r_work',     time: '15:00', text: '💼 Работа (до 23:00)',                    xp: 0,   badge: 'routine' },
-  { key: 'r_dinner',   time: '23:00', text: '🍽️ Ужин, свободное время',               xp: 0,   badge: 'routine' },
-  { key: 'r_sleep',    time: '00:00', text: '🌙 Отбой (8 часов сна)',                  xp: 20,  badge: 'routine' }
-];
-
 function getYear1Start() {
   const saved = localStorage.getItem('lifeos_year1_start');
   if (saved) return saved;
@@ -433,8 +468,8 @@ function getYear1Start() {
 const YEAR1 = [
   { title: 'Месяц 1 · Неделя 1 — Старт: окружение + HTML/CSS', topic: 'Установка инструментов, Git, основы HTML и CSS', goal: 'Настроить рабочее место, понять Git, сверстать первую страницу', project: '🎯 Проект недели: Страница-визитка о себе',
     days: {
-      1: [{t:'🛠️ Установка VS Code, Node.js (LTS), Git',s:'Скачать с официальных сайтов, проверить: node -v, git --version',xp:30,badge:'git'},{t:'📚 YouTube: Владилен Минин — «Git и GitHub Курс Для Новичков» (1-я половина)',s:'Смотреть ~1.5 часа, делать конспект',xp:60,badge:'git'}],
-      2: [{t:'📚 Git — ветки, merge, pull requests',s:'Владилен Минин — вторая половина',xp:60,badge:'git'},{t:'🌐 HTML основы: теги, структура, семантика',s:'freeCodeCamp на русском или Владилена',xp:70,badge:'html'},{t:'🎨 CSS основы: селекторы, цвета, box-model',xp:70,badge:'html'}],
+      1: [{t:'🛠️ Установка VS Code, Node.js (LTS), Git',s:'Проверить: node -v, git --version',xp:30,badge:'git'},{t:'📚 YouTube: Владилен Минин — «Git и GitHub Курс Для Новичков» (1-я половина)',s:'~1.5 часа, делать конспект',xp:60,badge:'git'}],
+      2: [{t:'📚 Git — ветки, merge, pull requests',s:'Владилен Минин — 2-я половина',xp:60,badge:'git'},{t:'🌐 HTML основы: теги, структура, семантика',s:'freeCodeCamp или Владилена',xp:70,badge:'html'},{t:'🎨 CSS основы: селекторы, цвета, box-model',xp:70,badge:'html'}],
       3: [{t:'🌐 HTML: формы, таблицы, списки, изображения',xp:60,badge:'html'},{t:'🎨 CSS: Flexbox основы',s:'Flexbox Froggy — первые 10 уровней',xp:70,badge:'html'},{t:'💻 Практика: карточка товара',xp:50,badge:'project'}],
       4: [{t:'🎨 CSS: Grid, позиционирование',xp:70,badge:'html'},{t:'🎨 CSS: адаптивность, media queries',xp:70,badge:'html'},{t:'💻 Практика: адаптивная галерея',xp:60,badge:'project'}],
       5: [{t:'🎨 CSS: переменные, transitions, псевдоклассы',xp:60,badge:'html'},{t:'🚀 Начало проекта: страница-визитка (HTML)',s:'Секции: обо мне, навыки, контакты',xp:70,badge:'project'}],
@@ -475,7 +510,7 @@ const YEAR1 = [
       0: [{t:'🧘 Отдых',xp:10},{t:'📝 Ревью месяца 1 + план на месяц 2',xp:60}]
     }
   },
-  { title: 'Месяц 2 · Неделя 5 — Практика JS + слайдер', topic: 'Закрепление основ, UI-компонент', goal: 'Сделать интерактивный слайдер', project: '🎯 Проект недели: Галерея изображений / слайдер',
+  { title: 'Месяц 2 · Неделя 5 — Практика JS + слайдер', topic: 'Закрепление основ, UI-компонент', goal: 'Сделать интерактивный слайдер', project: '🎯 Проект недели: Галерея / слайдер',
     days: {
       1: [{t:'📚 YouTube: Владилен — «JavaScript с ПРАКТИКОЙ» (часть 1)',xp:80,badge:'js'},{t:'🎓 Stepik: раздел про массивы (продвинутый)',xp:60,badge:'js'}],
       2: [{t:'📚 Продолжение курса Владилена (часть 2)',xp:80,badge:'js'},{t:'💻 Начало слайдера: HTML + CSS',xp:60,badge:'project'}],
@@ -486,7 +521,7 @@ const YEAR1 = [
       0: [{t:'🧘 Отдых',xp:10},{t:'📝 Ревью недели + план',xp:40}]
     }
   },
-  { title: 'Месяц 2 · Неделя 6 — Асинхронность и API', topic: 'Promise, async/await, fetch', goal: 'Научиться получать данные с сервера', project: '🎯 Проект недели: Приложение погоды',
+  { title: 'Месяц 2 · Неделя 6 — Асинхронность и API', topic: 'Promise, async/await, fetch', goal: 'Получать данные с сервера', project: '🎯 Проект недели: Приложение погоды',
     days: {
       1: [{t:'📚 Асинхронность: callback, Promise',s:'Владилен — видео про асинхронность',xp:80,badge:'js'},{t:'📚 Promises: then/catch/finally',xp:70,badge:'js'}],
       2: [{t:'📚 async/await, try/catch',xp:80,badge:'js'},{t:'💻 Практика: 5 задач на async/await',xp:60,badge:'js'}],
@@ -673,7 +708,7 @@ const YEAR1 = [
       0: [{t:'🧘 Отдых',xp:10},{t:'📝 Ревью недели + план',xp:40}]
     }
   },
-  { title: 'Месяц 6 · Неделя 23 — TS + DOM, TS + API', topic: 'Применение TypeScript', goal: 'Полноценно использовать TS', project: '🎯 Проект недели: Погодное приложение на TypeScript',
+  { title: 'Месяц 6 · Неделя 23 — TS + DOM, TS + API', topic: 'Применение TypeScript', goal: 'Полноценно использовать TS', project: '🎯 Проект недели: Погода на TypeScript',
     days: {
       1: [{t:'📚 Типизация DOM: HTMLElement, Event',xp:70,badge:'ts'}],
       2: [{t:'📚 Типизация fetch, API-ответов',xp:70,badge:'ts'}],
@@ -684,7 +719,7 @@ const YEAR1 = [
       0: [{t:'🧘 Отдых',xp:10},{t:'📝 Ревью недели + план',xp:40}]
     }
   },
-  { title: 'Месяц 6 · Неделя 24 — Миграция SPA на TypeScript', topic: 'Полная миграция', goal: 'Большой TS-проект в портфолио', project: '🎯 Проект недели: Миграция SPA-блога на TypeScript',
+  { title: 'Месяц 6 · Неделя 24 — Миграция SPA на TypeScript', topic: 'Полная миграция', goal: 'Большой TS-проект в портфолио', project: '🎯 Проект недели: Миграция SPA-блога на TS',
     days: {
       1: [{t:'💻 Настройка TS: tsconfig, Vite',xp:70,badge:'project'},{t:'💻 Миграция: роутер, API-клиент',xp:70,badge:'project'}],
       2: [{t:'💻 Миграция компонентов',xp:70,badge:'project'}],
@@ -728,7 +763,7 @@ const YEAR1 = [
       0: [{t:'🧘 Отдых',xp:10},{t:'📝 Ревью недели + план',xp:40}]
     }
   },
-  { title: 'Месяц 7 · Неделя 28 — React To-Do (большой проект)', topic: 'Полноценное React-приложение', goal: 'Production-ready To-Do', project: '🎯 Проект недели: Продвинутый To-Do (категории, приоритеты)',
+  { title: 'Месяц 7 · Неделя 28 — React To-Do (большой проект)', topic: 'Полноценное React-приложение', goal: 'Production-ready To-Do', project: '🎯 Проект недели: Продвинутый To-Do',
     days: {
       1: [{t:'💻 Архитектура, структура папок',xp:70,badge:'project'},{t:'💻 Базовый CRUD',xp:70,badge:'project'}],
       2: [{t:'💻 Категории, теги, приоритеты',xp:70,badge:'project'},{t:'💻 Фильтры, поиск',xp:70,badge:'project'}],
@@ -739,7 +774,7 @@ const YEAR1 = [
       0: [{t:'📝 Ревью месяца 7 + план на месяц 8',xp:60}]
     }
   },
-  { title: 'Месяц 8 · Неделя 29 — Context, useMemo, useCallback', topic: 'Оптимизация и глобальное состояние', goal: 'Производительные компоненты', project: '🎯 Проект недели: E-commerce корзина (Context)',
+  { title: 'Месяц 8 · Неделя 29 — Context, useMemo, useCallback', topic: 'Оптимизация и глобальное состояние', goal: 'Производительные компоненты', project: '🎯 Проект недели: E-commerce корзина',
     days: {
       1: [{t:'📚 Context API: создание, провайдер, useContext',xp:80,badge:'react'}],
       2: [{t:'📚 useMemo, useCallback, React.memo',xp:80,badge:'react'}],
@@ -1006,7 +1041,7 @@ const YEAR1 = [
 ];
 
 /* =========================
-   BUILD DAY TASKS
+   BUILD DAY TASKS (с автоподстановкой тем)
    ========================= */
 function buildDayTasks(isoDate) {
   const start = getYear1Start();
@@ -1018,12 +1053,90 @@ function buildDayTasks(isoDate) {
   if (weekNum >= YEAR1.length) return [];
   const week = YEAR1[weekNum];
   const dayTasks = week.days[dowKey] || week.days[1] || [];
+
+  const mainTopic = dayTasks.find(t => t.badge && !['book'].includes(t.badge)) || dayTasks[0];
+  const mainTopicText = mainTopic ? mainTopic.t : 'Учёба по плану недели';
+  const mainTopicSub = mainTopic?.s || `Тема недели: ${week.topic}`;
+  const englishTopic = getEnglishTopic(week.topic);
+  const bgLang = (dowKey === 1 || dowKey === 3 || dowKey === 5) ? 'py' : (dowKey === 2 || dowKey === 4) ? 'cpp' : null;
+  const bgTopic = bgLang === 'py' ? getPythonTopic(weekNum) : bgLang === 'cpp' ? getCppTopic(weekNum) : null;
+
   const tasks = [];
-  ROUTINE.forEach(r => tasks.push({ ...r, time: r.time }));
-  dayTasks.forEach((t, i) => tasks.push({ key: `study_${i}`, text: t.t, sub: t.s || '', xp: t.xp, badge: t.badge }));
-  if (dowKey === 1 || dowKey === 3 || dowKey === 5) tasks.push({ key: 'study_py', text: '🐍 Python фоном (30 мин)', xp: 30, badge: 'py' });
-  if (dowKey === 2 || dowKey === 4) tasks.push({ key: 'study_cpp', text: '⚙️ C++ фоном (30 мин)', xp: 30, badge: 'cpp' });
+  tasks.push({ key: 'r_wake', time: '08:00', text: '🌅 Подъём, стакан воды', xp: 30, badge: 'routine' });
+  tasks.push({ key: 'r_shower', time: '08:15', text: '🚿 Душ, сборы', xp: 0, badge: 'routine' });
+  tasks.push({ key: 'r_breakfast', time: '08:45', text: '🍳 Завтрак', xp: 0, badge: 'routine' });
+  tasks.push({ key: 'r_study1', time: '09:00', text: `📚 Учёба (3 часа): ${mainTopicText}`, sub: mainTopicSub, xp: 100, badge: mainTopic?.badge || 'routine' });
+  tasks.push({ key: 'r_english', time: '12:00', text: `🇬🇧 Английский (30 мин): ${englishTopic}`, sub: 'Duolingo / слова / чтение документации', xp: 40, badge: 'en' });
+  tasks.push({ key: 'r_lunch', time: '12:30', text: '🍱 Обед, отдых', xp: 0, badge: 'routine' });
+  if (bgLang === 'py') {
+    tasks.push({ key: 'r_study2', time: '13:30', text: `🐍 Python (1 час): ${bgTopic}`, sub: 'Синтаксис, задачи на Codewars / Stepik', xp: 50, badge: 'py' });
+  } else if (bgLang === 'cpp') {
+    tasks.push({ key: 'r_study2', time: '13:30', text: `⚙️ C++ (1 час): ${bgTopic}`, sub: 'Основы, алгоритмы, STL', xp: 50, badge: 'cpp' });
+  } else {
+    tasks.push({ key: 'r_study2', time: '13:30', text: '💻 Лёгкая учёба / повторение / чтение документации', xp: 50, badge: 'routine' });
+  }
+  tasks.push({ key: 'r_road', time: '14:30', text: '🚶 Дорога на работу (можно слушать подкаст на английском)', xp: 0, badge: 'routine' });
+  tasks.push({ key: 'r_work', time: '15:00', text: '💼 Работа (до 23:00)', xp: 0, badge: 'routine' });
+  tasks.push({ key: 'r_dinner', time: '23:00', text: '🍽️ Ужин, свободное время', xp: 0, badge: 'routine' });
+  tasks.push({ key: 'r_sleep', time: '00:00', text: '🌙 Отбой (8 часов сна)', xp: 20, badge: 'routine' });
+
+  dayTasks.forEach((t, i) => {
+    if (t === mainTopic) return;
+    tasks.push({ key: `study_${i}`, text: t.t, sub: t.s || '', xp: t.xp, badge: t.badge });
+  });
+
   return { tasks, week };
+}
+
+function getEnglishTopic(weekTopic) {
+  const lower = weekTopic.toLowerCase();
+  if (lower.includes('html') || lower.includes('css')) return 'слова по веб-разработке (tags, styles, layout)';
+  if (lower.includes('javascript') || lower.includes('js')) return 'JS-документация на английском (MDN)';
+  if (lower.includes('react')) return 'React docs + technical vocabulary';
+  if (lower.includes('typescript')) return 'TypeScript handbook на английском';
+  if (lower.includes('node')) return 'Node.js documentation + backend terms';
+  if (lower.includes('алгоритм')) return 'алгоритмическая лексика (array, sort, search)';
+  if (lower.includes('собесед') || lower.includes('джоб')) return 'подготовка к интервью на английском';
+  if (lower.includes('docker') || lower.includes('ci')) return 'DevOps vocabulary';
+  return '10 новых слов + Duolingo + чтение статьи на Medium';
+}
+
+function getPythonTopic(weekNum) {
+  const month = Math.floor(weekNum / 4) + 1;
+  const topics = {
+    1: 'Основы: переменные, типы, print, input',
+    2: 'Условия и циклы: if, for, while',
+    3: 'Функции, списки, словари',
+    4: 'ООП: классы, наследование',
+    5: 'Работа с файлами, исключения',
+    6: 'Модули, pip, виртуальные окружения',
+    7: 'REST API на Flask (основы)',
+    8: 'Базы данных: sqlite3, SQLAlchemy',
+    9: 'Автоматизация: скрипты для рутины',
+    10: 'Data Science: pandas, numpy (обзорно)',
+    11: 'Тестирование: pytest',
+    12: 'Мини-проект на Python (бот/скрипт)'
+  };
+  return topics[month] || 'Практика задач на Codewars';
+}
+
+function getCppTopic(weekNum) {
+  const month = Math.floor(weekNum / 4) + 1;
+  const topics = {
+    1: 'Основы: cout, cin, переменные, типы',
+    2: 'Условия, циклы, функции',
+    3: 'Массивы, строки, указатели (базово)',
+    4: 'STL: vector, map, set, алгоритмы',
+    5: 'ООП: классы, наследование, полиморфизм',
+    6: 'Шаблоны (templates), дженерики',
+    7: 'Алгоритмы сортировки и поиска',
+    8: 'Структуры данных: списки, деревья',
+    9: 'Работа с памятью: new/delete, умные указатели',
+    10: 'Многопоточность (базово)',
+    11: 'Решение задач на LeetCode (Medium)',
+    12: 'Финальный проект: консольное приложение'
+  };
+  return topics[month] || 'Практика алгоритмов';
 }
 
 /* =========================
@@ -1044,11 +1157,20 @@ function renderTaskList(tasks, containerId, dateKey, prefix, weekInfo) {
     ...tasks.map(t => ({ ...t, type: 'preset' })),
     ...customs.map(t => ({ ...t, key: 'custom:'+t.id, type: 'custom' }))
   ];
+
+  // Найти следующую невыполненную задачу
+  let nextKey = null;
+  for (const task of allTasks) {
+    const key = taskKey(prefix, task.key, dateKey);
+    if (!state.completedTasks[key]) { nextKey = key; break; }
+  }
+
   allTasks.forEach(task => {
     const key = taskKey(prefix, task.key, dateKey);
     const done = !!state.completedTasks[key];
+    const isNext = key === nextKey;
     const li = document.createElement('li');
-    li.className = 'task-item' + (done ? ' done' : '') + (task.badge === 'routine' ? ' routine' : '');
+    li.className = 'task-item' + (done ? ' done' : '') + (task.badge === 'routine' ? ' routine' : '') + (isNext ? ' next' : '');
     li.innerHTML = `<input type="checkbox" ${done ? 'checked' : ''} data-key="${key}" data-xp="${task.xp}"><span class="task-text">${task.time ? `<span class="task-time">${task.time}</span> ` : ''}${task.text}${task.badge ? `<span class="badge ${task.badge}">${task.badge.toUpperCase()}</span>` : ''}${task.sub ? `<small>${task.sub}</small>` : ''}</span><span class="task-xp">+${task.xp} XP</span>${task.type === 'custom' ? `<button class="task-del" data-key="${key}" title="Удалить">×</button>` : ''}`;
     container.appendChild(li);
   });
@@ -1057,10 +1179,12 @@ function renderTaskList(tasks, containerId, dateKey, prefix, weekInfo) {
       const key = e.target.dataset.key;
       const xp = parseInt(e.target.dataset.xp);
       const li = e.target.closest('.task-item');
-      if (e.target.checked) { state.completedTasks[key] = true; addXp(xp); li.classList.add('done'); }
-      else { delete state.completedTasks[key]; addXp(-xp); li.classList.remove('done'); }
+      if (e.target.checked) { state.completedTasks[key] = true; addXp(xp); li.classList.add('done'); haptic('success'); }
+      else { delete state.completedTasks[key]; addXp(-xp); li.classList.remove('done'); haptic('light'); }
       updateProgress(containerId);
       renderHeader();
+      // Обновить подсветку следующей задачи
+      renderTaskList(tasks, containerId, dateKey, prefix, weekInfo);
     });
   });
   container.querySelectorAll('.task-del').forEach(btn => {
@@ -1074,6 +1198,7 @@ function renderTaskList(tasks, containerId, dateKey, prefix, weekInfo) {
       saveState();
       renderToday();
       renderDay();
+      haptic('light');
     });
   });
   updateProgress(containerId);
@@ -1089,6 +1214,27 @@ function updateProgress(containerId) {
   const valueId = containerId === 'todayTasks' ? 'todayProgressValue' : 'dayProgressValue';
   document.getElementById(progressId).style.width = pct + '%';
   document.getElementById(valueId).textContent = pct + '%';
+}
+
+/* =========================
+   QUICK ACTIONS
+   ========================= */
+function completeNextTask() {
+  const container = document.getElementById('todayTasks');
+  const unchecked = container.querySelector('.task-item:not(.done) input[type="checkbox"]');
+  if (unchecked) {
+    unchecked.checked = true;
+    unchecked.dispatchEvent(new Event('change'));
+    showToast('✅ Задача выполнена!');
+    // Скролл к следующей
+    setTimeout(() => {
+      const next = container.querySelector('.task-item.next');
+      if (next) next.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  } else {
+    showToast('🎉 Все задачи выполнены!');
+    haptic('success');
+  }
 }
 
 /* =========================
@@ -1123,6 +1269,7 @@ function addCustomTask(scope) {
   state.customTasks[dateKey].push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), text, xp });
   saveState();
   if (scope === 'today') renderToday(); else renderDay();
+  haptic('light');
 }
 
 let currentDay = todayStr();
@@ -1139,7 +1286,7 @@ function renderDay() {
   else {
     const weekNum = Math.floor(dayNum / 7) + 1;
     const monthNum = Math.floor(dayNum / 30) + 1;
-    info.innerHTML = `Месяц <strong style="color:var(--text)">${monthNum}</strong> · Неделя <strong style="color:var(--text)">${weekNum}</strong> · День <strong style="color:var(--text)">${dayNum+1}</strong> из 365`;
+    info.innerHTML = `М${monthNum} · Н${weekNum} · День ${dayNum+1}/365`;
   }
   const result = buildDayTasks(currentDay);
   if (!result || !result.tasks.length) {
@@ -1155,75 +1302,76 @@ function changeDay(delta) {
   if (currentDay < start) currentDay = start;
   if (currentDay > end) currentDay = end;
   renderDay();
+  haptic('light');
 }
 document.getElementById('dayPicker').addEventListener('change', e => { currentDay = e.target.value; renderDay(); });
 
 /* =========================
-   YEARS 2-5 (с инвестициями)
+   YEARS 2-5
    ========================= */
 const yearsPlan = {
-  2: { title: 'Год 2 · Уверенный Middle + Первые инвестиции',
+  2: { title: 'Год 2 · Middle + Первые инвестиции 💰',
     months: [
-      { m: 'Месяц 1', items: ['Первые 3 месяца на работе: впитывай кодбейз', 'Читай чужой код 1 час в день', 'Попроси ментора, еженедельные 1-на-1', '💰 Открыть брокерский счёт (Тинькофф / БКС / Фридом)', '💰 Откладывать 10-20% от зарплаты', '💰 Изучить основы: акции, облигации, ETF, вклады'] },
-      { m: 'Месяц 2', items: ['Возьми первый самостоятельный таск end-to-end', 'Изучи паттерны: Module, Observer, Factory', 'Английский: B1 → B2 (разговорный)', '💰 Подушка безопасности = 1 зарплата', '💰 Открыть ИИС (индивидуальный инвестиционный счёт)'] },
-      { m: 'Месяц 3', items: ['Освой testing: unit + integration (Jest, RTL)', 'Напиши 2 статьи на Хабр / в блог', 'Сделай code review 5+ PR коллег', '💰 Купить первые облигации (ОФЗ) на 10-20% накоплений', '💰 Начать читать «Разумный инвестор» Грэма (главы 1-5)'] },
-      { m: 'Месяц 4', items: ['Углубись в производительность: Lighthouse, profiling', 'Изучи SSR: Next.js на практике', 'Первые выступления на внутреннем митапе', '💰 Диверсификация: акции голубых фишек (Сбер, Лукойл, Яндекс)', '💰 Настроить автопополнение счёта ежемесячно'] },
-      { m: 'Месяц 5', items: ['CI/CD: GitHub Actions, деплой', 'Docker основы для фронтенда', 'TypeScript advanced: conditional types, generics', '💰 Изучить ETF (индексы Мосбиржи, S&P 500)', '💰 Подушка безопасности = 2 зарплаты'] },
-      { m: 'Месяц 6', items: ['Полугодовой перфоманс-ревью: цель — повышение грейда', 'Обнови портфолио (3 новых проекта)', 'Менторство джуна (если возможно)', '💰 Рефинансирование кредитов (если есть)', '💰 Изучить криптовалюту (базово, 5% портфеля максимум)'] },
-      { m: 'Месяц 7', items: ['GraphQL: теория + практика', 'WebSocket, real-time приложения', 'Оптимизация бандла: tree-shaking, lazy', '💰 Открыть накопительный счёт с высоким процентом', '💰 Купить первый ETF на широкий рынок'] },
-      { m: 'Месяц 8', items: ['State management deep dive: Redux Toolkit, Zustand', 'Micro-frontends: Module Federation', 'Accessibility (a11y) — обязательный навык', '💰 Подушка = 3 зарплаты', '💰 Изучить налоговые вычеты (ИИС, обучение, лечение)'] },
-      { m: 'Месяц 9', items: ['Архитектура: Feature-Sliced Design / Clean Arch', 'Design System: Storybook + tokens', 'Английский: чтение технической документации', '💰 Получить налоговый вычет за первый год', '💰 Реинвестировать дивиденды'] },
-      { m: 'Месяц 10', items: ['Backend для фронтендера: Node.js + Nest.js основы', 'BFF-паттерн (Backend for Frontend)', 'Участие в найме: проводи скрининги', '💰 Увеличить отчисления до 25-30% от зарплаты', '💰 Изучить P2P-кредитование (осторожно, 5% портфеля)'] },
-      { m: 'Месяц 11', items: ['Soft skills: коммуникация, эстимейты, планирование', 'Подготовка к собеседованиям Middle (если хочешь сменить)', '💰 Подготовить годовой инвестиционный отчёт', '💰 Целевой портфель: 40% облигации, 40% акции, 10% ETF, 10% крипта'] },
-      { m: 'Месяц 12', items: ['Итоги года: рост в зарплате на 30–50%', 'Цели на год 3: Strong Middle', '💰 Подушка = 3-4 зарплаты', '💰 Годовой доход от инвестиций: цель 15-20%', '💰 План на год 3: увеличить капитал в 1.5-2 раза'] }
+      { m: 'Месяц 1', items: ['Первые 3 месяца на работе: впитывай кодбейз', 'Читай чужой код 1 час в день', 'Попроси ментора, еженедельные 1-на-1', '💰 Открыть брокерский счёт (Тинькофф / БКС)', '💰 Откладывать 10-20% от зарплаты', '💰 Изучить основы: акции, облигации, ETF, вклады'] },
+      { m: 'Месяц 2', items: ['Первый самостоятельный таск end-to-end', 'Паттерны: Module, Observer, Factory', 'Английский: B1 → B2', '💰 Подушка безопасности = 1 зарплата', '💰 Открыть ИИС (индивидуальный инвест. счёт)'] },
+      { m: 'Месяц 3', items: ['Testing: unit + integration (Jest, RTL)', 'Напиши 2 статьи на Хабр / в блог', 'Code review 5+ PR коллег', '💰 Купить первые облигации (ОФЗ) на 10-20% накоплений', '💰 «Разумный инвестор» Грэм (главы 1-5)'] },
+      { m: 'Месяц 4', items: ['Производительность: Lighthouse, profiling', 'SSR: Next.js на практике', 'Выступления на внутреннем митапе', '💰 Акции голубых фишек (Сбер, Лукойл, Яндекс)', '💰 Автопополнение счёта ежемесячно'] },
+      { m: 'Месяц 5', items: ['CI/CD: GitHub Actions, деплой', 'Docker основы для фронтенда', 'TypeScript advanced', '💰 Изучить ETF (индексы Мосбиржи, S&P 500)', '💰 Подушка = 2 зарплаты'] },
+      { m: 'Месяц 6', items: ['Перфоманс-ревью: цель — повышение грейда', 'Обнови портфолио (3 новых проекта)', 'Менторство джуна', '💰 Рефинансирование кредитов (если есть)', '💰 Криптовалюта (базово, 5% портфеля максимум)'] },
+      { m: 'Месяц 7', items: ['GraphQL: теория + практика', 'WebSocket, real-time приложения', 'Оптимизация бандла', '💰 Накопительный счёт с высоким %', '💰 Первый ETF на широкий рынок'] },
+      { m: 'Месяц 8', items: ['State management: Redux Toolkit, Zustand', 'Micro-frontends: Module Federation', 'Accessibility (a11y)', '💰 Подушка = 3 зарплаты', '💰 Налоговые вычеты (ИИС, обучение, лечение)'] },
+      { m: 'Месяц 9', items: ['Архитектура: Feature-Sliced Design', 'Design System: Storybook + tokens', 'Английский: чтение документации', '💰 Налоговый вычет за первый год', '💰 Реинвестировать дивиденды'] },
+      { m: 'Месяц 10', items: ['Backend: Node.js + Nest.js основы', 'BFF-паттерн', 'Участие в найме', '💰 Отчисления 25-30% от зарплаты', '💰 P2P-кредитование (5% портфеля)'] },
+      { m: 'Месяц 11', items: ['Soft skills: коммуникация, эстимейты', 'Подготовка к собеседованиям Middle', '💰 Годовой инвестиционный отчёт', '💰 Целевой портфель: 40% облигации, 40% акции, 10% ETF, 10% крипта'] },
+      { m: 'Месяц 12', items: ['Итоги: рост в зарплате на 30–50%', 'Цели на год 3: Strong Middle', '💰 Подушка = 3-4 зарплаты', '💰 Годовой доход от инвестиций: цель 15-20%', '💰 План на год 3: увеличить капитал в 1.5-2 раза'] }
     ]
   },
-  3: { title: 'Год 3 · Strong Middle → Senior + Активные инвестиции',
+  3: { title: 'Год 3 · Strong Middle → Senior + Активные инвестиции 💰',
     months: [
-      { m: 'Месяц 1', items: ['Архитектурные решения: пиши ADR', 'Веди технический долг и борись с ним', '💰 Увеличить отчисления до 30-35%', '💰 Изучить зарубежные акции (через брокера с доступом)'] },
-      { m: 'Месяц 2', items: ['Observability: логи, метрики, Sentry', 'Error tracking и monitoring', '💰 Диверсификация: добавить золото (ETF или физическое)'] },
-      { m: 'Месяц 3', items: ['Performance budgets, Core Web Vitals', 'Оптимизация рендера, virtualization', '💰 Подушка = 4-5 зарплат', '💰 Начать изучать недвижимость (ипотека vs аренда)'] },
-      { m: 'Месяц 4', items: ['Security: XSS, CSRF, CSP, auth best practices', 'OWASP Top 10 для фронтенда', '💰 Рассчитать, выгодно ли покупать жильё в твоём городе'] },
-      { m: 'Месяц 5', items: ['E2E тесты: Playwright / Cypress', 'Тестовая пирамида на проекте', '💰 Если ипотека: накопить на первоначальный взнос 20-30%'] },
-      { m: 'Месяц 6', items: ['Публичное выступление: митап / конференция', 'Статья в профильное издание', '💰 Открыть второй брокерский счёт (диверсификация)'] },
+      { m: 'Месяц 1', items: ['Архитектурные решения: пиши ADR', 'Веди технический долг', '💰 Отчисления 30-35%', '💰 Зарубежные акции (через брокера)'] },
+      { m: 'Месяц 2', items: ['Observability: логи, метрики, Sentry', 'Error tracking и monitoring', '💰 Диверсификация: золото (ETF или физическое)'] },
+      { m: 'Месяц 3', items: ['Performance budgets, Core Web Vitals', 'Оптимизация рендера', '💰 Подушка = 4-5 зарплат', '💰 Изучать недвижимость (ипотека vs аренда)'] },
+      { m: 'Месяц 4', items: ['Security: XSS, CSRF, CSP, auth', 'OWASP Top 10 для фронтенда', '💰 Рассчитать, выгодно ли покупать жильё'] },
+      { m: 'Месяц 5', items: ['E2E тесты: Playwright / Cypress', 'Тестовая пирамида на проекте', '💰 Если ипотека: накопить на взнос 20-30%'] },
+      { m: 'Месяц 6', items: ['Публичное выступление: митап / конференция', 'Статья в профильное издание', '💰 Второй брокерский счёт (диверсификация)'] },
       { m: 'Месяц 7', items: ['System Design для фронтенда', 'Event-driven, CQRS (базово)', '💰 Изучить REIT (недвижимость через биржу)'] },
-      { m: 'Месяц 8', items: ['Монорепозитории: Nx, Turborepo', 'Workspace-менеджмент', '💰 Подушка = 6 зарплат', '💰 Формировать капитал на недвижимость'] },
-      { m: 'Месяц 9', items: ['Менторство 2+ джунов', 'Построение онбординга в команде', '💰 Получить повышение зарплаты (цель +20-30%)'] },
-      { m: 'Месяц 10', items: ['Переговоры о повышении до Senior', 'Расширение зоны ответственности', '💰 Увеличить отчисления до 40% от новой зарплаты'] },
-      { m: 'Месяц 11', items: ['Изучение смежных областей: React Native', 'Инвестиции в себя: курсы, книги', '💰 Изучить венчурные инвестиции (базово)'] },
+      { m: 'Месяц 8', items: ['Монорепозитории: Nx, Turborepo', 'Workspace-менеджмент', '💰 Подушка = 6 зарплат', '💰 Капитал на недвижимость'] },
+      { m: 'Месяц 9', items: ['Менторство 2+ джунов', 'Построение онбординга в команде', '💰 Повышение зарплаты (цель +20-30%)'] },
+      { m: 'Месяц 10', items: ['Переговоры о повышении до Senior', 'Расширение зоны ответственности', '💰 Отчисления 40% от новой зарплаты'] },
+      { m: 'Месяц 11', items: ['Смежные области: React Native', 'Инвестиции в себя: курсы, книги', '💰 Венчурные инвестиции (базово)'] },
       { m: 'Месяц 12', items: ['Итоги: оффер Senior или повышение', '💰 Капитал = 6-12 месячных зарплат', '💰 Цель на год 4: пассивный доход 10-15% от расходов'] }
     ]
   },
-  4: { title: 'Год 4 · Senior Frontend + Масштабирование капитала',
+  4: { title: 'Год 4 · Senior Frontend + Масштабирование капитала 💰',
     months: [
-      { m: 'Месяц 1', items: ['Tech lead первой команды / проекта', 'Ответственность за архитектуру', '💰 Зарплата Senior: цель 250-350к ₽/мес', '💰 Отчисления 40-50%'] },
-      { m: 'Месяц 2', items: ['Стратегия развития продукта: метрики, OKR', 'Работа с продактом и бизнесом', '💰 Рассмотреть покупку недвижимости (если ещё нет)'] },
-      { m: 'Месяц 3', items: ['Построение культуры code review', 'Гайдлайны и стандарты команды', '💰 Если ипотека: рефинансирование под меньший %'] },
-      { m: 'Месяц 4', items: ['Эксперименты: новые технологии, PoC', 'Внедрение AI-инструментов в разработку', '💰 Диверсификация: зарубежные активы (доллары/евро)'] },
-      { m: 'Месяц 5', items: ['Масштабирование команды: найм, онбординг', 'Делегирование и развитие людей', '💰 Подушка = 12 зарплат (годовой запас)'] },
-      { m: 'Месяц 6', items: ['Выступление на крупной конференции', 'Нетворкинг, комьюнити', '💰 Изучить бизнес-ангелинг (инвестиции в стартапы)'] },
-      { m: 'Месяц 7', items: ['Cross-team проекты, влияние на компанию', 'Техническая стратегия на квартал', '💰 Рассмотреть релокацию (ОАЭ, Сербия, Грузия) для налогов'] },
-      { m: 'Месяц 8', items: ['Оптимизация процессов: time-to-market', 'DevEx (developer experience)', '💰 Оптимизация налогов: ИП/самозанятость для консультаций'] },
-      { m: 'Месяц 9', items: ['Финансы: инвестиции, пассивный доход', 'Недвижимость / другие активы', '💰 Цель: пассивный доход покрывает 20% расходов'] },
-      { m: 'Месяц 10', items: ['Open-source: свой проект или вклад в крупный', 'Публичный личный бренд', '💰 Запустить побочный доход: курсы, менторство, фриланс'] },
-      { m: 'Месяц 11', items: ['Подготовка к Tech Lead роли', 'Management skills: 1-на-1, feedback', '💰 Инвестиции в образование: MBA-курсы, бизнес-литература'] },
-      { m: 'Месяц 12', items: ['Итоги: уровень компенсации top-10% рынка', '💰 Капитал = 2-3 годовых дохода', '💰 Цель на год 5: фин. независимость в перспективе 5-7 лет'] }
+      { m: 'Месяц 1', items: ['Tech lead первой команды / проекта', 'Ответственность за архитектуру', '💰 Зарплата Senior: 250-350к ₽/мес', '💰 Отчисления 40-50%'] },
+      { m: 'Месяц 2', items: ['Стратегия продукта: метрики, OKR', 'Работа с продактом и бизнесом', '💰 Рассмотреть покупку недвижимости'] },
+      { m: 'Месяц 3', items: ['Культура code review', 'Гайдлайны и стандарты команды', '💰 Если ипотека: рефинансирование'] },
+      { m: 'Месяц 4', items: ['Эксперименты: новые технологии, PoC', 'AI-инструменты в разработке', '💰 Зарубежные активы (доллары/евро)'] },
+      { m: 'Месяц 5', items: ['Масштабирование команды: найм', 'Делегирование и развитие людей', '💰 Подушка = 12 зарплат (годовой запас)'] },
+      { m: 'Месяц 6', items: ['Выступление на крупной конференции', 'Нетворкинг, комьюнити', '💰 Бизнес-ангелинг (инвестиции в стартапы)'] },
+      { m: 'Месяц 7', items: ['Cross-team проекты', 'Техническая стратегия на квартал', '💰 Релокация (ОАЭ, Сербия, Грузия) для налогов'] },
+      { m: 'Месяц 8', items: ['Оптимизация процессов: time-to-market', 'DevEx (developer experience)', '💰 Оптимизация налогов: ИП/самозанятость'] },
+      { m: 'Месяц 9', items: ['Финансы: инвестиции, пассивный доход', 'Недвижимость / другие активы', '💰 Цель: пассивный доход 20% расходов'] },
+      { m: 'Месяц 10', items: ['Open-source: свой проект', 'Публичный личный бренд', '💰 Побочный доход: курсы, менторство, фриланс'] },
+      { m: 'Месяц 11', items: ['Подготовка к Tech Lead роли', 'Management skills: 1-на-1, feedback', '💰 Инвестиции в образование: MBA-курсы'] },
+      { m: 'Месяц 12', items: ['Итоги: компенсация top-10% рынка', '💰 Капитал = 2-3 годовых дохода', '💰 Цель на год 5: фин. независимость'] }
     ]
   },
-  5: { title: 'Год 5 · Tech Lead / Staff Engineer + Финансовая свобода',
+  5: { title: 'Год 5 · Tech Lead + Финансовая свобода 💰',
     months: [
-      { m: 'Месяц 1', items: ['Tech Lead направления / продукта', 'Видение технической стратегии', '💰 Зарплата Tech Lead: цель 400-600к ₽/мес', '💰 Отчисления 50%+'] },
-      { m: 'Месяц 2', items: ['Архитектура всей платформы, не только фронта', 'Сквозные решения', '💰 Если недвижимость: ускоренное погашение ипотеки'] },
+      { m: 'Месяц 1', items: ['Tech Lead направления / продукта', 'Видение технической стратегии', '💰 Зарплата Tech Lead: 400-600к ₽/мес', '💰 Отчисления 50%+'] },
+      { m: 'Месяц 2', items: ['Архитектура всей платформы', 'Сквозные решения', '💰 Ускоренное погашение ипотеки'] },
       { m: 'Месяц 3', items: ['Построение инженерной культуры', 'Технический бренд компании', '💰 Портфель: ребалансировка, фиксация прибыли'] },
-      { m: 'Месяц 4', items: ['Менторство middle/senior инженеров', 'Карьерные треки для команды', '💰 Пассивный доход покрывает 30% расходов'] },
-      { m: 'Месяц 5', items: ['Работа с CTO / VP Eng', 'Бизнес-метрики и их влияние', '💰 Изучить частные инвестиции (доли в бизнесе)'] },
-      { m: 'Месяц 6', items: ['Международное комьюнити: конференции, доклады', 'Английский C1', '💰 Рассмотреть релокацию / remote на глобальный рынок'] },
-      { m: 'Месяц 7', items: ['Опционально: релокация или remote на глобальный рынок', '💰 Зарплата $8k+ / ₽600k+', '💰 Налоговая оптимизация для экспата'] },
-      { m: 'Месяц 8', items: ['Пассивный доход: курсы, менторство, консультации', 'Свой продукт / стартап (по желанию)', '💰 Капитал = 5+ годовых доходов'] },
+      { m: 'Месяц 4', items: ['Менторство middle/senior инженеров', 'Карьерные треки для команды', '💰 Пассивный доход 30% расходов'] },
+      { m: 'Месяц 5', items: ['Работа с CTO / VP Eng', 'Бизнес-метрики и их влияние', '💰 Частные инвестиции (доли в бизнесе)'] },
+      { m: 'Месяц 6', items: ['Международное комьюнити: конференции', 'Английский C1', '💰 Релокация / remote на глобальный рынок'] },
+      { m: 'Месяц 7', items: ['Опционально: релокация / global remote', '💰 Зарплата $8k+ / ₽600k+', '💰 Налоговая оптимизация для экспата'] },
+      { m: 'Месяц 8', items: ['Пассивный доход: курсы, менторство', 'Свой продукт / стартап', '💰 Капитал = 5+ годовых доходов'] },
       { m: 'Месяц 9', items: ['Финансовая свобода: активы > 3 годовых доходов', 'Инвестиции, недвижимость', '💰 FIRE-стратегия (Financial Independence, Retire Early)'] },
       { m: 'Месяц 10', items: ['Баланс: здоровье, отношения, хобби', 'Путешествия, качество жизни', '💰 Страхование жизни и здоровья'] },
       { m: 'Месяц 11', items: ['Возврат комьюнити: менторство, open-source', 'Твой вклад в индустрию', '💰 Благотворительность: 5-10% от дохода'] },
-      { m: 'Месяц 12', items: ['🏆 25 лет. Senior/Tech Lead с опытом, капиталом и сетью контактов', '💰 Финансовая подушка = 10+ лет жизни', '💰 Следующие 5 лет — на твоих условиях'] }
+      { m: 'Месяц 12', items: ['🏆 25 лет. Senior/Tech Lead с опытом и капиталом', '💰 Финансовая подушка = 10+ лет жизни', '💰 Следующие 5 лет — на твоих условиях'] }
     ]
   }
 };
@@ -1232,12 +1380,15 @@ let currentYear = 2;
 function renderYears() {
   const data = yearsPlan[currentYear];
   const container = document.getElementById('yearContent');
-  container.innerHTML = `<h3 style="margin-bottom:14px">${data.title}</h3><div class="month-grid"></div>`;
+  container.innerHTML = `<h3 style="margin-bottom:12px">${data.title}</h3><div class="month-grid"></div>`;
   const grid = container.querySelector('.month-grid');
   data.months.forEach(m => {
     const card = document.createElement('div');
     card.className = 'month-card';
-    card.innerHTML = `<h4>${m.m}</h4><ul>${m.items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+    card.innerHTML = `<h4>${m.m}</h4><ul>${m.items.map(i => {
+      const isMoney = i.startsWith('💰');
+      return `<li class="${isMoney?'money':''}">${i}</li>`;
+    }).join('')}</ul>`;
     grid.appendChild(card);
   });
 }
@@ -1247,6 +1398,7 @@ document.querySelectorAll('.year-tab').forEach(btn => {
     btn.classList.add('active');
     currentYear = parseInt(btn.dataset.year);
     renderYears();
+    haptic('light');
   });
 });
 
@@ -1305,6 +1457,7 @@ function renderHabitGroup(containerId, habits, count, type) {
         if (state.habitLog[habitId][date]) {
           delete state.habitLog[habitId][date];
           addXp(-20);
+          haptic('light');
         } else {
           state.habitLog[habitId][date] = true;
           addXp(20);
@@ -1313,16 +1466,19 @@ function renderHabitGroup(containerId, habits, count, type) {
           if (newStreak === 30) addXp(150);
           if (newStreak === 100) addXp(500);
           if (newStreak > state.bestStreak) state.bestStreak = newStreak;
+          haptic('success');
         }
       } else if (week) {
         if (hasAnyMarkInWeek(state.habitLog[habitId], week)) {
           for (let i = 0; i < 7; i++) delete state.habitLog[habitId][addDays(week, i)];
           addXp(-30);
+          haptic('light');
         } else {
           const todayDow = getDayOfWeek(todayStr());
           const markDate = addDays(week, todayDow);
           state.habitLog[habitId][markDate] = true;
           addXp(30);
+          haptic('success');
         }
       }
       saveState();
@@ -1357,6 +1513,7 @@ function addHabit() {
   saveState();
   document.getElementById('newHabitName').value = '';
   renderHabits();
+  haptic('success');
 }
 
 /* =========================
@@ -1550,7 +1707,7 @@ function renderHeader() {
 function renderLevelTable() {
   const container = document.getElementById('levelTable');
   let html = '<table style="width:100%;border-collapse:collapse">';
-  html += '<tr style="color:var(--accent-2)"><th style="text-align:left;padding:4px">Уровень</th><th style="text-align:left;padding:4px">Титул</th><th style="text-align:right;padding:4px">Всего XP</th></tr>';
+  html += '<tr style="color:var(--accent-2)"><th style="text-align:left;padding:4px">Ур.</th><th style="text-align:left;padding:4px">Титул</th><th style="text-align:right;padding:4px">XP</th></tr>';
   for (let i = 1; i <= 20; i++) {
     const xp = xpForLevel(i);
     html += `<tr style="border-top:1px dashed var(--border)"><td style="padding:4px">${i}</td><td style="padding:4px">${levelTitle(i)}</td><td style="padding:4px;text-align:right">${xp}</td></tr>`;
@@ -1560,21 +1717,50 @@ function renderLevelTable() {
 }
 
 /* =========================
-   TABS & INIT
+   TABS & NAVIGATION
    ========================= */
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+  if (tab) tab.classList.add('active');
+  document.getElementById('panel-' + tabName).classList.add('active');
+  if (tabName === 'charts') setTimeout(renderCharts, 50);
+  if (tabName === 'habits') renderHabits();
+  if (tabName === 'years') renderYears();
+  if (tabName === 'rules') renderLevelTable();
+  haptic('light');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-    if (tab.dataset.tab === 'charts') setTimeout(renderCharts, 50);
-    if (tab.dataset.tab === 'habits') renderHabits();
-    if (tab.dataset.tab === 'years') renderYears();
-    if (tab.dataset.tab === 'rules') renderLevelTable();
-  });
+  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
 });
 
+/* =========================
+   TELEGRAM BACK BUTTON
+   ========================= */
+const tabOrder = ['today', 'year1', 'years', 'habits', 'charts', 'rules'];
+function updateBackButton() {
+  if (!tg?.BackButton) return;
+  const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+  if (activeTab && activeTab !== 'today') {
+    tg.BackButton.show();
+  } else {
+    tg.BackButton.hide();
+  }
+}
+if (tg?.BackButton) {
+  tg.BackButton.onClick(() => {
+    const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+    const idx = tabOrder.indexOf(activeTab);
+    if (idx > 0) switchTab(tabOrder[idx - 1]);
+  });
+}
+
+/* =========================
+   INIT
+   ========================= */
 function renderAll() {
   renderHeader();
   renderToday();
@@ -1583,11 +1769,19 @@ function renderAll() {
   renderYears();
   renderLevelTable();
   setTimeout(renderCharts, 100);
+  updateBackButton();
 }
 
 window.addEventListener('resize', () => {
   if (document.getElementById('panel-charts').classList.contains('active')) renderCharts();
 });
+
+// Отслеживаем смену вкладок для BackButton
+const originalSwitchTab = switchTab;
+window.switchTab = function(tabName) {
+  originalSwitchTab(tabName);
+  updateBackButton();
+};
 
 renderAll();
 
@@ -1595,7 +1789,7 @@ document.getElementById('newTodayTask').addEventListener('keypress', e => { if (
 document.getElementById('newDayTask').addEventListener('keypress', e => { if (e.key === 'Enter') addCustomTask('day'); });
 document.getElementById('newHabitName').addEventListener('keypress', e => { if (e.key === 'Enter') addHabit(); });
 
-console.log('%c🚀 LifeOS загружен. 52 недели + инвестиции. Удачи на пути к Senior!', 'color:#8b5cf6;font-size:14px;font-weight:bold');
+console.log('%c🚀 LifeOS загружен. Telegram Mini App готов!', 'color:#8b5cf6;font-size:14px;font-weight:bold');
 </script>
 </body>
 </html>
