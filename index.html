@@ -98,7 +98,7 @@
 
   .task-list { list-style: none; }
   .task-item {
-    display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+    display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px;
     background: var(--card-2); border-radius: 10px; margin-bottom: 6px;
     border: 1px solid transparent; transition: all 0.2s;
   }
@@ -107,12 +107,14 @@
   .task-item.done .task-text { text-decoration: line-through; color: var(--muted); }
   .task-item input[type="checkbox"] {
     width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent);
-    flex-shrink: 0;
+    flex-shrink: 0; margin-top: 2px;
   }
-  .task-text { flex: 1; font-size: 14px; }
+  .task-text { flex: 1; font-size: 14px; line-height: 1.4; }
+  .task-text small { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
   .task-xp {
     background: rgba(99,102,241,0.15); color: var(--accent-2);
     padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+    flex-shrink: 0;
   }
   .task-del {
     background: transparent; border: none; color: var(--red); cursor: pointer;
@@ -221,8 +223,21 @@
   .schedule-row:last-child { border-bottom: none; }
   .schedule-row span:first-child { color: var(--muted); }
 
+  .week-banner {
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08));
+    border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px;
+  }
+  .week-banner h3 { font-size: 15px; color: var(--accent-2); margin-bottom: 6px; }
+  .week-banner p { font-size: 13px; color: var(--muted); }
+  .week-banner .week-project {
+    margin-top: 8px; padding: 8px 12px; background: rgba(16,185,129,0.1);
+    border-left: 3px solid var(--green); border-radius: 6px; font-size: 13px;
+  }
+  .week-banner .week-project strong { color: var(--green); }
+
   .badge {
     display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+    margin-left: 4px;
   }
   .badge.js { background: rgba(245,158,11,0.15); color: var(--yellow); }
   .badge.ts { background: rgba(59,130,246,0.15); color: var(--blue); }
@@ -231,6 +246,10 @@
   .badge.en { background: rgba(236,72,153,0.15); color: var(--pink); }
   .badge.py { background: rgba(139,92,246,0.15); color: var(--accent-2); }
   .badge.cpp { background: rgba(156,163,175,0.15); color: var(--muted); }
+  .badge.html { background: rgba(239,68,68,0.15); color: #f87171; }
+  .badge.git { background: rgba(249,115,22,0.15); color: #fb923c; }
+  .badge.book { background: rgba(236,72,153,0.15); color: var(--pink); }
+  .badge.project { background: rgba(16,185,129,0.15); color: var(--green); }
 
   @media (max-width: 640px) {
     .container { padding: 12px; }
@@ -297,6 +316,7 @@
 
     <div class="card">
       <h2>🎯 Задачи на сегодня <span id="todayDateLabel" style="font-size:13px;color:var(--muted);font-weight:400;margin-left:auto"></span></h2>
+      <div id="todayWeekBanner"></div>
       <ul class="task-list" id="todayTasks"></ul>
       <div class="add-task">
         <input type="text" id="newTodayTask" placeholder="Добавить свою задачу на сегодня...">
@@ -311,7 +331,7 @@
     <div class="card">
       <h2>📘 Год 1 — Путь к Junior Frontend</h2>
       <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
-        JavaScript → TypeScript → React → Node.js + английский + Python/C++ фоном. Цель — оффер junior frontend.
+        52 недели · 365 дней · конкретные курсы, видео, книги и проекты на каждый день.
       </p>
       <div class="day-nav">
         <button class="btn ghost" onclick="changeDay(-1)">← Предыдущий</button>
@@ -319,6 +339,7 @@
         <button class="btn ghost" onclick="changeDay(1)">Следующий →</button>
         <div class="day-info" id="dayInfo"></div>
       </div>
+      <div id="dayWeekBanner"></div>
       <ul class="task-list" id="dayTasks"></ul>
       <div class="add-task">
         <input type="text" id="newDayTask" placeholder="Добавить задачу на этот день...">
@@ -443,8 +464,8 @@ const STORAGE_KEY = 'lifeos_v1';
 const defaultState = {
   xp: 0,
   totalXp: 0,
-  completedTasks: {},    // { "taskKey": true }
-  customTasks: {},       // { "date_or_today": [ {text, xp, id} ] }
+  completedTasks: {},
+  customTasks: {},
   habits: {
     daily: [
       { id: 'wake', name: 'Подъём до 08:00' },
@@ -463,7 +484,7 @@ const defaultState = {
       { id: 'review', name: 'Ревью недели + план на следующую' }
     ]
   },
-  habitLog: {},          // { habitId: { "YYYY-MM-DD": true } }
+  habitLog: {},
   bestStreak: 0,
   lastPenaltyDate: null
 };
@@ -475,7 +496,6 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return structuredClone(defaultState);
     const parsed = JSON.parse(raw);
-    // merge with defaults for new habits
     const merged = structuredClone(defaultState);
     Object.assign(merged, parsed);
     merged.habits = {
@@ -502,8 +522,6 @@ function resetAll() {
    XP & LEVELS
    ========================= */
 function levelFromXp(xp) {
-  // each level needs more: level n requires n*100 cumulative? Let's use: xp needed for level L = L*L*50
-  // simpler: level = floor(sqrt(xp/50)) + 1
   const lvl = Math.floor(Math.sqrt(xp / 50)) + 1;
   return Math.max(1, lvl);
 }
@@ -520,7 +538,7 @@ function levelTitle(lvl) {
   return 'Tech Lead 🏆';
 }
 
-function addXp(amount, reason) {
+function addXp(amount) {
   state.xp += amount;
   if (amount > 0) state.totalXp += amount;
   if (state.xp < 0) state.xp = 0;
@@ -550,11 +568,17 @@ function daysBetween(a, b) {
 function getDayOfWeek(iso) {
   return new Date(iso + 'T00:00:00').getDay(); // 0 Sun
 }
+function getWeekStart(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  const day = d.getDay();
+  const diff = day === 0 ? 6 : day - 1;
+  d.setDate(d.getDate() - diff);
+  return d.toISOString().slice(0,10);
+}
 
 /* =========================
-   YEAR 1 TASK GENERATION
+   YEAR 1 CURRICULUM — 52 недели
    ========================= */
-// Start date of Year 1 = today (dynamic)
 function getYear1Start() {
   const saved = localStorage.getItem('lifeos_year1_start');
   if (saved) return saved;
@@ -563,177 +587,2187 @@ function getYear1Start() {
   return today;
 }
 
-// Curriculum phases (in days from start)
-// Phase 1: JS basics (0–60)
-// Phase 2: JS advanced + DOM (60–120)
-// Phase 3: TypeScript (120–180)
-// Phase 4: React (180–270)
-// Phase 5: Node.js + portfolio (270–365)
-function getPhase(dayNum) {
-  if (dayNum < 60) return { name: 'JavaScript — основы', badge: 'js', color: 'yellow' };
-  if (dayNum < 120) return { name: 'JavaScript — продвинутый', badge: 'js', color: 'yellow' };
-  if (dayNum < 180) return { name: 'TypeScript', badge: 'ts', color: 'blue' };
-  if (dayNum < 270) return { name: 'React', badge: 'react', color: 'blue' };
-  return { name: 'Node.js + Портфолио', badge: 'node', color: 'green' };
-}
+// Структура: массив из 52 недель. Каждая неделя:
+// { title, topic, goal, project, days: {1:[],2:[],3:[],4:[],5:[],6:[],0:[]} }
+// где 1=Пн ... 6=Сб, 0=Вс. Для будней (1-5) задачи учёбы, для 6-0 — отдых/друзья/ревью.
 
-const jsTopicsBasics = [
-  'Переменные (let, const), типы данных',
-  'Операторы, условия if/else, switch',
-  'Циклы for, while, for...of',
-  'Функции: declaration, expression, arrow',
-  'Массивы: методы push/pop/map/filter',
-  'Объекты, деструктуризация',
-  'Строки: методы, шаблонные литералы',
-  'Область видимости, hoisting',
-  'Замыкания (closures)',
-  'This, bind/call/apply',
-  'Массивы: reduce, sort, find, every',
-  'Дата и время (Date)',
-  'JSON, работа с данными',
-  'Модули import/export',
-  'Регулярные выражения (основы)'
-];
-const jsTopicsAdvanced = [
-  'Прототипы и наследование',
-  'Классы ES6+',
-  'Promises (основы)',
-  'Async/await',
-  'Fetch API',
-  'Обработка ошибок try/catch',
-  'Event Loop, микро/макро задачи',
-  'Webpack/Vite — базовая настройка',
-  'Git: commit, branch, merge, PR',
-  'DOM: querySelector, события',
-  'Формы, валидация',
-  'LocalStorage, sessionStorage',
-  'Debouncing, throttling',
-  'Алгоритмы: сортировки, поиск',
-  'Тестовое мини-проекты (ToDo, калькулятор)'
-];
-const tsTopics = [
-  'Типы: string, number, boolean, any',
-  'Интерфейсы vs типы',
-  'Union и intersection типы',
-  'Generics (основы)',
-  'Type guards, narrowing',
-  'Enums, const enums',
-  'Utility types: Partial, Required, Pick',
-  'tsconfig.json',
-  'Миграция JS-проекта на TS',
-  'Типизация функций и коллбэков',
-  'Типизация API-ответов',
-  'Типизация React-компонентов (подготовка)'
-];
-const reactTopics = [
-  'JSX, компоненты, props',
-  'useState, useEffect',
-  'Обработка событий',
-  'Условный рендеринг, списки',
-  'Формы: controlled/uncontrolled',
-  'useRef, useMemo, useCallback',
-  'Context API',
-  'React Router',
-  'Custom hooks',
-  'Работа с API (fetch/axios)',
-  'Оптимизация: React.memo, lazy',
-  'Тестирование: Jest + RTL (основы)',
-  'State management: Zustand/Redux Toolkit',
-  'Стилизация: CSS Modules / Tailwind',
-  'Сборка проекта, деплой (Vercel)'
-];
-const nodeTopics = [
-  'Node.js основы, npm',
-  'Express: роуты, middleware',
-  'REST API дизайн',
-  'Работа с БД: PostgreSQL / MongoDB',
-  'ORM: Prisma / Mongoose',
-  'Авторизация: JWT',
-  'Валидация (Zod/Joi)',
-  'WebSocket (базово)',
-  'Деплой backend (Railway/Render)',
-  'Сборка портфолио (3–5 проектов)',
-  'Резюме, LinkedIn, GitHub README',
-  'Подготовка к собеседованиям',
-  'Тестовые задания, mock-интервью',
-  'Отклики на вакансии (5–10 в день)',
-  'Первый оффер 🎯'
+const YEAR1 = [
+  // ============ МЕСЯЦ 1: HTML + CSS + основы JS ============
+  { // Неделя 1
+    title: 'Месяц 1 · Неделя 1 — Старт: окружение + HTML/CSS',
+    topic: 'Установка инструментов, Git, основы HTML и CSS',
+    goal: 'Настроить рабочее место, понять Git, сверстать первую страницу',
+    project: '🎯 Проект недели: Страница-визитка о себе',
+    days: {
+      1: [
+        { t: '🛠️ Установка VS Code, Node.js (LTS), Git', s: 'Скачать с официальных сайтов, проверить в терминале: node -v, git --version', xp: 30, badge: 'git' },
+        { t: '📚 YouTube: Владилен Минин — «Git и GitHub Курс Для Новичков» (1-я половина)', s: 'Смотреть ~1.5 часа, делать конспект', xp: 60, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин (Duolingo / слова)', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Продолжение: Git — ветки, merge, pull requests', s: 'Владилен Минин — вторая половина курса', xp: 60, badge: 'git' },
+        { t: '🌐 HTML основы: теги, структура документа, семантика', s: 'freeCodeCamp на русском или Владилена «HTML для начинающих»', xp: 70, badge: 'html' },
+        { t: '🎨 CSS основы: селекторы, цвета, шрифты, box-model', s: 'Практика в CodePen', xp: 70, badge: 'html' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '🌐 HTML: формы, таблицы, списки, изображения, ссылки', xp: 60, badge: 'html' },
+        { t: '🎨 CSS: Flexbox основы (justify, align, flex-direction)', s: 'Flexbox Froggy — пройти первые 10 уровней', xp: 70, badge: 'html' },
+        { t: '💻 Практика: сверстать простую карточку товара', xp: 50, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '🎨 CSS: Grid основы, позиционирование (relative, absolute)', xp: 70, badge: 'html' },
+        { t: '🎨 CSS: адаптивность, media queries, мобильная версия', xp: 70, badge: 'html' },
+        { t: '💻 Практика: адаптивная галерея изображений', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '🎨 CSS: переменные, transitions, псевдоклассы (:hover, :focus)', xp: 60, badge: 'html' },
+        { t: '🚀 Начало проекта: страница-визитка (структура HTML)', s: 'Секции: обо мне, навыки, контакты, фото', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🚀 Завершение проекта: стилизация + адаптив', xp: 80, badge: 'project' },
+        { t: '📤 Залить на GitHub, сделать README', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом (Вадик / Полина / Никита)', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых без чувства вины (минимум 2 часа)', xp: 10 },
+        { t: '📝 Ревью недели: что получилось, что сложно', xp: 40 },
+        { t: '📅 Планирование следующей недели', xp: 20 }
+      ]
+    }
+  },
+  { // Неделя 2
+    title: 'Месяц 1 · Неделя 2 — JavaScript: первые шаги',
+    topic: 'Переменные, типы данных, условия, циклы',
+    goal: 'Понять основы JS, написать первые скрипты',
+    project: '🎯 Проект недели: Консольный калькулятор + задачи на Stepik',
+    days: {
+      1: [
+        { t: '📚 YouTube: Владилен Минин — «JavaScript Основы для Начинающих — Полный Курс за 6 часов» (1-я часть, ~1.5ч)', s: 'Переменные: let, const, var. Типы данных', xp: 80, badge: 'js' },
+        { t: '🎓 Stepik: «Самый полный курс по JavaScript для начинающих» — раздел 1', s: 'Пройти первые 10 задач', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Продолжение видео Владилена: операторы, сравнения, логические И/ИЛИ', xp: 70, badge: 'js' },
+        { t: '📚 Условия: if / else if / else, switch, тернарный оператор', xp: 70, badge: 'js' },
+        { t: '🎓 Stepik: раздел 2 — условия (10 задач)', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Циклы: for, while, do-while, break, continue', xp: 70, badge: 'js' },
+        { t: '💻 Практика: 10 задач на циклы (сумма чисел, факториал, Фибоначчи)', xp: 70, badge: 'js' },
+        { t: '🎓 Stepik: раздел 3 — циклы (10 задач)', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '📚 Функции: declaration, expression, параметры, return', xp: 70, badge: 'js' },
+        { t: '💻 Практика: написать 5 функций (калькулятор, конвертер, генератор пароля)', xp: 70, badge: 'project' },
+        { t: '🎓 Stepik: раздел 4 — функции', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '📚 Массивы: создание, методы push/pop/shift/unshift, длина', xp: 70, badge: 'js' },
+        { t: '📚 Объекты: создание, свойства, методы, this (базово)', xp: 70, badge: 'js' },
+        { t: '💻 Начало проекта: консольный калькулятор', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '💻 Завершение калькулятора + тестирование', xp: 70, badge: 'project' },
+        { t: '📤 Залить на GitHub, обновить README', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых (2+ часа)', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 3
+    title: 'Месяц 1 · Неделя 3 — Функции, массивы, объекты',
+    topic: 'Углубление в структуры данных и функции',
+    goal: 'Уверенно работать с массивами и объектами',
+    project: '🎯 Проект недели: Калькулятор (GUI версия)',
+    days: {
+      1: [
+        { t: '📚 Массивы: методы map, filter, reduce, forEach, find', s: 'Владилен Минин — раздел про массивы', xp: 80, badge: 'js' },
+        { t: '💻 Практика: 10 задач на map/filter/reduce', xp: 70, badge: 'js' },
+        { t: '🎓 Stepik: раздел 5 — массивы', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Объекты глубже: деструктуризация, spread, rest', xp: 70, badge: 'js' },
+        { t: '📚 Методы объектов: Object.keys/values/entries, hasOwnProperty', xp: 60, badge: 'js' },
+        { t: '💻 Практика: работа с объектами (10 задач)', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Область видимости, hoisting, var vs let vs const', xp: 70, badge: 'js' },
+        { t: '📚 Замыкания (closures) — базовое понимание', xp: 70, badge: 'js' },
+        { t: '💻 Практика: задачи на замыкания', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '📚 Строки: методы (slice, split, join, replace, trim)', xp: 60, badge: 'js' },
+        { t: '📚 Шаблонные литералы, регулярные выражения (основы)', xp: 60, badge: 'js' },
+        { t: '💻 Начало GUI-калькулятора: HTML + CSS', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 GUI-калькулятор: JS-логика (обработка кликов, вычисления)', xp: 90, badge: 'project' },
+        { t: '🎨 Стилизация, адаптив, анимации кнопок', xp: 50, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '💻 Тестирование калькулятора, фикс багов', xp: 50, badge: 'project' },
+        { t: '📤 Залить на GitHub, сделать демо (GitHub Pages)', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 4
+    title: 'Месяц 1 · Неделя 4 — DOM и события',
+    topic: 'Взаимодействие JS с HTML, обработка событий',
+    goal: 'Научиться динамически изменять страницу',
+    project: '🎯 Проект недели: To-Do List на чистом JS',
+    days: {
+      1: [
+        { t: '📚 DOM: querySelector, getElementById, создание элементов', s: 'Владилен Минин — раздел про DOM', xp: 80, badge: 'js' },
+        { t: '💻 Практика: изменить стили, добавить элементы через JS', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 События: addEventListener, click, submit, keydown', xp: 70, badge: 'js' },
+        { t: '📚 Делегирование событий, event.target, event.preventDefault', xp: 70, badge: 'js' },
+        { t: '💻 Практика: интерактивная форма', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Работа с формами: ввод, валидация, отправка', xp: 70, badge: 'js' },
+        { t: '💻 Начало To-Do List: HTML + CSS разметка', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 To-Do List: добавление задач, обработка кликов', xp: 80, badge: 'project' },
+        { t: '💻 To-Do List: удаление, отметка выполненных', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 To-Do List: сохранение в LocalStorage', xp: 70, badge: 'project' },
+        { t: '💻 To-Do List: фильтры (все/активные/выполненные), счётчик', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '💻 Финализация To-Do List: стили, адаптив', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью месяца 1: что выучил, что повторить', xp: 60 },
+        { t: '📅 План на месяц 2', xp: 30 }
+      ]
+    }
+  },
+
+  // ============ МЕСЯЦ 2: Углубление JS ============
+  { // Неделя 5
+    title: 'Месяц 2 · Неделя 5 — Практика JS + слайдер',
+    topic: 'Закрепление основ, первый серьёзный UI-компонент',
+    goal: 'Сделать интерактивный слайдер изображений',
+    project: '🎯 Проект недели: Галерея изображений / слайдер',
+    days: {
+      1: [
+        { t: '📚 YouTube: Владилен — «JavaScript c Нуля — Курс для начинающих С ПРАКТИКОЙ» (часть 1)', xp: 80, badge: 'js' },
+        { t: '🎓 Stepik: продолжение курса, раздел про массивы (продвинутый)', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Продолжение практического курса Владилена (часть 2)', xp: 80, badge: 'js' },
+        { t: '💻 Начало слайдера: HTML + CSS разметка', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Слайдер: переключение слайдов по клику (кнопки)', xp: 80, badge: 'project' },
+        { t: '💻 Слайдер: автопрокрутка через setInterval', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Слайдер: индикаторы (точки), клавиатурная навигация', xp: 70, badge: 'project' },
+        { t: '💻 Слайдер: плавные переходы (CSS transitions)', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Слайдер: поддержка touch-событий (мобильные)', xp: 70, badge: 'project' },
+        { t: '🎨 Финализация: стили, адаптив, анимации', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 6
+    title: 'Месяц 2 · Неделя 6 — Асинхронность и API',
+    topic: 'Promise, async/await, fetch, работа с внешними данными',
+    goal: 'Научиться получать данные с сервера',
+    project: '🎯 Проект недели: Приложение погоды / курсов валют',
+    days: {
+      1: [
+        { t: '📚 Асинхронность: callback, синхронный vs асинхронный код', s: 'Владилен Минин — видео про асинхронность', xp: 80, badge: 'js' },
+        { t: '📚 Promises: создание, then/catch/finally, цепочки', xp: 70, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 async/await: синтаксис, обработка ошибок try/catch', xp: 80, badge: 'js' },
+        { t: '📚 Promise.all, Promise.race, Promise.allSettled', xp: 60, badge: 'js' },
+        { t: '💻 Практика: 5 задач на async/await', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Fetch API: GET-запросы, работа с JSON', xp: 70, badge: 'js' },
+        { t: '📚 REST API: что это, методы (GET, POST), статус-коды', xp: 60, badge: 'js' },
+        { t: '💻 Практика: получить данные с jsonplaceholder.typicode.com', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Начало приложения погоды: HTML + CSS, получение API-ключа (OpenWeatherMap)', xp: 70, badge: 'project' },
+        { t: '💻 Fetch погоды по городу, отображение результата', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Погода: обработка ошибок, loader, иконки погоды', xp: 70, badge: 'project' },
+        { t: '💻 Погода: геолокация (navigator.geolocation)', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '💻 Финализация: стили, адаптив', xp: 50, badge: 'project' },
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 7
+    title: 'Месяц 2 · Неделя 7 — ES6+ и игра',
+    topic: 'Современный JS: деструктуризация, spread, модули',
+    goal: 'Освоить ES6+ и сделать игру',
+    project: '🎯 Проект недели: Игра (змейка / кликер / memory)',
+    days: {
+      1: [
+        { t: '📚 YouTube: Владилен — «JavaScript ES6 — Полный курс за 2 часа» (1-я половина)', xp: 80, badge: 'js' },
+        { t: '📚 Деструктуризация объектов и массивов', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Spread/rest операторы, shallow vs deep copy', xp: 70, badge: 'js' },
+        { t: '📚 Продолжение ES6-курса (2-я половина)', xp: 70, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Модули: import/export, default, named', xp: 70, badge: 'js' },
+        { t: '📚 Map, Set, Symbol (базово)', xp: 60, badge: 'js' },
+        { t: '💻 Начало игры: выбор механики, HTML + CSS', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Игра: основная логика (движение / счёт / правила)', xp: 80, badge: 'project' },
+        { t: '💻 Игра: обработка ввода (клавиатура / мышь)', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Игра: рекорды (LocalStorage), рестарт, уровни сложности', xp: 70, badge: 'project' },
+        { t: '🎨 Финализация: стили, звуки (опционально)', xp: 50, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 8
+    title: 'Месяц 2 · Неделя 8 — Повторение и GitHub',
+    topic: 'Рефакторинг всех проектов, оформление GitHub',
+    goal: 'Привести в порядок все проекты, сделать красивый профиль',
+    project: '🎯 Проект недели: Красивый GitHub-профиль + рефакторинг',
+    days: {
+      1: [
+        { t: '🔧 Рефакторинг: калькулятор — разбить на модули, добавить комментарии', xp: 60, badge: 'js' },
+        { t: '🔧 Рефакторинг: To-Do List — улучшить структуру кода', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '🔧 Рефакторинг: слайдер, погодное приложение', xp: 60, badge: 'js' },
+        { t: '🔧 Рефакторинг: игра — оптимизация, исправление багов', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Git продвинутый: .gitignore, ветки, merge, rebase (базово)', xp: 70, badge: 'git' },
+        { t: '📚 GitHub: README.md (Markdown), badges, screenshots', xp: 60, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '📝 Написать README для каждого проекта (описание, скриншоты, как запустить)', xp: 70, badge: 'git' },
+        { t: '🎨 Создать красивый GitHub-профиль (profile README)', xp: 60, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '📖 Книга: начать «Выразительный JavaScript» (Marijn Haverbeke) — главы 1-2', s: 'Бесплатно на https://eloquentjavascript.ru/', xp: 60, badge: 'book' },
+        { t: '💻 Решение 5 задач на Codewars (8 kyu)', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 },
+        { t: '🧘 Отдых', xp: 10 }
+      ],
+      0: [
+        { t: '📝 Ревью месяца 2: что выучил, что повторить', xp: 60 },
+        { t: '📅 План на месяц 3', xp: 30 }
+      ]
+    }
+  },
+
+  // ============ МЕСЯЦ 3: Продвинутый JS ============
+  { // Неделя 9
+    title: 'Месяц 3 · Неделя 9 — ООП и прототипы',
+    topic: 'Объектно-ориентированное программирование в JS',
+    goal: 'Понять прототипы и классы',
+    project: '🎯 Проект недели: Библиотека книг (CRUD)',
+    days: {
+      1: [
+        { t: '📚 Прототипы: __proto__, prototype, Object.create', s: 'Владилен Минин — видео про прототипы', xp: 80, badge: 'js' },
+        { t: '💻 Практика: 5 задач на прототипы', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Классы ES6: constructor, методы, наследование (extends)', xp: 80, badge: 'js' },
+        { t: '📚 Статические методы, приватные поля (#), getters/setters', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 this: call, apply, bind, стрелочные функции и this', xp: 70, badge: 'js' },
+        { t: '💻 Практика: задачи на контекст', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Начало «Библиотеки книг»: класс Book, HTML + CSS', xp: 70, badge: 'project' },
+        { t: '💻 Добавление книг, отображение списка', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 CRUD: редактирование, удаление, фильтрация', xp: 80, badge: 'project' },
+        { t: '💻 LocalStorage для сохранения, финализация', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 10
+    title: 'Месяц 3 · Неделя 10 — Замыкания и продвинутые темы',
+    topic: 'Глубокое понимание замыканий, каррирования, мемоизации',
+    goal: 'Освоить продвинутые паттерны JS',
+    project: '🎯 Проект недели: Мини-фреймворк (упрощённый React-like)',
+    days: {
+      1: [
+        { t: '📚 Замыкания глубже: lexical environment, практические примеры', xp: 80, badge: 'js' },
+        { t: '💻 Задачи на замыкания (10 штук)', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Каррирование, частичное применение функций', xp: 70, badge: 'js' },
+        { t: '📚 Мемоизация: реализация функции memoize', xp: 70, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Функции высшего порядка: compose, pipe', xp: 70, badge: 'js' },
+        { t: '💻 Практика: реализовать compose/pipe, применить', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '📚 Event Loop: call stack, task queue, microtasks', s: 'Владилен / Philip Roberts "What the heck is the event loop anyway"', xp: 80, badge: 'js' },
+        { t: '💻 Разбор примеров Event Loop (quiz)', xp: 50, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Начало мини-фреймворка: функция createElement, render', xp: 80, badge: 'project' },
+        { t: '💻 Обработка состояния, перерисовка', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '💻 Финализация мини-фреймворка', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 11
+    title: 'Месяц 3 · Неделя 11 — Регулярки, дата, JSON, ошибки',
+    topic: 'Полезные встроенные возможности JS',
+    goal: 'Научиться работать с датами, JSON, регулярками',
+    project: '🎯 Проект недели: Планировщик задач с календарём',
+    days: {
+      1: [
+        { t: '📚 Date: создание, методы, форматирование, часовые зоны', xp: 70, badge: 'js' },
+        { t: '💻 Практика: 5 задач на даты', xp: 50, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 JSON: parse, stringify, работа с API-ответами', xp: 70, badge: 'js' },
+        { t: '📚 Регулярные выражения: синтаксис, методы match/test/replace', xp: 70, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Обработка ошибок: try/catch/finally, кастомные Error', xp: 70, badge: 'js' },
+        { t: '💻 Практика: валидация email/телефона регулярками', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Начало планировщика: HTML + CSS календаря', xp: 70, badge: 'project' },
+        { t: '💻 Логика: отображение месяца, переключение', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Добавление задач на даты, редактирование', xp: 80, badge: 'project' },
+        { t: '💻 LocalStorage, финализация', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 12
+    title: 'Месяц 3 · Неделя 12 — SPA на чистом JS',
+    topic: 'Роутинг, состояние приложения, модульная структура',
+    goal: 'Сделать SPA без фреймворков',
+    project: '🎯 Проект недели: SPA «Блог» (список постов + детали)',
+    days: {
+      1: [
+        { t: '📚 History API: pushState, popstate, роутинг без перезагрузки', xp: 80, badge: 'js' },
+        { t: '💻 Практика: простой роутер на 2 страницы', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Модульная структура: разбивка кода на файлы, import/export', xp: 70, badge: 'js' },
+        { t: '💻 Начало SPA: структура папок, роутер', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 SPA: главная страница — список постов (fetch с jsonplaceholder)', xp: 80, badge: 'project' },
+        { t: '💻 SPA: страница деталей поста', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 SPA: поиск, фильтры, пагинация', xp: 70, badge: 'project' },
+        { t: '💻 SPA: 404-страница, loader, обработка ошибок', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 SPA: стили, адаптив, анимации переходов', xp: 60, badge: 'project' },
+        { t: '📖 Книга: «Выразительный JavaScript» — главы 3-5', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '📝 Ревью месяца 3 + план на месяц 4', xp: 60 }
+      ]
+    }
+  },
+
+  // ============ МЕСЯЦ 4: Алгоритмы и структуры данных ============
+  { // Неделя 13
+    title: 'Месяц 4 · Неделя 13 — Алгоритмы: массивы и строки',
+    topic: 'Базовые алгоритмы, оценка сложности O(n)',
+    goal: 'Решать задачи уровня Easy на LeetCode',
+    project: '🎯 Проект недели: 20 задач на массивы/строки',
+    days: {
+      1: [
+        { t: '📚 Алгоритмы: что это, сложность O(1), O(n), O(n²), Big O', s: 'YouTube: "Алгоритмы и структуры данных для начинающих"', xp: 70, badge: 'js' },
+        { t: '💻 LeetCode: Two Sum, Valid Anagram, Contains Duplicate', xp: 70, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💻 LeetCode: Best Time to Buy and Sell Stock, Valid Palindrome', xp: 70, badge: 'js' },
+        { t: '💻 LeetCode: Move Zeroes, Missing Number, Fibonacci', xp: 70, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 LeetCode: Longest Substring Without Repeating Characters', xp: 70, badge: 'js' },
+        { t: '💻 LeetCode: String to Integer, Group Anagrams', xp: 70, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 LeetCode: Product of Array Except Self, Maximum Subarray', xp: 70, badge: 'js' },
+        { t: '💻 LeetCode: 3Sum, Merge Intervals', xp: 70, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 LeetCode: ещё 5 задач на выбор', xp: 70, badge: 'js' },
+        { t: '📖 Книга: «Грокаем алгоритмы» — главы 1-2 (если есть)', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 14
+    title: 'Месяц 4 · Неделя 14 — Связные списки, стеки, очереди',
+    topic: 'Классические структуры данных',
+    goal: 'Реализовать и понять LIFO/FIFO',
+    project: '🎯 Проект недели: Визуализатор структур данных',
+    days: {
+      1: [
+        { t: '📚 Связный список: реализация, операции (добавление, удаление)', xp: 80, badge: 'js' },
+        { t: '💻 LeetCode: Reverse Linked List, Merge Two Sorted Lists', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Стек (Stack): реализация, применение', xp: 70, badge: 'js' },
+        { t: '💻 LeetCode: Valid Parentheses, Min Stack', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Очередь (Queue): реализация, двойная очередь', xp: 70, badge: 'js' },
+        { t: '💻 LeetCode: Implement Queue using Stacks', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Hash Table: реализация, коллизии', xp: 70, badge: 'js' },
+        { t: '💻 LeetCode: задачи на Hash Map (5 штук)', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Начало визуализатора: HTML + Canvas/SVG', xp: 70, badge: 'project' },
+        { t: '💻 Визуализация стека и очереди (push/pop анимация)', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '💻 Финализация визуализатора', xp: 50, badge: 'project' },
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 15
+    title: 'Месяц 4 · Неделя 15 — Деревья и графы (основы)',
+    topic: 'Бинарные деревья, BFS/DFS',
+    goal: 'Понять рекурсию и обходы',
+    project: '🎯 Проект недели: Визуализатор бинарного дерева',
+    days: {
+      1: [
+        { t: '📚 Рекурсия: базовый случай, стек вызовов, примеры', xp: 80, badge: 'js' },
+        { t: '💻 10 задач на рекурсию', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Бинарное дерево: реализация, обходы (in/pre/post-order)', xp: 80, badge: 'js' },
+        { t: '💻 LeetCode: Maximum Depth of Binary Tree, Invert Binary Tree', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 BST (Binary Search Tree): вставка, поиск, удаление', xp: 70, badge: 'js' },
+        { t: '💻 LeetCode: Validate BST, Lowest Common Ancestor', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '📚 Графы: представление (adjacency list), BFS, DFS', xp: 70, badge: 'js' },
+        { t: '💻 LeetCode: Number of Islands, Clone Graph', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Визуализатор бинарного дерева: отрисовка, обходы', xp: 80, badge: 'project' },
+        { t: '💻 Визуализатор: вставка/удаление с анимацией', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 16
+    title: 'Месяц 4 · Неделя 16 — Сортировки и LeetCode марафон',
+    topic: 'Алгоритмы сортировки, поиск, подготовка к собеседованиям',
+    goal: 'Решить 30+ задач, пройти mock-интервью самому себе',
+    project: '🎯 Проект недели: Визуализатор сортировок',
+    days: {
+      1: [
+        { t: '📚 Сортировки: bubble, selection, insertion — реализация', xp: 70, badge: 'js' },
+        { t: '💻 Визуализатор: отрисовка массива, анимация bubble sort', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Сортировки: merge, quick — реализация и понимание', xp: 70, badge: 'js' },
+        { t: '💻 Визуализатор: добавить merge/quick sort', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Бинарный поиск: реализация, применение', xp: 70, badge: 'js' },
+        { t: '💻 LeetCode: Binary Search, Search in Rotated Sorted Array', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 LeetCode марафон: 10 задач Easy (разные темы)', xp: 80, badge: 'js' },
+        { t: '💻 LeetCode: 5 задач Medium (по силам)', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация визуализатора: управление скоростью, выбор алгоритма', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '📝 Ревью месяца 4 + план на месяц 5', xp: 60 }
+      ]
+    }
+  },
+
+  // ============ МЕСЯЦ 5: Углубление JS + браузер ============
+  { // Неделя 17
+    title: 'Месяц 5 · Неделя 17 — Event Loop, micro/macrotasks',
+    topic: 'Как работает JS в браузере',
+    goal: 'Полностью понять асинхронность',
+    project: '🎯 Проект недели: Анимационное приложение (requestAnimationFrame)',
+    days: {
+      1: [
+        { t: '📚 Event Loop глубже: call stack, Web APIs, callback queue', s: 'Jake Archibald "In The Loop" (YouTube)', xp: 80, badge: 'js' },
+        { t: '📚 Microtasks (Promise) vs Macrotasks (setTimeout)', xp: 70, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💻 Разбор 20 примеров с Event Loop (quiz)', xp: 70, badge: 'js' },
+        { t: '📚 requestAnimationFrame, setTimeout vs rAF', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Начало анимационного приложения: Canvas, базовая анимация', xp: 70, badge: 'project' },
+        { t: '💻 Физика: движение, гравитация, столкновения', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Управление мышью/клавиатурой, частицы', xp: 70, badge: 'project' },
+        { t: '💻 Оптимизация: производительность, FPS', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация: настройки, пресеты', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 18
+    title: 'Месяц 5 · Неделя 18 — Web APIs, Storage, History',
+    topic: 'Возможности браузера',
+    goal: 'Научиться использовать Web API',
+    project: '🎯 Проект недели: Заметки с синхронизацией (IndexedDB)',
+    days: {
+      1: [
+        { t: '📚 LocalStorage vs SessionStorage vs IndexedDB vs Cookies', xp: 70, badge: 'js' },
+        { t: '💻 Практика: работа с каждым хранилищем', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 IndexedDB: создание БД, CRUD-операции', xp: 80, badge: 'js' },
+        { t: '💻 Практика: простое приложение на IndexedDB', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 History API, Geolocation API, Notifications API', xp: 70, badge: 'js' },
+        { t: '📚 Clipboard API, Web Share API', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Начало заметок: HTML + CSS, IndexedDB обёртка', xp: 70, badge: 'project' },
+        { t: '💻 CRUD заметок, поиск, теги', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Markdown-поддержка, экспорт/импорт JSON', xp: 70, badge: 'project' },
+        { t: '💻 Финализация, стили', xp: 50, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 19
+    title: 'Месяц 5 · Неделя 19 — Формы и валидация',
+    topic: 'Продвинутая работа с формами',
+    goal: 'Научиться делать сложные формы',
+    project: '🎯 Проект недели: Многоступенчатая форма регистрации',
+    days: {
+      1: [
+        { t: '📚 Формы: типы input, атрибуты, встроенная валидация', xp: 70, badge: 'js' },
+        { t: '📚 Кастомная валидация: regex, сообщения об ошибках', xp: 70, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 FormData API, отправка файлов (FileReader)', xp: 70, badge: 'js' },
+        { t: '💻 Практика: форма загрузки аватара с превью', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Начало многоступенчатой формы: шаги, прогресс-бар', xp: 70, badge: 'project' },
+        { t: '💻 Валидация каждого шага, навигация', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Финальный шаг: отправка на сервер (mock), success-экран', xp: 70, badge: 'project' },
+        { t: '💻 Сохранение черновика в LocalStorage', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация: стили, анимации переходов между шагами', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 20
+    title: 'Месяц 5 · Неделя 20 — Оптимизация, Debounce/Throttle',
+    topic: 'Производительность и UX-оптимизации',
+    goal: 'Научиться писать быстрый код',
+    project: '🎯 Проект недели: Поиск с автодополнением (debounce)',
+    days: {
+      1: [
+        { t: '📚 Debounce и Throttle: теория, реализация', xp: 80, badge: 'js' },
+        { t: '💻 Практика: применить к scroll, resize, input', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Lighthouse: аудит производительности, доступности, SEO', xp: 70, badge: 'js' },
+        { t: '📚 Lazy loading, code splitting (базово)', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Начало поиска: HTML + CSS, mock API (jsonplaceholder)', xp: 70, badge: 'project' },
+        { t: '💻 Debounce на input, отображение результатов', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Подсветка совпадений, навигация клавиатурой', xp: 70, badge: 'project' },
+        { t: '💻 История поиска (LocalStorage), популярные запросы', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация, оптимизация (Lighthouse 95+)', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '📝 Ревью месяца 5 + план на месяц 6', xp: 60 }
+      ]
+    }
+  },
+
+  // ============ МЕСЯЦ 6: TypeScript ============
+  { // Неделя 21
+    title: 'Месяц 6 · Неделя 21 — TypeScript: основы',
+    topic: 'Типы, интерфейсы, базовый синтаксис',
+    goal: 'Писать типизированный код',
+    project: '🎯 Проект недели: Миграция To-Do List на TypeScript',
+    days: {
+      1: [
+        { t: '📚 YouTube: Владилен Минин — «TypeScript — Полный Курс» (1-я половина)', xp: 80, badge: 'ts' },
+        { t: '📚 Типы: string, number, boolean, any, unknown, void, never', xp: 60, badge: 'ts' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Массивы, кортежи (tuples), enum', xp: 70, badge: 'ts' },
+        { t: '📚 Продолжение курса Владилена (2-я половина)', xp: 70, badge: 'ts' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Интерфейсы vs типы (type), отличия, когда что использовать', xp: 70, badge: 'ts' },
+        { t: '📚 Union types, intersection types, type guards', xp: 70, badge: 'ts' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '📚 tsconfig.json, настройка проекта, strict mode', xp: 60, badge: 'ts' },
+        { t: '💻 Начало миграции To-Do List: установка TS, настройка', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Миграция To-Do List: типы для задач, функций', xp: 80, badge: 'project' },
+        { t: '💻 Финализация, проверка компиляции', xp: 50, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 22
+    title: 'Месяц 6 · Неделя 22 — TypeScript: Generics и utility types',
+    topic: 'Продвинутый TypeScript',
+    goal: 'Писать переиспользуемый типизированный код',
+    project: '🎯 Проект недели: Типизированная библиотека утилит',
+    days: {
+      1: [
+        { t: '📚 Generics: функции, классы, интерфейсы с дженериками', xp: 80, badge: 'ts' },
+        { t: '💻 Практика: 10 задач на дженерики', xp: 60, badge: 'ts' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Utility types: Partial, Required, Pick, Omit, Record, Readonly', xp: 80, badge: 'ts' },
+        { t: '💻 Практика: применить каждый utility type', xp: 60, badge: 'ts' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Conditional types, keyof, typeof, infer (базово)', xp: 70, badge: 'ts' },
+        { t: '📚 Type assertions, non-null assertion, definite assignment', xp: 60, badge: 'ts' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Библиотека утилит: типизированные функции (groupBy, sortBy, pipe)', xp: 80, badge: 'project' },
+        { t: '💻 Библиотека: тесты на корректность типов', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Документация (JSDoc), публикация на GitHub', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 23
+    title: 'Месяц 6 · Неделя 23 — TS + DOM, TS + API',
+    topic: 'Применение TypeScript в реальных задачах',
+    goal: 'Полноценно использовать TS с DOM и API',
+    project: '🎯 Проект недели: Погодное приложение на TypeScript',
+    days: {
+      1: [
+        { t: '📚 Типизация DOM: HTMLElement, Event, кастомные типы', xp: 70, badge: 'ts' },
+        { t: '💻 Практика: типизированные обработчики событий', xp: 60, badge: 'ts' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Типизация fetch: дженерики для Response, API-ответов', xp: 70, badge: 'ts' },
+        { t: '💻 Практика: типизация API-клиента', xp: 60, badge: 'ts' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Начало погодного приложения на TS: структура, типы', xp: 70, badge: 'project' },
+        { t: '💻 Типизация API OpenWeatherMap, запросы', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 UI: отображение, обработка ошибок, loader', xp: 70, badge: 'project' },
+        { t: '💻 История поиска, избранное', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация, стили', xp: 50, badge: 'project' },
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 24
+    title: 'Месяц 6 · Неделя 24 — Миграция большого проекта на TS',
+    topic: 'Полная миграция SPA на TypeScript',
+    goal: 'Иметь большой TS-проект в портфолио',
+    project: '🎯 Проект недели: Миграция SPA-блога на TypeScript',
+    days: {
+      1: [
+        { t: '💻 Настройка TS в SPA-блоге: tsconfig, сборка (Vite/Parcel)', xp: 70, badge: 'project' },
+        { t: '💻 Миграция модулей: роутер, API-клиент', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💻 Миграция компонентов: список постов, детали', xp: 70, badge: 'project' },
+        { t: '💻 Типы для данных, state management', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Миграция оставшихся модулей: поиск, фильтры', xp: 70, badge: 'project' },
+        { t: '💻 Фикс всех TS-ошибок, strict mode', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Тестирование, оптимизация', xp: 60, badge: 'project' },
+        { t: '📖 Книга: «Выразительный JavaScript» — главы 6-10', xp: 60, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация, README', xp: 50, badge: 'project' },
+        { t: '📤 Залить на GitHub + GitHub Pages', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '📝 Ревью месяца 6 + план на месяц 7 (React!)', xp: 60 }
+      ]
+    }
+  },
+
+  // ============ МЕСЯЦ 7: React основы ============
+  { // Неделя 25
+    title: 'Месяц 7 · Неделя 25 — React: JSX, компоненты, props',
+    topic: 'Основы React, первый компонент',
+    goal: 'Понять React-парадигму',
+    project: '🎯 Проект недели: Карточное приложение на React',
+    days: {
+      1: [
+        { t: '📚 YouTube: Владилена Минин — «React.js Курс Для Новичков» (1-я часть)', xp: 80, badge: 'react' },
+        { t: '📚 JSX: синтаксис, выражения, условия, циклы', xp: 70, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Компоненты: функциональные, props, children', xp: 80, badge: 'react' },
+        { t: '📚 Настройка проекта: Vite + React + TypeScript', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Props: передача данных, propTypes / TS-типы, defaultProps', xp: 70, badge: 'react' },
+        { t: '💻 Начало карточного приложения: компоненты, разметка', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Карточки: отображение данных из props, стили', xp: 70, badge: 'project' },
+        { t: '💻 Композиция компонентов, переиспользование', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация: адаптив, анимации', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub + Vercel', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 26
+    title: 'Месяц 7 · Неделя 26 — useState, useEffect',
+    topic: 'Хуки состояния и эффектов',
+    goal: 'Научиться управлять состоянием',
+    project: '🎯 Проект недели: Счётчик + таймер + TODO на React',
+    days: {
+      1: [
+        { t: '📚 useState: инициализация, обновление, функциональное обновление', xp: 80, badge: 'react' },
+        { t: '💻 Практика: счётчик, переключатели, формы', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 useEffect: зависимости, cleanup, типичные кейсы', xp: 80, badge: 'react' },
+        { t: '💻 Практика: загрузка данных, подписки, таймеры', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 React-таймер: секундомер, обратный отсчёт, настройки', xp: 70, badge: 'project' },
+        { t: '💻 React-ToDo: добавление, удаление, отметка', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 ToDo: фильтры, LocalStorage, редактирование', xp: 70, badge: 'project' },
+        { t: '💻 Финализация: стили, анимации', xp: 50, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '📤 Залить на GitHub + Vercel', xp: 30, badge: 'git' },
+        { t: '💻 LeetCode: 5 задач Easy на React-паттерны', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 27
+    title: 'Месяц 7 · Неделя 27 — Формы, события, списки',
+    topic: 'Обработка ввода и рендер списков',
+    goal: 'Делать сложные формы и динамические списки',
+    project: '🎯 Проект недели: Форма регистрации на React',
+    days: {
+      1: [
+        { t: '📚 Обработка событий в React: onClick, onChange, onSubmit', xp: 70, badge: 'react' },
+        { t: '📚 Controlled vs uncontrolled компоненты', xp: 70, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Рендер списков: key, условный рендеринг, фрагменты', xp: 70, badge: 'react' },
+        { t: '💻 Практика: список с фильтрами и сортировкой', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Начало формы: поля, валидация на лету', xp: 70, badge: 'project' },
+        { t: '💻 Многоступенчатая форма, прогресс', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Отправка на сервер (mock), success/error экраны', xp: 70, badge: 'project' },
+        { t: '💻 Финализация: стили, анимации', xp: 50, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '📤 Залить на GitHub + Vercel', xp: 30, badge: 'git' },
+        { t: '💻 LeetCode: 5 задач', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 28
+    title: 'Месяц 7 · Неделя 28 — React To-Do (большой проект)',
+    topic: 'Полноценное React-приложение',
+    goal: 'Сделать production-ready To-Do',
+    project: '🎯 Проект недели: Продвинутый To-Do List (с категориями, приоритетами)',
+    days: {
+      1: [
+        { t: '💻 Архитектура: структура папок, компоненты, хуки', xp: 70, badge: 'project' },
+        { t: '💻 Базовый CRUD: добавление, удаление, редактирование', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💻 Категории, теги, приоритеты', xp: 70, badge: 'project' },
+        { t: '💻 Фильтры, сортировка, поиск', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Drag-and-drop (сортировка задач), даты', xp: 70, badge: 'project' },
+        { t: '💻 LocalStorage, экспорт/импорт JSON', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Темная/светлая тема, адаптив', xp: 60, badge: 'project' },
+        { t: '💻 Статистика: выполненные задачи, продуктивность', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация, оптимизация', xp: 50, badge: 'project' },
+        { t: '📤 Залить на GitHub + Vercel', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '📝 Ревью месяца 7 + план на месяц 8', xp: 60 }
+      ]
+    }
+  },
+
+  // ============ МЕСЯЦ 8: React продвинутый ============
+  { // Неделя 29
+    title: 'Месяц 8 · Неделя 29 — Context, useMemo, useCallback',
+    topic: 'Оптимизация и глобальное состояние',
+    goal: 'Писать производительные компоненты',
+    project: '🎯 Проект недели: E-commerce корзина (с Context)',
+    days: {
+      1: [
+        { t: '📚 Context API: создание, провайдер, useContext', xp: 80, badge: 'react' },
+        { t: '💻 Практика: тема, локаль через Context', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 useMemo, useCallback, React.memo: когда применять', xp: 80, badge: 'react' },
+        { t: '💻 Практика: оптимизация списка из 1000 элементов', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Начало корзины: каталог товаров, карточки', xp: 70, badge: 'project' },
+        { t: '💻 Корзина: добавление, изменение количества, удаление', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Корзина: Context для состояния, пересчёт суммы', xp: 70, badge: 'project' },
+        { t: '💻 Промокоды, избранное', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация: стили, оптимизация', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub + Vercel', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 30
+    title: 'Месяц 8 · Неделя 30 — React Router',
+    topic: 'Роутинг в SPA',
+    goal: 'Научиться делать многостраничные React-приложения',
+    project: '🎯 Проект недели: Многостраничный сайт (лендинг + блог + контакты)',
+    days: {
+      1: [
+        { t: '📚 React Router v6: BrowserRouter, Routes, Route, Link', xp: 80, badge: 'react' },
+        { t: '💻 Практика: простой роутинг на 3 страницы', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Динамические роуты (:id), useSearchParams, NavLink', xp: 70, badge: 'react' },
+        { t: '📚 Protected routes, layout routes, 404', xp: 70, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Начало сайта: layout (Header, Footer, Sidebar)', xp: 70, badge: 'project' },
+        { t: '💻 Главная страница (лендинг), роутинг', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Страница блога: список постов + детали (:id)', xp: 70, badge: 'project' },
+        { t: '💻 Страница контактов: форма, карта', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация: SEO (react-helmet), стили', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub + Vercel', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 31
+    title: 'Месяц 8 · Неделя 31 — Custom hooks, API интеграция',
+    topic: 'Переиспользуемая логика и работа с API',
+    goal: 'Писать чистые кастомные хуки',
+    project: '🎯 Проект недели: Кинопоиск (React + API)',
+    days: {
+      1: [
+        { t: '📚 Custom hooks: создание, правила, примеры (useLocalStorage, useFetch)', xp: 80, badge: 'react' },
+        { t: '💻 Практика: написать 5 своих хуков', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Работа с API: axios, react-query (TanStack Query) — основы', xp: 80, badge: 'react' },
+        { t: '💻 Практика: загрузка данных с кэшированием', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Начало «Кинопоиска»: API OMDB/TMDB, структура', xp: 70, badge: 'project' },
+        { t: '💻 Список фильмов, поиск, пагинация', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Детали фильма, актёры, похожие', xp: 70, badge: 'project' },
+        { t: '💻 Избранное, фильтры по жанру/году', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация: стили, оптимизация', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub + Vercel', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 32
+    title: 'Месяц 8 · Неделя 32 — Большое React-приложение',
+    topic: 'Финальный проект месяца',
+    goal: 'Сделать комплексное приложение',
+    project: '🎯 Проект недели: Дашборд аналитики (графики, фильтры)',
+    days: {
+      1: [
+        { t: '💻 Архитектура дашборда: компоненты, данные, роутинг', xp: 70, badge: 'project' },
+        { t: '💻 Mock API, получение данных', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💻 Графики: Chart.js или Recharts (линейные, столбчатые)', xp: 80, badge: 'project' },
+        { t: '💻 Фильтры по датам, категориям', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Таблицы с сортировкой, пагинацией', xp: 70, badge: 'project' },
+        { t: '💻 Экспорт в CSV, печать', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Темная/светлая тема, адаптив', xp: 60, badge: 'project' },
+        { t: '💻 Сохранение настроек пользователя', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация, оптимизация, README', xp: 50, badge: 'project' },
+        { t: '📤 Залить на GitHub + Vercel', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '📝 Ревью месяца 8 + план на месяц 9', xp: 60 }
+      ]
+    }
+  },
+
+  // ============ МЕСЯЦ 9: State management + тесты ============
+  { // Неделя 33
+    title: 'Месяц 9 · Неделя 33 — Zustand / Redux Toolkit',
+    topic: 'Глобальное состояние приложения',
+    goal: 'Освоить современный state management',
+    project: '🎯 Проект недели: Большой E-commerce на Zustand',
+    days: {
+      1: [
+        { t: '📚 Zustand: создание store, actions, selectors', xp: 80, badge: 'react' },
+        { t: '💻 Практика: мигрировать корзину на Zustand', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Redux Toolkit: createSlice, configureStore, useSelector', xp: 80, badge: 'react' },
+        { t: '💻 Практика: переписать корзину на RTK', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 RTK Query: загрузка данных, кэширование', xp: 70, badge: 'react' },
+        { t: '💻 Практика: API-запросы через RTK Query', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 E-commerce: каталог, корзина, избранное, checkout', xp: 80, badge: 'project' },
+        { t: '💻 Авторизация (mock), личный кабинет', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация: стили, оптимизация', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub + Vercel', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 34
+    title: 'Месяц 9 · Неделя 34 — Jest основы',
+    topic: 'Unit-тестирование JavaScript',
+    goal: 'Писать тесты для функций и компонентов',
+    project: '🎯 Проект недели: Покрытие тестами библиотеки утилит',
+    days: {
+      1: [
+        { t: '📚 Jest: настройка, describe/it/expect, matchers', xp: 80, badge: 'js' },
+        { t: '💻 Практика: тесты для 10 функций', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Mock функции, jest.fn(), spyOn, mockImplementation', xp: 70, badge: 'js' },
+        { t: '📚 Асинхронные тесты, тестирование API-вызовов', xp: 70, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Покрытие тестами библиотеки утилит (месяц 6)', xp: 80, badge: 'project' },
+        { t: '💻 Покрытие: 90%+ coverage', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Тестирование React-компонентов (Jest + setup)', xp: 70, badge: 'react' },
+        { t: '💻 Тесты для 5 компонентов', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 CI: GitHub Actions для автозапуска тестов', xp: 60, badge: 'git' },
+        { t: '📤 Обновить GitHub', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 35
+    title: 'Месяц 9 · Неделя 35 — React Testing Library',
+    topic: 'Тестирование React-компонентов',
+    goal: 'Писать интеграционные тесты',
+    project: '🎯 Проект недели: Тесты для To-Do List + E-commerce',
+    days: {
+      1: [
+        { t: '📚 React Testing Library: render, screen, fireEvent', xp: 80, badge: 'react' },
+        { t: '💻 Практика: тесты для простых компонентов', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 userEvent, waitFor, findBy queries, тесты хуков', xp: 70, badge: 'react' },
+        { t: '💻 Практика: тесты для форм, асинхронных компонентов', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Тесты для To-Do List: добавление, удаление, фильтры', xp: 70, badge: 'project' },
+        { t: '💻 Тесты для корзины: добавление, изменение, удаление', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Тесты для роутинга, моков API', xp: 70, badge: 'project' },
+        { t: '💻 Покрытие 80%+ ключевых компонентов', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация, CI обновление', xp: 50, badge: 'project' },
+        { t: '📤 Обновить GitHub', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 36
+    title: 'Месяц 9 · Неделя 36 — Финальный проект с тестами',
+    topic: 'Production-ready приложение',
+    goal: 'Иметь проект с полным покрытием тестами',
+    project: '🎯 Проект недели: Финальное React-приложение с тестами',
+    days: {
+      1: [
+        { t: '💻 Выбор идеи: блог-платформа / трекер привычек / чат', xp: 60, badge: 'project' },
+        { t: '💻 Архитектура, структура, настройка', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💻 Основной функционал: CRUD, роутинг, state', xp: 80, badge: 'project' },
+        { t: '💻 API интеграция (mock или реальный)', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Авторизация, личный кабинет', xp: 70, badge: 'project' },
+        { t: '💻 UI: стили, адаптив, темная тема', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Unit + integration тесты (80%+ coverage)', xp: 80, badge: 'project' },
+        { t: '💻 CI/CD: GitHub Actions', xp: 50, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 README, документация, демо', xp: 50, badge: 'project' },
+        { t: '📤 Залить на GitHub + Vercel', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '📝 Ревью месяца 9 + план на месяц 10 (Node.js!)', xp: 60 }
+      ]
+    }
+  },
+
+  // ============ МЕСЯЦ 10: Node.js + Backend ============
+  { // Неделя 37
+    title: 'Месяц 10 · Неделя 37 — Node.js основы',
+    topic: 'Серверный JavaScript, npm, модули',
+    goal: 'Понять серверную разработку',
+    project: '🎯 Проект недели: Простой HTTP-сервер + CLI утилита',
+    days: {
+      1: [
+        { t: '📚 YouTube: Владилен / Игорь Синицын — «Node.js для начинающих» (1-я часть)', xp: 80, badge: 'node' },
+        { t: '📚 Node.js: что это, event loop на сервере, модули (CommonJS, ESM)', xp: 70, badge: 'node' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 NPM: package.json, зависимости, scripts, npx', xp: 70, badge: 'node' },
+        { t: '📚 Встроенные модули: fs, path, http, os', xp: 70, badge: 'node' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Простой HTTP-сервер на встроенном http', xp: 70, badge: 'project' },
+        { t: '💻 Чтение/запись файлов, работа с fs', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 CLI утилита: обработка аргументов (process.argv, commander.js)', xp: 70, badge: 'project' },
+        { t: '💻 CLI: работа с файловой системой', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация, публикация на npm (опционально)', xp: 50, badge: 'project' },
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 38
+    title: 'Месяц 10 · Неделя 38 — Express, REST API',
+    topic: 'Создание REST API',
+    goal: 'Сделать полноценный backend',
+    project: '🎯 Проект недели: REST API для блога',
+    days: {
+      1: [
+        { t: '📚 Express: установка, роуты, middleware, request/response', xp: 80, badge: 'node' },
+        { t: '💻 Практика: простой сервер с 3 роутами', xp: 60, badge: 'node' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 REST API: принципы, методы HTTP, статус-коды, идемпотентность', xp: 70, badge: 'node' },
+        { t: '📚 Middleware: cors, body-parser, логирование, ошибки', xp: 70, badge: 'node' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 REST API для блога: CRUD для постов (in-memory)', xp: 80, badge: 'project' },
+        { t: '💻 Валидация входных данных, обработка ошибок', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Комментарии к постам, авторы, фильтры', xp: 70, badge: 'project' },
+        { t: '💻 Пагинация, сортировка, поиск', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Swagger / Postman документация', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 39
+    title: 'Месяц 10 · Неделя 39 — БД: PostgreSQL / MongoDB + Prisma',
+    topic: 'Работа с базами данных',
+    goal: 'Подключить БД к API',
+    project: '🎯 Проект недели: Миграция блога на БД',
+    days: {
+      1: [
+        { t: '📚 SQL основы: таблицы, SELECT, INSERT, UPDATE, DELETE', xp: 80, badge: 'node' },
+        { t: '📚 PostgreSQL: установка, psql, базовые запросы', xp: 60, badge: 'node' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Prisma ORM: schema.prisma, миграции, клиент', xp: 80, badge: 'node' },
+        { t: '💻 Практика: CRUD через Prisma', xp: 60, badge: 'node' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Миграция блога на PostgreSQL + Prisma', xp: 80, badge: 'project' },
+        { t: '💻 Связи: один-ко-многим, многие-ко-многим', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Индексы, транзакции, оптимизация запросов', xp: 70, badge: 'project' },
+        { t: '💻 Сиды, миграции данных', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация, тесты API', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 40
+    title: 'Месяц 10 · Неделя 40 — JWT, авторизация',
+    topic: 'Безопасность и аутентификация',
+    goal: 'Сделать защищённый API',
+    project: '🎯 Проект недели: Авторизация в блоге (регистрация/логин)',
+    days: {
+      1: [
+        { t: '📚 Аутентификация vs авторизация, сессии vs JWT', xp: 70, badge: 'node' },
+        { t: '📚 bcrypt: хэширование паролей', xp: 70, badge: 'node' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 JWT: создание токена, подпись, верификация', xp: 80, badge: 'node' },
+        { t: '💻 Практика: middleware для защиты роутов', xp: 60, badge: 'node' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Регистрация: валидация, хэш пароля, создание пользователя', xp: 70, badge: 'project' },
+        { t: '💻 Логин: выдача JWT, refresh token (базово)', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Защищённые роуты: создание/редактирование только своих постов', xp: 70, badge: 'project' },
+        { t: '💻 Роли: admin/user, middleware', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация, тесты', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '📝 Ревью месяца 10 + план на месяц 11', xp: 60 }
+      ]
+    }
+  },
+
+  // ============ МЕСЯЦ 11: Fullstack + деплой ============
+  { // Неделя 41
+    title: 'Месяц 11 · Неделя 41 — Fullstack проект',
+    topic: 'React + Node.js + PostgreSQL',
+    goal: 'Сделать полноценное fullstack приложение',
+    project: '🎯 Проект недели: Fullstack блог с авторизацией',
+    days: {
+      1: [
+        { t: '💻 Архитектура: frontend (React) + backend (Express) + БД', xp: 70, badge: 'project' },
+        { t: '💻 Настройка монорепо или двух проектов', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💻 Backend: API для блога (из месяца 10)', xp: 70, badge: 'project' },
+        { t: '💻 Frontend: подключение к API, react-query', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Frontend: авторизация (логин/регистрация)', xp: 70, badge: 'project' },
+        { t: '💻 Хранение JWT, protected routes на фронте', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 CRUD постов на фронте, комментарии', xp: 70, badge: 'project' },
+        { t: '💻 Личный кабинет, редактирование профиля', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация, стили, адаптив', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 42
+    title: 'Месяц 11 · Неделя 42 — Docker основы',
+    topic: 'Контейнеризация приложения',
+    goal: 'Упаковать приложение в Docker',
+    project: '🎯 Проект недели: Dockerfile + docker-compose для блога',
+    days: {
+      1: [
+        { t: '📚 Docker: что это, образы, контейнеры, команды', xp: 80, badge: 'node' },
+        { t: '💻 Практика: запуск postgres в контейнере', xp: 60, badge: 'node' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Dockerfile: FROM, RUN, COPY, WORKDIR, EXPOSE, CMD', xp: 70, badge: 'node' },
+        { t: '💻 Dockerfile для backend (Node.js)', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Multi-stage builds, .dockerignore, оптимизация образа', xp: 70, badge: 'node' },
+        { t: '💻 Dockerfile для frontend (React + nginx)', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '📚 docker-compose: сервисы, сети, volumes', xp: 70, badge: 'node' },
+        { t: '💻 docker-compose.yml: frontend + backend + postgres', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Запуск всего стека одной командой, тестирование', xp: 60, badge: 'project' },
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 43
+    title: 'Месяц 11 · Неделя 43 — CI/CD, GitHub Actions',
+    topic: 'Автоматизация деплоя',
+    goal: 'Настроить автоматический деплой',
+    project: '🎯 Проект недели: CI/CD для fullstack блога',
+    days: {
+      1: [
+        { t: '📚 CI/CD: что это, pipeline, stages', xp: 70, badge: 'git' },
+        { t: '📚 GitHub Actions: workflow, jobs, steps, actions', xp: 70, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💻 CI: lint, тесты, сборка при push/PR', xp: 70, badge: 'project' },
+        { t: '💻 CD: автодеплой на Vercel (frontend) + Railway/Render (backend)', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Vercel: деплой React, environment variables, domains', xp: 70, badge: 'node' },
+        { t: '📚 Railway / Render: деплой Node.js + PostgreSQL', xp: 70, badge: 'node' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Деплой fullstack блога: frontend + backend + БД', xp: 80, badge: 'project' },
+        { t: '💻 Настройка домена, SSL', xp: 50, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Monitoring: логи, ошибки (Sentry basics)', xp: 60, badge: 'project' },
+        { t: '📤 Обновить GitHub README с бейджами CI', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 44
+    title: 'Месяц 11 · Неделя 44 — Второй fullstack проект',
+    topic: 'Закрепление fullstack навыков',
+    goal: 'Сделать ещё один fullstack проект',
+    project: '🎯 Проект недели: Таск-менеджер (типа Trello)',
+    days: {
+      1: [
+        { t: '💻 Архитектура, схема БД (users, boards, lists, cards)', xp: 70, badge: 'project' },
+        { t: '💻 Backend: API для CRUD', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💻 Frontend: доски, списки, карточки', xp: 80, badge: 'project' },
+        { t: '💻 Drag-and-drop карточек между списками', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Авторизация, совместный доступ к доскам', xp: 70, badge: 'project' },
+        { t: '💻 Комментарии, метки, дедлайны', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Финализация, стили', xp: 60, badge: 'project' },
+        { t: '💻 Деплой (Vercel + Railway)', xp: 50, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 README, демо', xp: 40, badge: 'project' },
+        { t: '📤 Залить на GitHub', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '📝 Ревью месяца 11 + план на месяц 12', xp: 60 }
+      ]
+    }
+  },
+
+  // ============ МЕСЯЦ 12: Портфолио + джобхант ============
+  { // Неделя 45
+    title: 'Месяц 12 · Неделя 45 — Портфолио-сайт',
+    topic: 'Личный сайт-визитка',
+    goal: 'Сделать красивый портфолио-сайт',
+    project: '🎯 Проект недели: Портфолио на React + TypeScript',
+    days: {
+      1: [
+        { t: '💻 Дизайн: секции (Hero, About, Skills, Projects, Contact)', xp: 60, badge: 'project' },
+        { t: '💻 Настройка проекта: Vite + React + TS + Tailwind', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💻 Hero-секция: анимации, имя, роль, CTA', xp: 70, badge: 'project' },
+        { t: '💻 About: история, фото, интересы', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Skills: иконки технологий, уровни', xp: 60, badge: 'project' },
+        { t: '💻 Projects: карточки с лучшими 5-6 проектами', xp: 70, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Contact: форма, соцсети, email', xp: 60, badge: 'project' },
+        { t: '💻 Темная/светлая тема, адаптив, анимации', xp: 60, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Финализация, SEO, метрики', xp: 50, badge: 'project' },
+        { t: '📤 Деплой на Vercel с кастомным доменом (опционально)', xp: 30, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 46
+    title: 'Месяц 12 · Неделя 46 — Резюме, LinkedIn, GitHub',
+    topic: 'Упаковка себя как специалиста',
+    goal: 'Подготовить все материалы для поиска работы',
+    project: '🎯 Проект недели: Резюме + LinkedIn + GitHub README',
+    days: {
+      1: [
+        { t: '📝 Резюме: структура (контакты, summary, skills, опыт, проекты, образование)', xp: 70, badge: 'book' },
+        { t: '📝 Резюме: английский + русский варианты', xp: 60, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💼 LinkedIn: заполнение профиля, фото, headline, about', xp: 60, badge: 'book' },
+        { t: '💼 LinkedIn: добавление проектов, навыков, рекомендации', xp: 60, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💼 GitHub: красивый profile README, закреплённые репозитории', xp: 60, badge: 'git' },
+        { t: '💼 GitHub: README для каждого проекта (скриншоты, демо, стек)', xp: 60, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💼 hh.ru / Habr Career: заполнение профиля', xp: 50, badge: 'book' },
+        { t: '💼 Сопроводительное письмо (шаблон + персонализация)', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💼 Список из 30 компаний для отклика (Junior Frontend)', xp: 50, badge: 'book' },
+        { t: '💼 Нетворкинг: добавиться к 20 рекрутерам/разработчикам', xp: 40, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 47
+    title: 'Месяц 12 · Неделя 47 — Подготовка к собеседованиям',
+    topic: 'Теория + практика интервью',
+    goal: 'Уверенно проходить технические интервью',
+    project: '🎯 Проект недели: Mock-интервью + 50 задач',
+    days: {
+      1: [
+        { t: '📚 Частые вопросы Junior Frontend: JS (типы, замыкания, this, event loop)', xp: 70, badge: 'js' },
+        { t: '💻 Решение 10 задач по этим темам', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Вопросы по React: хуки, рендер, оптимизация, Context', xp: 70, badge: 'react' },
+        { t: '💻 Решение 10 задач / написание примеров', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Вопросы по HTML/CSS: семантика, BEM, Flexbox/Grid, адаптив', xp: 70, badge: 'html' },
+        { t: '📚 Вопросы по TypeScript: типы, дженерики, utility types', xp: 60, badge: 'ts' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Live-coding практика: 10 задач за 2 часа', xp: 80, badge: 'js' },
+        { t: '💻 Задача на реализацию: debounce, throttle, Promise.all', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💻 Mock-интервью самому себе (записать на видео)', xp: 70, badge: 'book' },
+        { t: '💻 Разбор поведения: STAR-метод для behavioral вопросов', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 48
+    title: 'Месяц 12 · Неделя 48 — Активный джобхант',
+    topic: 'Массовые отклики, собеседования',
+    goal: 'Получить первые офферы',
+    project: '🎯 Проект недели: 50+ откликов, 3+ собеседования',
+    days: {
+      1: [
+        { t: '💼 10 откликов на hh.ru / LinkedIn (Junior Frontend)', xp: 60, badge: 'book' },
+        { t: '💼 Написание персонализированных cover letter', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💼 Ещё 10 откликов + follow-up', xp: 60, badge: 'book' },
+        { t: '💻 LeetCode: 5 задач Easy (подготовка к тестовым)', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💼 10 откликов + нетворкинг (сообщества, чаты)', xp: 60, badge: 'book' },
+        { t: '💻 Решение тестового задания (если пришло)', xp: 80, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💼 10 откликов + подготовка к собеседованиям', xp: 60, badge: 'book' },
+        { t: '💻 Собеседование (если назначено) / mock-интервью', xp: 80, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💼 Анализ отказов/успехов, корректировка резюме', xp: 50, badge: 'book' },
+        { t: '💼 Ещё 10 откликов', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 49
+    title: 'Месяц 12 · Неделя 49 — Джобхант + тестовые',
+    topic: 'Продолжение поиска работы',
+    goal: 'Довести джобхант до результата',
+    project: '🎯 Проект недели: Тестовые задания + собеседования',
+    days: {
+      1: [
+        { t: '💼 10 откликов + follow-up по предыдущим', xp: 60, badge: 'book' },
+        { t: '💻 Решение тестового задания', xp: 80, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💼 10 откликов + нетворкинг', xp: 60, badge: 'book' },
+        { t: '💻 Собеседование / mock', xp: 80, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💻 Решение тестового задания (если есть)', xp: 80, badge: 'project' },
+        { t: '💼 10 откликов', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💼 10 откликов + подготовка', xp: 60, badge: 'book' },
+        { t: '💻 Собеседование', xp: 80, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💼 Анализ прогресса, корректировка стратегии', xp: 50, badge: 'book' },
+        { t: '💼 10 откликов', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 50
+    title: 'Месяц 12 · Неделя 50 — Финальный push',
+    topic: 'Активный поиск + офферы',
+    goal: 'Получить оффер',
+    project: '🎯 Проект недели: Первый оффер 🎯',
+    days: {
+      1: [
+        { t: '💼 10 откликов + follow-up', xp: 60, badge: 'book' },
+        { t: '💻 Собеседование / тестовое', xp: 80, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '💼 10 откликов', xp: 50, badge: 'book' },
+        { t: '💻 Собеседование', xp: 80, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '💼 10 откликов + нетворкинг', xp: 60, badge: 'book' },
+        { t: '💻 Тестовое задание', xp: 80, badge: 'project' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💼 10 откликов', xp: 50, badge: 'book' },
+        { t: '💻 Собеседование', xp: 80, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '💼 Переговоры по офферу (если есть)', xp: 60, badge: 'book' },
+        { t: '💼 10 откликов', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 51
+    title: 'Месяц 12 · Неделя 51 — Закрепление оффера',
+    topic: 'Финализация трудоустройства',
+    goal: 'Принять оффер, подготовиться к первой неделе',
+    project: '🎯 Проект недели: Подготовка к работе',
+    days: {
+      1: [
+        { t: '💼 Подписание оффера, обсуждение условий', xp: 60, badge: 'book' },
+        { t: '💼 5 откликов (на случай, если не получится)', xp: 40, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📚 Изучение стека компании (если известен)', xp: 70, badge: 'js' },
+        { t: '📚 Повторение: React, TypeScript, тесты', xp: 60, badge: 'react' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📚 Git workflow: feature branches, PR, code review', xp: 60, badge: 'git' },
+        { t: '📚 Agile/Scrum основы: daily, sprint, retro', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '💻 Настройка окружения для новой работы', xp: 50, badge: 'git' },
+        { t: '💻 Повторение: 10 задач по JS/React', xp: 60, badge: 'js' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '📖 Книга: «Чистый код» Роберта Мартина — главы 1-3', xp: 60, badge: 'book' },
+        { t: '💼 Подготовка вопросов команде на онбординге', xp: 40, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с другом', xp: 20 }
+      ],
+      0: [
+        { t: '🧘 Отдых', xp: 10 },
+        { t: '📝 Ревью недели + план', xp: 40 }
+      ]
+    }
+  },
+  { // Неделя 52
+    title: 'Месяц 12 · Неделя 52 — Итоги года 🎉',
+    topic: 'Подведение итогов, празднование, план на год 2',
+    goal: 'Осознать прогресс, отдохнуть, спланировать',
+    project: '🎯 Проект недели: Итоговый пост + план на год 2',
+    days: {
+      1: [
+        { t: '📝 Итоги года: список всех проектов, навыков, достижений', xp: 70, badge: 'book' },
+        { t: '💻 Обновление GitHub-профиля, портфолио', xp: 50, badge: 'git' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      2: [
+        { t: '📝 Итоговый пост в блог / LinkedIn / Telegram', xp: 60, badge: 'book' },
+        { t: '💼 Обновление резюме с новыми проектами', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      3: [
+        { t: '📅 План на год 2: цели, навыки, проекты', xp: 70, badge: 'book' },
+        { t: '📖 Книга: «Чистый код» — главы 4-7', xp: 60, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      4: [
+        { t: '🧘 Отдых от кода (1 день полностью)', xp: 30 },
+        { t: '💼 Финальные отклики (если ещё в поиске)', xp: 40, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      5: [
+        { t: '🎉 Празднование окончания года 1!', xp: 100 },
+        { t: '📝 Благодарность себе за путь', xp: 50, badge: 'book' },
+        { t: '🇬🇧 Английский 30 мин', xp: 40, badge: 'en' }
+      ],
+      6: [
+        { t: '🍻 Встреча с друзьями (Вадик + Полина + Никита)', xp: 40 }
+      ],
+      0: [
+        { t: '🏆 ГОД 1 ЗАВЕРШЁН! Ты — Junior Frontend Developer 🎉', xp: 200 },
+        { t: '📅 Переход к Году 2 (вкладка «Годы 2–5»)', xp: 50 }
+      ]
+    }
+  }
 ];
 
-function getTopicForDay(phase, dayInPhase) {
-  const map = {
-    'JavaScript — основы': jsTopicsBasics,
-    'JavaScript — продвинутый': jsTopicsAdvanced,
-    'TypeScript': tsTopics,
-    'React': reactTopics,
-    'Node.js + Портфолио': nodeTopics
-  };
-  const topics = map[phase.name] || [];
-  return topics[dayInPhase % topics.length];
-}
-
+/* =========================
+   BUILD DAY TASKS
+   ========================= */
 function buildDayTasks(isoDate) {
   const start = getYear1Start();
   const dayNum = daysBetween(start, isoDate);
   if (dayNum < 0 || dayNum >= 365) return [];
 
-  const phase = getPhase(dayNum);
-  const phaseStart = { 'JavaScript — основы': 0, 'JavaScript — продвинутый': 60, 'TypeScript': 120, 'React': 180, 'Node.js + Портфолио': 270 }[phase.name];
-  const dayInPhase = dayNum - phaseStart;
-  const topic = getTopicForDay(phase, dayInPhase);
+  const weekNum = Math.floor(dayNum / 7); // 0..51
+  const dayOfWeek = getDayOfWeek(isoDate); // 0=Sun, 1=Mon, ..., 6=Sat
+  // Convert to 1=Mon..7=Sun for our data structure
+  const dowKey = dayOfWeek === 0 ? 0 : dayOfWeek; // 0=Sun, 1=Mon..6=Sat
 
-  const dow = getDayOfWeek(isoDate);
-  const isWeekend = dow === 0 || dow === 6;
+  if (weekNum >= YEAR1.length) return [];
+  const week = YEAR1[weekNum];
+  const dayTasks = week.days[dowKey] || week.days[1] || [];
 
+  // Always add routine tasks
   const tasks = [];
-
-  // Morning routine tasks
   tasks.push({ key: 'routine_morning', text: '🌅 Режим: подъём, душ, завтрак по расписанию', xp: 30 });
-  tasks.push({ key: 'routine_evening', text: '🌙 Режим: ужин, подготовка ко сну, отбой до 00:00', xp: 20 });
+  tasks.push({ key: 'routine_evening', text: '🌙 Режим: ужин, отбой до 00:00', xp: 20 });
 
-  // Main study block
-  tasks.push({ key: 'study_main', text: `📚 Учёба (3 часа): ${topic}`, xp: 100, badge: phase.badge });
+  // Add day-specific tasks
+  dayTasks.forEach((t, i) => {
+    tasks.push({
+      key: `study_${i}`,
+      text: t.t,
+      sub: t.s || '',
+      xp: t.xp,
+      badge: t.badge
+    });
+  });
 
-  // English
-  tasks.push({ key: 'study_en', text: '🇬🇧 Английский 30 мин (Duolingo/слова/аудирование)', xp: 40, badge: 'en' });
-
-  // Background languages (3x per week)
-  if (dow === 1 || dow === 3 || dow === 5) {
+  // Python/C++ background (Mon/Wed/Fri — Python, Tue/Thu — C++)
+  if (dowKey === 1 || dowKey === 3 || dowKey === 5) {
     tasks.push({ key: 'study_py', text: '🐍 Python фоном (30 мин): синтаксис, задачи', xp: 30, badge: 'py' });
   }
-  if (dow === 2 || dow === 4) {
+  if (dowKey === 2 || dowKey === 4) {
     tasks.push({ key: 'study_cpp', text: '⚙️ C++ фоном (30 мин): основы, алгоритмы', xp: 30, badge: 'cpp' });
   }
 
-  // Practice
-  if (!isWeekend) {
-    tasks.push({ key: 'practice', text: '💻 Практика: мини-проект / задачи на тему дня', xp: 60, badge: phase.badge });
-  }
-
-  // Weekend: friends
-  if (isWeekend) {
-    const friends = ['Вадик', 'Полина', 'Никита'];
-    const friendIdx = Math.floor(dayNum / 7) % 3;
-    tasks.push({ key: 'friends', text: `🍻 Встреча с другом: ${friends[friendIdx]}`, xp: 20 });
-    tasks.push({ key: 'rest', text: '🧘 Отдых без чувства вины (минимум 2 часа)', xp: 10 });
-  }
-
-  // Weekly review on Sunday
-  if (dow === 0) {
-    tasks.push({ key: 'review', text: '📝 Ревью недели: что получилось, план на следующую', xp: 40 });
-  }
-
-  // Milestone tasks every 30 days
-  if ((dayNum + 1) % 30 === 0) {
-    tasks.push({ key: 'milestone', text: `🎯 Рубеж: ${Math.floor(dayNum/30)+1}-й месяц — подвести итоги, обновить резюме`, xp: 150 });
-  }
-
-  // Final month
-  if (dayNum >= 335) {
-    tasks.push({ key: 'jobhunt', text: '🚀 Активный джобхант: 10 откликов в день', xp: 80 });
-  }
-
-  return tasks;
+  return { tasks, week };
 }
 
 /* =========================
@@ -743,13 +2777,27 @@ function taskKey(prefix, id, date) {
   return `${prefix}:${id}:${date}`;
 }
 
-function renderTaskList(tasks, containerId, dateKey, prefix) {
+function renderTaskList(tasks, containerId, dateKey, prefix, weekInfo) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
 
-  // Custom tasks
-  const customs = state.customTasks[dateKey] || [];
+  // Week banner
+  const bannerId = containerId === 'todayTasks' ? 'todayWeekBanner' : 'dayWeekBanner';
+  const banner = document.getElementById(bannerId);
+  if (banner && weekInfo) {
+    banner.innerHTML = `
+      <div class="week-banner">
+        <h3>${weekInfo.title}</h3>
+        <p><strong>Тема:</strong> ${weekInfo.topic}</p>
+        <p><strong>Цель:</strong> ${weekInfo.goal}</p>
+        ${weekInfo.project ? `<div class="week-project"><strong>Проект недели:</strong> ${weekInfo.project}</div>` : ''}
+      </div>
+    `;
+  } else if (banner) {
+    banner.innerHTML = '';
+  }
 
+  const customs = state.customTasks[dateKey] || [];
   const allTasks = [
     ...tasks.map(t => ({ ...t, type: 'preset' })),
     ...customs.map(t => ({ ...t, key: 'custom:'+t.id, type: 'custom' }))
@@ -765,6 +2813,7 @@ function renderTaskList(tasks, containerId, dateKey, prefix) {
       <span class="task-text">
         ${task.text}
         ${task.badge ? `<span class="badge ${task.badge}">${task.badge.toUpperCase()}</span>` : ''}
+        ${task.sub ? `<small>${task.sub}</small>` : ''}
       </span>
       <span class="task-xp">+${task.xp} XP</span>
       ${task.type === 'custom' ? `<button class="task-del" data-key="${key}" title="Удалить">×</button>` : ''}
@@ -779,11 +2828,11 @@ function renderTaskList(tasks, containerId, dateKey, prefix) {
       const li = e.target.closest('.task-item');
       if (e.target.checked) {
         state.completedTasks[key] = true;
-        addXp(xp, 'task');
+        addXp(xp);
         li.classList.add('done');
       } else {
         delete state.completedTasks[key];
-        addXp(-xp, 'task');
+        addXp(-xp);
         li.classList.remove('done');
       }
       renderHeader();
@@ -794,9 +2843,9 @@ function renderTaskList(tasks, containerId, dateKey, prefix) {
     btn.addEventListener('click', e => {
       const key = e.target.dataset.key;
       if (!confirm('Удалить задачу?')) return;
-      if (state.completedTasks[key]) addXp(-parseInt(e.target.closest('.task-item').querySelector('.task-xp').textContent.match(/\d+/)[0]), 'task');
+      const xpMatch = e.target.closest('.task-item').querySelector('.task-xp').textContent.match(/\d+/);
+      if (xpMatch && state.completedTasks[key]) addXp(-parseInt(xpMatch[0]));
       delete state.completedTasks[key];
-      // remove from customs
       for (const d in state.customTasks) {
         state.customTasks[d] = state.customTasks[d].filter(t => 'custom:'+t.id !== key);
       }
@@ -814,22 +2863,12 @@ function renderToday() {
   const today = todayStr();
   document.getElementById('todayDateLabel').textContent = formatDate(today);
 
-  // Build today's tasks based on year1 day if applicable
-  const start = getYear1Start();
-  const dayNum = daysBetween(start, today);
-  let tasks = [];
-  if (dayNum >= 0 && dayNum < 365) {
-    tasks = buildDayTasks(today);
-  } else {
-    // generic tasks
-    tasks = [
-      { key: 'routine_morning', text: '🌅 Режим дня по расписанию', xp: 30 },
-      { key: 'study_main', text: '📚 Учёба 3+ часа по текущему плану', xp: 100 },
-      { key: 'study_en', text: '🇬🇧 Английский 30 мин', xp: 40 },
-      { key: 'routine_evening', text: '🌙 Отбой до 00:00', xp: 20 }
-    ];
+  const result = buildDayTasks(today);
+  if (!result || !result.tasks.length) {
+    renderTaskList([{ key: 'generic', text: '📚 Учёба по текущему плану', xp: 100 }], 'todayTasks', 'today:'+today, 'today', null);
+    return;
   }
-  renderTaskList(tasks, 'todayTasks', 'today:'+today, 'today');
+  renderTaskList(result.tasks, 'todayTasks', 'today:'+today, 'today', result.week);
 }
 
 function addCustomTask(scope) {
@@ -871,12 +2910,17 @@ function renderDay() {
   } else if (dayNum >= 365) {
     info.textContent = 'Год 1 завершён 🎉';
   } else {
-    const phase = getPhase(dayNum);
-    info.innerHTML = `День <strong style="color:var(--text)">${dayNum+1}</strong> из 365 · <span class="badge ${phase.badge}">${phase.name}</span>`;
+    const weekNum = Math.floor(dayNum / 7) + 1;
+    const monthNum = Math.floor(dayNum / 30) + 1;
+    info.innerHTML = `Месяц <strong style="color:var(--text)">${monthNum}</strong> · Неделя <strong style="color:var(--text)">${weekNum}</strong> · День <strong style="color:var(--text)">${dayNum+1}</strong> из 365`;
   }
 
-  const tasks = buildDayTasks(currentDay);
-  renderTaskList(tasks, 'dayTasks', currentDay, 'day');
+  const result = buildDayTasks(currentDay);
+  if (!result || !result.tasks.length) {
+    renderTaskList([{ key: 'generic', text: '📚 Учёба по текущему плану', xp: 100 }], 'dayTasks', currentDay, 'day', null);
+    return;
+  }
+  renderTaskList(result.tasks, 'dayTasks', currentDay, 'day', result.week);
 }
 
 function changeDay(delta) {
@@ -1005,23 +3049,19 @@ function renderHabitGroup(containerId, habits, count, type) {
 
   habits.forEach(h => {
     const log = state.habitLog[h.id] || {};
-    // streak
     let streak = 0;
-    let d = today;
     if (type === 'daily') {
+      let d = today;
       while (log[d]) { streak++; d = addDays(d, -1); }
     } else {
-      // weekly: count consecutive weeks with at least one mark
-      // simplified: count consecutive weeks (Mon-Sun) with any mark
-      const weekStart = getWeekStart(d);
-      let ws = weekStart;
-      while (hasAnyMarkInWeek(log, ws)) { streak++; ws = addDays(ws, -7); }
+      const ws = getWeekStart(today);
+      let w = ws;
+      while (hasAnyMarkInWeek(log, w)) { streak++; w = addDays(w, -7); }
     }
 
     const card = document.createElement('div');
     card.className = 'habit-card';
 
-    // days cells
     let cells = '';
     if (type === 'daily') {
       for (let i = count - 1; i >= 0; i--) {
@@ -1051,7 +3091,6 @@ function renderHabitGroup(containerId, habits, count, type) {
     container.appendChild(card);
   });
 
-  // click handlers
   container.querySelectorAll('.habit-day').forEach(cell => {
     cell.addEventListener('click', () => {
       const habitId = cell.dataset.habit;
@@ -1062,32 +3101,28 @@ function renderHabitGroup(containerId, habits, count, type) {
       if (date) {
         if (state.habitLog[habitId][date]) {
           delete state.habitLog[habitId][date];
-          addXp(-20, 'habit');
+          addXp(-20);
         } else {
           state.habitLog[habitId][date] = true;
-          addXp(20, 'habit');
-          // streak bonus
+          addXp(20);
           const newStreak = calcStreak(habitId, 'daily');
-          if (newStreak === 7) addXp(50, 'streak7');
-          if (newStreak === 30) addXp(150, 'streak30');
-          if (newStreak === 100) addXp(500, 'streak100');
+          if (newStreak === 7) addXp(50);
+          if (newStreak === 30) addXp(150);
+          if (newStreak === 100) addXp(500);
           if (newStreak > state.bestStreak) state.bestStreak = newStreak;
         }
       } else if (week) {
         if (hasAnyMarkInWeek(state.habitLog[habitId], week)) {
-          // remove all marks in that week
           for (let i = 0; i < 7; i++) {
             delete state.habitLog[habitId][addDays(week, i)];
           }
-          addXp(-30, 'habit');
+          addXp(-30);
         } else {
-          // mark today in that week (or week's today-equivalent)
           const today = todayStr();
           const todayDow = getDayOfWeek(today);
-          const weekDow = getDayOfWeek(week);
           const markDate = addDays(week, todayDow);
           state.habitLog[habitId][markDate] = true;
-          addXp(30, 'habit');
+          addXp(30);
         }
       }
       saveState();
@@ -1097,13 +3132,6 @@ function renderHabitGroup(containerId, habits, count, type) {
   });
 }
 
-function getWeekStart(iso) {
-  const d = new Date(iso + 'T00:00:00');
-  const day = d.getDay(); // 0 Sun
-  const diff = day === 0 ? 6 : day - 1; // week starts Monday
-  d.setDate(d.getDate() - diff);
-  return d.toISOString().slice(0,10);
-}
 function hasAnyMarkInWeek(log, weekStart) {
   for (let i = 0; i < 7; i++) {
     if (log[addDays(weekStart, i)]) return true;
@@ -1152,10 +3180,8 @@ function drawChart30() {
   ctx.clearRect(0,0,W,H);
   const today = todayStr();
   const days = 30;
-  const allHabits = [...state.habits.daily, ...state.habits.weekly];
-  if (!allHabits.length) return;
+  if (!state.habits.daily.length) return;
 
-  // for each day, compute % habits done
   const data = [];
   for (let i = days - 1; i >= 0; i--) {
     const date = addDays(today, -i);
@@ -1163,14 +3189,13 @@ function drawChart30() {
     state.habits.daily.forEach(h => {
       if (state.habitLog[h.id]?.[date]) done++;
     });
-    data.push({ date, pct: total ? done/total : 0, done, total });
+    data.push({ date, pct: total ? done/total : 0 });
   }
 
   const pad = { l: 40, r: 20, t: 20, b: 40 };
   const cw = W - pad.l - pad.r;
   const ch = H - pad.t - pad.b;
 
-  // grid
   ctx.strokeStyle = '#2a3142'; ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = pad.t + ch * (i/4);
@@ -1179,7 +3204,6 @@ function drawChart30() {
     ctx.fillText((100 - i*25) + '%', 5, y + 4);
   }
 
-  // bars
   const barW = cw / days * 0.7;
   data.forEach((d, i) => {
     const x = pad.l + (cw / days) * i + (cw / days - barW) / 2;
@@ -1192,7 +3216,6 @@ function drawChart30() {
     ctx.fillRect(x, y, barW, h);
   });
 
-  // line
   ctx.strokeStyle = '#ec4899'; ctx.lineWidth = 2;
   ctx.beginPath();
   data.forEach((d, i) => {
@@ -1202,17 +3225,14 @@ function drawChart30() {
   });
   ctx.stroke();
 
-  // x labels
   ctx.fillStyle = '#9ca3af'; ctx.font = '10px sans-serif';
   data.forEach((d, i) => {
     if (i % 5 === 0 || i === days - 1) {
       const x = pad.l + (cw / days) * i + (cw / days) / 2;
-      const label = d.date.slice(5);
-      ctx.fillText(label, x - 12, H - pad.b + 15);
+      ctx.fillText(d.date.slice(5), x - 12, H - pad.b + 15);
     }
   });
 
-  // avg
   const avg = data.reduce((s,d) => s + d.pct, 0) / data.length;
   ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 12px sans-serif';
   ctx.fillText(`Среднее: ${Math.round(avg*100)}%`, pad.l, pad.t - 5);
@@ -1234,7 +3254,6 @@ function drawChart7() {
   const cw = W - pad.l - pad.r;
   const ch = H - pad.t - pad.b;
 
-  // grid
   ctx.strokeStyle = '#2a3142';
   for (let i = 0; i <= 4; i++) {
     const y = pad.t + ch * (i/4);
@@ -1253,7 +3272,6 @@ function drawChart7() {
     data.push({ date, pct: total ? done/total : 0, dayName: new Date(date+'T00:00:00').toLocaleDateString('ru-RU', {weekday:'short'}) });
   }
 
-  // area
   ctx.beginPath();
   data.forEach((d, i) => {
     const x = pad.l + (cw / (days-1)) * i;
@@ -1269,7 +3287,6 @@ function drawChart7() {
   ctx.fillStyle = grad;
   ctx.fill();
 
-  // line
   ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3;
   ctx.beginPath();
   data.forEach((d, i) => {
@@ -1279,7 +3296,6 @@ function drawChart7() {
   });
   ctx.stroke();
 
-  // points + labels
   data.forEach((d, i) => {
     const x = pad.l + (cw / (days-1)) * i;
     const y = pad.t + ch - ch * d.pct;
@@ -1323,11 +3339,9 @@ function drawChartStreak() {
     const y = pad.t + (ch / all.length) * i + (ch / all.length - barH) / 2;
     const w = cw * (streak / maxStreak);
 
-    // label
     ctx.fillStyle = '#e5e7eb'; ctx.font = '12px sans-serif';
     ctx.fillText(h.name.slice(0, 22), 10, y + barH/2 + 4);
 
-    // bar
     const grad = ctx.createLinearGradient(pad.l, 0, pad.l + w, 0);
     if (streak >= 30) { grad.addColorStop(0, '#ef4444'); grad.addColorStop(1, '#f59e0b'); }
     else if (streak >= 7) { grad.addColorStop(0, '#f59e0b'); grad.addColorStop(1, '#10b981'); }
@@ -1335,7 +3349,6 @@ function drawChartStreak() {
     ctx.fillStyle = grad;
     ctx.fillRect(pad.l, y, w, barH);
 
-    // value
     ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 12px sans-serif';
     ctx.fillText(`${streak} 🔥`, pad.l + w + 6, y + barH/2 + 4);
   });
@@ -1361,20 +3374,14 @@ function renderHeader() {
   document.getElementById('xpFill').style.width = Math.min(100, progress * 100) + '%';
   document.getElementById('totalXp').textContent = state.totalXp;
 
-  // today stats
-  const today = todayStr();
-  let done = 0, total = 0;
-  // count today tasks
   const todayTasks = document.querySelectorAll('#todayTasks .task-item');
-  todayTasks.forEach(t => {
-    total++;
-    if (t.classList.contains('done')) done++;
-  });
+  let done = 0, total = todayTasks.length;
+  todayTasks.forEach(t => { if (t.classList.contains('done')) done++; });
   document.getElementById('todayDone').textContent = `${done}/${total}`;
   document.getElementById('totalTasks').textContent = Object.keys(state.completedTasks).length;
   document.getElementById('bestStreak').textContent = state.bestStreak + ' 🔥';
 
-  // habits today %
+  const today = todayStr();
   let hDone = 0, hTotal = state.habits.daily.length;
   state.habits.daily.forEach(h => {
     if (state.habitLog[h.id]?.[today]) hDone++;
@@ -1432,12 +3439,11 @@ window.addEventListener('resize', () => {
 
 renderAll();
 
-// Enter key for adding tasks
 document.getElementById('newTodayTask').addEventListener('keypress', e => { if (e.key === 'Enter') addCustomTask('today'); });
 document.getElementById('newDayTask').addEventListener('keypress', e => { if (e.key === 'Enter') addCustomTask('day'); });
 document.getElementById('newHabitName').addEventListener('keypress', e => { if (e.key === 'Enter') addHabit(); });
 
-console.log('%c🚀 LifeOS загружен. Удачи на пути к Senior!', 'color:#8b5cf6;font-size:14px;font-weight:bold');
+console.log('%c🚀 LifeOS загружен. 52 недели расписаны. Удачи на пути к Junior!', 'color:#8b5cf6;font-size:14px;font-weight:bold');
 </script>
 </body>
 </html>
