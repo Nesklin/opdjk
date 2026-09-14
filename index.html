@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0a0e1a">
-<title>LifeOS</title>
+<title>LifeOS — Global Dev Platform</title>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { getDatabase, ref, set, onValue, push, get, child, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
   
   const firebaseConfig = {
     apiKey: "AIzaSyA97O7tkAir-P1A2-7sr3Ashj0XjewV0Zs",
@@ -24,25 +24,27 @@
   const app = initializeApp(firebaseConfig);
   window.fbAuth = getAuth(app);
   window.fbDb = getDatabase(app);
-  window.fbFn = { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, ref, set, onValue };
+  window.fbFn = { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, ref, set, onValue, push, get, child, update, remove };
 </script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   :root {
     --bg: #0a0e1a; --bg-2: #111827; --card: #1a1f2e; --card-2: #232938;
     --border: #2a3142; --text: #e5e7eb; --muted: #9ca3af;
-    --accent: #8b5cf6; --accent-2: #a78bfa; --green: #10b981;
-    --yellow: #f59e0b; --red: #ef4444; --pink: #ec4899;
+    --accent: var(--accent-color, #8b5cf6); --accent-2: var(--accent-color-2, #a78bfa);
+    --green: #10b981; --yellow: #f59e0b; --red: #ef4444; --pink: #ec4899;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  [data-theme="light"] {
+    --bg: #f8fafc; --bg-2: #f1f5f9; --card: #ffffff; --card-2: #f8fafc;
+    --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
   }
   html, body { overscroll-behavior: none; height: 100%; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg); color: var(--text); line-height: 1.6;
-    background-image: radial-gradient(circle at 10% 0%, rgba(139,92,246,0.15), transparent 40%), radial-gradient(circle at 90% 100%, rgba(236,72,153,0.12), transparent 40%);
+    background-image: radial-gradient(circle at 10% 0%, rgba(139,92,246,0.1), transparent 40%), radial-gradient(circle at 90% 100%, rgba(236,72,153,0.08), transparent 40%);
     padding-bottom: calc(90px + var(--safe-bottom));
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
   .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
   .icon { display: inline-block; width: 20px; height: 20px; vertical-align: middle; }
@@ -58,27 +60,23 @@
   .auth-box {
     background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(236,72,153,0.05));
     border: 1px solid var(--border); border-radius: 24px;
-    padding: 32px 24px; width: 100%; max-width: 420px; text-align: center;
+    padding: 32px 24px; width: 100%; max-width: 440px; text-align: center;
     backdrop-filter: blur(10px);
   }
   .auth-logo { margin-bottom: 12px; animation: float 3s ease-in-out infinite; }
   @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
   .auth-box h2 { margin-bottom: 8px; font-size: 28px; background: linear-gradient(135deg, #a78bfa, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .auth-box p { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
-  .auth-input {
+  .auth-input, .auth-select {
     width: 100%; padding: 14px; background: var(--bg-2); border: 1px solid var(--border);
     border-radius: 12px; color: var(--text); font-size: 16px; margin-bottom: 12px; outline: none;
-    transition: border-color 0.2s;
   }
-  .auth-input:focus { border-color: var(--accent); }
-  .auth-input.error { border-color: var(--red); }
+  .auth-input:focus, .auth-select:focus { border-color: var(--accent); }
   .auth-btn {
     width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), var(--pink));
     color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px;
-    transition: transform 0.1s;
   }
   .auth-btn:active { transform: scale(0.98); }
-  .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .auth-toggle { margin-top: 16px; font-size: 14px; color: var(--muted); cursor: pointer; }
   .auth-toggle span { color: var(--accent); font-weight: 600; }
   .guest-btn { margin-top: 24px; background: transparent; border: 1px solid var(--border); color: var(--muted); }
@@ -87,7 +85,11 @@
   .auth-progress { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; }
   .auth-progress-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
   .auth-progress-dot.active { background: var(--accent); }
-  .password-hint { font-size: 12px; color: var(--muted); margin-top: -8px; margin-bottom: 12px; text-align: left; }
+  
+  .lang-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; max-height: 280px; overflow-y: auto; }
+  .lang-chip { padding: 10px 8px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+  .lang-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .lang-chip:hover { border-color: var(--accent); }
 
   header {
     background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.08));
@@ -120,10 +122,7 @@
     border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom);
     z-index: 100; justify-content: space-around; padding-top: 8px;
   }
-  .mobile-nav-item {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
-    padding: 8px 0; color: var(--muted); font-size: 10px; cursor: pointer; border: none; background: transparent;
-  }
+  .mobile-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; color: var(--muted); font-size: 10px; cursor: pointer; border: none; background: transparent; }
   .mobile-nav-item.active { color: var(--accent-2); }
 
   .panel { display: none; }
@@ -134,11 +133,7 @@
   .card h2 { font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   
   .task-list { list-style: none; }
-  .task-item {
-    display: flex; align-items: flex-start; gap: 12px; padding: 14px;
-    background: var(--card-2); border-radius: 12px; margin-bottom: 8px;
-    border: 1px solid transparent; transition: all 0.2s;
-  }
+  .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px; background: var(--card-2); border-radius: 12px; margin-bottom: 8px; border: 1px solid transparent; transition: all 0.2s; }
   .task-item:active { transform: scale(0.99); background: var(--border); }
   .task-item.done { opacity: 0.5; }
   .task-item.done .task-text { text-decoration: line-through; color: var(--muted); }
@@ -146,10 +141,7 @@
   .task-item.next { border: 1px solid var(--green); box-shadow: 0 0 0 1px rgba(16,185,129,0.3); }
   .task-item.challenge { background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(239,68,68,0.05)); border-left: 3px solid var(--yellow); }
   
-  .task-item input[type="checkbox"] {
-    width: 24px; height: 24px; cursor: pointer; accent-color: var(--accent);
-    flex-shrink: 0; margin-top: 2px;
-  }
+  .task-item input[type="checkbox"] { width: 24px; height: 24px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0; margin-top: 2px; }
   .task-text { flex: 1; font-size: 15px; line-height: 1.4; min-width: 0; }
   .task-text small { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; word-break: break-word; }
   .task-time { color: var(--accent-2); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; margin-right: 4px; }
@@ -171,20 +163,15 @@
   .badge.challenge { background: rgba(245,158,11,0.15); color: var(--yellow); }
 
   .add-task { display: flex; gap: 8px; margin-top: 12px; }
-  .add-task input {
-    flex: 1; padding: 12px; background: var(--card-2); border: 1px solid var(--border);
-    border-radius: 10px; color: var(--text); font-size: 16px; outline: none;
-  }
+  .add-task input { flex: 1; padding: 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; outline: none; }
   .add-task input:focus { border-color: var(--accent); }
   .add-task input[type="number"] { width: 70px; text-align: center; }
   
-  button.btn {
-    padding: 12px 16px; background: linear-gradient(135deg, var(--accent), var(--pink));
-    color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 15px;
-  }
+  button.btn { padding: 12px 16px; background: linear-gradient(135deg, var(--accent), var(--pink)); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 15px; }
   button.btn:active { transform: scale(0.96); }
   button.btn.ghost { background: var(--card-2); border: 1px solid var(--border); color: var(--text); }
   button.btn.danger { background: linear-gradient(135deg, var(--red), #dc2626); }
+  button.btn.small { padding: 8px 12px; font-size: 13px; }
 
   .progress-mini { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 14px; background: var(--card-2); border-radius: 10px; }
   .progress-mini-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
@@ -193,101 +180,76 @@
   .progress-mini-value { font-size: 13px; font-weight: 600; color: var(--green); white-space: nowrap; }
 
   .quick-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-  .quick-actions button {
-    flex: 1; min-width: 140px; padding: 12px; background: var(--card-2); border: 1px solid var(--border);
-    border-radius: 10px; color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-  }
+  .quick-actions button { flex: 1; min-width: 140px; padding: 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .quick-actions button:active { background: var(--border); }
 
-  .challenge-card {
-    background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.08));
-    border: 1px solid var(--yellow); border-radius: 14px; padding: 16px; margin-bottom: 12px;
-  }
-  .challenge-card h3 { color: var(--yellow); font-size: 16px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
-  .challenge-card p { color: var(--text); font-size: 14px; }
+  /* Achievement badges */
+  .achievement-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .achievement { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; opacity: 0.4; transition: all 0.3s; }
+  .achievement.unlocked { opacity: 1; border-color: var(--yellow); box-shadow: 0 0 12px rgba(245,158,11,0.3); }
+  .achievement-icon { font-size: 32px; margin-bottom: 6px; }
+  .achievement-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .achievement-desc { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
-  .mood-card {
-    background: var(--card-2); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px;
-  }
-  .mood-stars { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
-  .mood-star { font-size: 32px; cursor: pointer; opacity: 0.3; transition: all 0.2s; }
-  .mood-star.active { opacity: 1; transform: scale(1.2); }
-  .mood-star:hover { opacity: 0.7; }
-  .mood-input { width: 100%; padding: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; margin-top: 8px; outline: none; }
+  /* Heatmap */
+  .heatmap { display: grid; grid-template-columns: repeat(52, 1fr); gap: 2px; overflow-x: auto; padding: 8px 0; }
+  .heatmap-cell { width: 12px; height: 12px; border-radius: 2px; background: var(--card-2); }
+  .heatmap-cell.l1 { background: rgba(139,92,246,0.3); }
+  .heatmap-cell.l2 { background: rgba(139,92,246,0.5); }
+  .heatmap-cell.l3 { background: rgba(139,92,246,0.7); }
+  .heatmap-cell.l4 { background: rgba(139,92,246,1); }
 
-  .resource-card {
-    background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(99,102,241,0.08));
-    border: 1px solid var(--blue); border-radius: 14px; padding: 16px; margin-bottom: 12px;
-  }
-  .resource-card h3 { color: var(--blue); font-size: 16px; margin-bottom: 6px; }
-  .resource-card a { color: var(--accent-2); text-decoration: none; font-size: 14px; }
-  .resource-card a:hover { text-decoration: underline; }
+  /* Guild */
+  .guild-card { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.08)); border: 1px solid var(--accent); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .guild-code { font-family: 'Courier New', monospace; font-size: 20px; font-weight: 700; letter-spacing: 4px; color: var(--accent-2); background: var(--card-2); padding: 8px; border-radius: 8px; text-align: center; margin: 8px 0; }
+  .guild-member { display: flex; justify-content: space-between; padding: 8px; background: var(--card-2); border-radius: 8px; margin-bottom: 6px; }
+  .guild-rank-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--card-2); border-radius: 10px; margin-bottom: 8px; }
+  .guild-rank-num { font-size: 20px; font-weight: 700; color: var(--accent-2); min-width: 30px; }
 
-  .quote-card {
-    background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.08));
-    border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px;
-    text-align: center;
-  }
-  .quote-text { font-size: 15px; font-style: italic; color: var(--text); margin-bottom: 6px; }
-  .quote-author { font-size: 12px; color: var(--muted); }
+  /* Shop */
+  .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .shop-item { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center; }
+  .shop-item-icon { font-size: 36px; margin-bottom: 6px; }
+  .shop-item-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .shop-item-price { font-size: 12px; color: var(--yellow); margin-bottom: 8px; }
 
-  .progress-ring {
-    width: 100px; height: 100px; transform: rotate(-90deg);
-  }
-  .progress-ring-bg { fill: none; stroke: var(--card-2); stroke-width: 8; }
-  .progress-ring-fill {
-    fill: none; stroke: url(#ringGrad); stroke-width: 8; stroke-linecap: round;
-    transition: stroke-dashoffset 0.6s ease;
-  }
+  /* Flashcards */
+  .flashcard { background: linear-gradient(135deg, var(--card), var(--card-2)); border: 1px solid var(--border); border-radius: 16px; padding: 40px 20px; text-align: center; min-height: 200px; display: flex; flex-direction: column; justify-content: center; cursor: pointer; transition: transform 0.3s; }
+  .flashcard.flipped { transform: rotateY(180deg); }
+  .flashcard-front, .flashcard-back { font-size: 18px; }
+  .flashcard-back { display: none; }
+  .flashcard.flipped .flashcard-front { display: none; }
+  .flashcard.flipped .flashcard-back { display: block; }
 
-  .timer-modal {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9998;
-    display: none; align-items: center; justify-content: center; padding: 24px;
-  }
-  .timer-modal.active { display: flex; }
-  .timer-box {
-    background: var(--card); border: 1px solid var(--border); border-radius: 20px;
-    padding: 32px; max-width: 400px; width: 100%; text-align: center;
-  }
-  .timer-display { font-size: 64px; font-weight: 700; color: var(--accent-2); margin: 20px 0; font-variant-numeric: tabular-nums; }
-  .timer-controls { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+  /* Quiz */
+  .quiz-option { display: block; width: 100%; padding: 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: pointer; text-align: left; color: var(--text); font-size: 14px; }
+  .quiz-option:hover { border-color: var(--accent); }
+  .quiz-option.correct { background: rgba(16,185,129,0.2); border-color: var(--green); }
+  .quiz-option.wrong { background: rgba(239,68,68,0.2); border-color: var(--red); }
 
-  .typing-area {
-    background: var(--card-2); border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px; font-family: 'Courier New', monospace; font-size: 18px; line-height: 1.6;
-    margin: 12px 0; min-height: 100px; white-space: pre-wrap; word-break: break-all;
-  }
-  .typing-area .correct { color: var(--green); }
-  .typing-area .incorrect { color: var(--red); background: rgba(239,68,68,0.2); }
-  .typing-area .current { background: var(--accent); color: white; }
-  .typing-stats { display: flex; gap: 16px; justify-content: space-around; margin-top: 12px; }
-  .typing-stat { text-align: center; }
-  .typing-stat-value { font-size: 24px; font-weight: 700; color: var(--accent-2); }
-  .typing-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  /* Expenses */
+  .expense-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--card-2); border-radius: 10px; margin-bottom: 6px; }
+  .expense-category { display: inline-block; padding: 2px 8px; background: rgba(139,92,246,0.15); color: var(--accent-2); border-radius: 4px; font-size: 11px; margin-right: 8px; }
 
-  .snippet-card {
-    background: var(--card-2); border: 1px solid var(--border); border-radius: 12px;
-    padding: 14px; margin-bottom: 10px; position: relative;
-  }
-  .snippet-card h4 { color: var(--accent-2); margin-bottom: 6px; font-size: 15px; }
-  .snippet-card .snippet-tag { display: inline-block; padding: 2px 8px; background: rgba(139,92,246,0.15); color: var(--accent-2); border-radius: 4px; font-size: 10px; margin-bottom: 8px; }
-  .snippet-card pre {
-    background: var(--bg); padding: 10px; border-radius: 8px; overflow-x: auto;
-    font-size: 13px; color: var(--text); margin: 8px 0; white-space: pre-wrap;
-  }
-  .snippet-card .snippet-actions { display: flex; gap: 8px; justify-content: flex-end; }
-  .snippet-card .snippet-actions button {
-    padding: 6px 12px; background: var(--card); border: 1px solid var(--border);
-    border-radius: 6px; color: var(--text); font-size: 12px; cursor: pointer;
-  }
+  /* Projects */
+  .project-card { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+  .project-stage { display: flex; align-items: center; gap: 8px; padding: 8px; margin-top: 6px; }
+  .project-stage input[type="checkbox"] { accent-color: var(--accent); }
 
-  .toast {
-    position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: var(--accent); color: white; padding: 12px 24px; border-radius: 24px;
-    font-size: 14px; font-weight: 600; z-index: 1000; opacity: 0; transition: all 0.3s; pointer-events: none;
-    box-shadow: 0 4px 20px rgba(139,92,246,0.4); white-space: nowrap;
-  }
+  /* Forecast */
+  .forecast-card { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.08)); border: 1px solid var(--green); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+
+  /* Burnout */
+  .burnout-low { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05)); border-color: var(--green); }
+  .burnout-med { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05)); border-color: var(--yellow); }
+  .burnout-high { background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05)); border-color: var(--red); }
+
+  /* Theme picker */
+  .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+  .theme-swatch { height: 50px; border-radius: 10px; cursor: pointer; border: 2px solid var(--border); }
+  .theme-swatch.active { border-color: var(--text); }
+
+  .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--accent); color: white; padding: 12px 24px; border-radius: 24px; font-size: 14px; font-weight: 600; z-index: 1000; opacity: 0; transition: all 0.3s; pointer-events: none; box-shadow: 0 4px 20px rgba(139,92,246,0.4); white-space: nowrap; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   @media (max-width: 768px) {
@@ -298,6 +260,7 @@
     .stats-row { grid-template-columns: repeat(2, 1fr); }
     .add-task { flex-wrap: wrap; }
     .add-task input[type="number"] { width: 100%; }
+    .lang-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -306,10 +269,6 @@
 <svg style="position: absolute; width: 0; height: 0;">
   <defs>
     <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#8b5cf6"/>
-      <stop offset="100%" style="stop-color:#ec4899"/>
-    </linearGradient>
-    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#8b5cf6"/>
       <stop offset="100%" style="stop-color:#ec4899"/>
     </linearGradient>
@@ -323,6 +282,7 @@
       <div class="auth-progress-dot"></div>
       <div class="auth-progress-dot"></div>
       <div class="auth-progress-dot"></div>
+      <div class="auth-progress-dot"></div>
     </div>
     
     <div class="auth-step active" id="authStep1">
@@ -330,10 +290,23 @@
         <svg class="icon-xl" viewBox="0 0 24 24"><path class="icon-gradient" d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path class="icon-gradient" d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path class="icon-gradient" d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path class="icon-gradient" d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
       </div>
       <h2>LifeOS</h2>
-      <p>Твой путь за 5 лет · Junior → Senior</p>
+      <p id="authSubtitle">Твой путь за 5 лет · Junior → Senior</p>
+      <select id="authLang" class="auth-select" onchange="changeInterfaceLang(this.value)">
+        <option value="ru">🇺 Русский</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="es">🇸 Español</option>
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="zh">🇨🇳 中文</option>
+        <option value="ja">🇯🇵 日本語</option>
+        <option value="ko">🇰🇷 한국어</option>
+        <option value="pt">🇧🇷 Português</option>
+        <option value="ar">🇸 العربية</option>
+        <option value="hi">🇮🇳 हिन्दी</option>
+        <option value="tr">🇹🇷 Türkçe</option>
+      </select>
       <input type="email" id="authEmail" class="auth-input" placeholder="Email">
-      <input type="password" id="authPass" class="auth-input" placeholder="Пароль (мин. 8 символов, 1 цифра, 1 буква)">
-      <div class="password-hint">Минимум 8 символов, хотя бы 1 цифра и 1 буква</div>
+      <input type="password" id="authPass" class="auth-input" placeholder="Пароль (мин. 8 символов)">
       <button class="auth-btn" id="authActionBtn" onclick="handleAuth()">Войти</button>
       <div class="auth-toggle" onclick="toggleAuthMode()">
         <span id="authToggleText">Нет аккаунта? Зарегистрироваться</span>
@@ -346,9 +319,8 @@
       <div class="auth-logo">
         <svg class="icon-xl" viewBox="0 0 24 24"><path class="icon-gradient" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle class="icon-gradient" cx="12" cy="7" r="4"/></svg>
       </div>
-      <h2>Расскажи о себе</h2>
-      <p>Это поможет настроить план под тебя</p>
-      <input type="text" id="userName" class="auth-input" placeholder="Как тебя зовут?">
+      <h2 id="step2Title">Расскажи о себе</h2>
+      <input type="text" id="userName" class="auth-input" placeholder="Имя">
       <input type="number" id="userAge" class="auth-input" placeholder="Возраст" min="14" max="99">
       <button class="auth-btn" onclick="nextAuthStep(3)">Далее →</button>
     </div>
@@ -357,16 +329,25 @@
       <div class="auth-logo">
         <svg class="icon-xl" viewBox="0 0 24 24"><path class="icon-gradient" d="M12 2L2 7l10 5 10-5-10-5z"/><path class="icon-gradient" d="M2 17l10 5 10-5"/><path class="icon-gradient" d="M2 12l10 5 10-5"/></svg>
       </div>
-      <h2>Твои цели</h2>
-      <p>К чему стремишься?</p>
-      <input type="text" id="userGoal" class="auth-input" placeholder="Цель на этот год">
+      <h2 id="step3Title">Цели</h2>
+      <input type="text" id="userGoal" class="auth-input" placeholder="Цель на год">
       <select id="userLevel" class="auth-input" style="appearance: none;">
         <option value="">Текущий уровень</option>
-        <option value="beginner">Полный новичок</option>
-        <option value="basic">Знаю основы HTML/CSS</option>
-        <option value="intermediate">Учу JavaScript</option>
-        <option value="advanced">Уже пишу на React</option>
+        <option value="beginner">Новичок</option>
+        <option value="basic">Основы HTML/CSS</option>
+        <option value="intermediate">Учу JS</option>
+        <option value="advanced">Пишу на React</option>
       </select>
+      <button class="auth-btn" onclick="nextAuthStep(4)">Далее →</button>
+    </div>
+
+    <div class="auth-step" id="authStep4">
+      <div class="auth-logo">
+        <svg class="icon-xl" viewBox="0 0 24 24"><polyline class="icon-gradient" points="16 18 22 12 16 6"/><polyline class="icon-gradient" points="8 6 2 12 8 18"/></svg>
+      </div>
+      <h2 id="step4Title">Языки программирования</h2>
+      <p id="step4Desc">Выбери что хочешь изучать</p>
+      <div class="lang-grid" id="langGrid"></div>
       <button class="auth-btn" onclick="finishRegistration()">Начать путь 🚀</button>
     </div>
   </div>
@@ -375,18 +356,12 @@
 <div class="container" id="mainApp" style="display: none;">
   <header>
     <div class="header-top">
-      <div style="display:flex; align-items:center; gap:12px;">
-        <svg class="progress-ring" viewBox="0 0 100 100">
-          <circle class="progress-ring-bg" cx="50" cy="50" r="42"/>
-          <circle class="progress-ring-fill" id="progressRing" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="264"/>
-        </svg>
-        <div>
-          <h1>
-            <svg class="icon-lg" viewBox="0 0 24 24"><path class="icon-gradient" d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path class="icon-gradient" d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path class="icon-gradient" d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path class="icon-gradient" d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
-            LifeOS
-          </h1>
-          <div class="subtitle" id="userGreeting">Привет!</div>
-        </div>
+      <div>
+        <h1>
+          <svg class="icon-lg" viewBox="0 0 24 24"><path class="icon-gradient" d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path class="icon-gradient" d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path class="icon-gradient" d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path class="icon-gradient" d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+          LifeOS
+        </h1>
+        <div class="subtitle" id="userGreeting">Привет!</div>
       </div>
       <div class="level-block">
         <div class="level-info">
@@ -404,460 +379,228 @@
       <div class="stat-card"><div class="stat-label">Сегодня</div><div class="stat-value green" id="todayDone">0</div></div>
       <div class="stat-card"><div class="stat-label">Всего</div><div class="stat-value blue" id="totalTasks">0</div></div>
       <div class="stat-card"><div class="stat-label">Серия</div><div class="stat-value yellow" id="bestStreak">0</div></div>
-      <div class="stat-card"><div class="stat-label">Настроение</div><div class="stat-value green" id="moodToday">—</div></div>
+      <div class="stat-card"><div class="stat-label">Гильдия</div><div class="stat-value green" id="guildPoints">0</div></div>
     </div>
   </header>
 
-  <div class="tabs">
-    <button class="tab active" data-tab="today">
-      <svg class="icon" viewBox="0 0 24 24"><rect class="icon-gradient" x="3" y="4" width="18" height="18" rx="2" ry="2"/><line class="icon-gradient" x1="16" y1="2" x2="16" y2="6"/><line class="icon-gradient" x1="8" y1="2" x2="8" y2="6"/><line class="icon-gradient" x1="3" y1="10" x2="21" y2="10"/></svg>
-      Сегодня
-    </button>
-    <button class="tab" data-tab="timers">
-      <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="10"/><polyline class="icon-gradient" points="12 6 12 12 16 14"/></svg>
-      Таймеры
-    </button>
-    <button class="tab" data-tab="typing">
-      <svg class="icon" viewBox="0 0 24 24"><rect class="icon-gradient" x="2" y="4" width="20" height="16" rx="2"/><path class="icon-gradient" d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
-      Печать
-    </button>
-    <button class="tab" data-tab="snippets">
-      <svg class="icon" viewBox="0 0 24 24"><polyline class="icon-gradient" points="16 18 22 12 16 6"/><polyline class="icon-gradient" points="8 6 2 12 8 18"/></svg>
-      Сниппеты
-    </button>
-    <button class="tab" data-tab="more">
-      <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="1"/><circle class="icon-gradient" cx="12" cy="5" r="1"/><circle class="icon-gradient" cx="12" cy="19" r="1"/></svg>
-      Ещё
-    </button>
-  </div>
+  <div class="tabs" id="desktopTabs"></div>
 
-  <div class="panel active" id="panel-today">
-    <div id="quoteCard" class="quote-card">
-      <div class="quote-text" id="quoteText">"Код — это поэзия, которую понимает машина."</div>
-      <div class="quote-author" id="quoteAuthor">— Неизвестный автор</div>
-    </div>
-    <div id="challengeCard" class="challenge-card" style="display:none;">
-      <h3>
-        <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M12 2L2 7l10 5 10-5-10-5z"/><path class="icon-gradient" d="M2 17l10 5 10-5"/><path class="icon-gradient" d="M2 12l10 5 10-5"/></svg>
-        Челлендж дня
-      </h3>
-      <p id="challengeText"></p>
-    </div>
-    <div id="resourceCard" class="resource-card" style="display:none;">
-      <h3>
-        <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path class="icon-gradient" d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        Ресурс дня
-      </h3>
-      <a id="resourceLink" href="#" target="_blank"></a>
-    </div>
-    <div class="card">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline class="icon-gradient" points="22 4 12 14.01 9 11.01"/></svg>
-        Задачи на сегодня
-        <span id="todayDateLabel" style="font-size:13px;color:var(--muted);font-weight:400;margin-left:auto"></span>
-      </h2>
-      <div id="welcomeMessage" style="display:none; padding:20px; text-align:center;">
-        <svg class="icon-xl" viewBox="0 0 24 24" style="margin-bottom:16px;"><path class="icon-gradient" d="M12 2L2 7l10 5 10-5-10-5z"/><path class="icon-gradient" d="M2 17l10 5 10-5"/><path class="icon-gradient" d="M2 12l10 5 10-5"/></svg>
-        <h3 style="color:var(--accent-2); margin-bottom:8px;">Добро пожаловать, <span id="welcomeName"></span>!</h3>
-        <p style="color:var(--muted);">Твой план начнётся завтра. Сегодня настрой профиль и изучи интерфейс.</p>
-      </div>
-      <div id="todayWeekBanner"></div>
-      <ul class="task-list" id="todayTasks"></ul>
-      <div class="progress-mini">
-        <span class="progress-mini-label">Прогресс:</span>
-        <div class="progress-mini-bar"><div class="progress-mini-fill" id="todayProgress" style="width:0%"></div></div>
-        <span class="progress-mini-value" id="todayProgressValue">0%</span>
-      </div>
-      <div class="quick-actions">
-        <button onclick="completeNextTask()">
-          <svg class="icon" viewBox="0 0 24 24"><polyline class="icon-gradient" points="20 6 9 17 4 12"/></svg>
-          Следующая задача
-        </button>
-        <button onclick="switchTab('timers')">
-          <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="10"/><polyline class="icon-gradient" points="12 6 12 12 16 14"/></svg>
-          Таймеры
-        </button>
-      </div>
-      <div class="add-task">
-        <input type="text" id="newTodayTask" placeholder="Своя задача...">
-        <input type="number" id="newTodayXp" placeholder="XP" value="20" min="1" max="500">
-        <button class="btn" onclick="addCustomTask('today')">+</button>
-      </div>
-    </div>
-    <div class="mood-card">
-      <h2 style="font-size:16px; margin-bottom:8px;">Как прошёл день?</h2>
-      <div class="mood-stars" id="moodStars">
-        <span class="mood-star" data-value="1">⭐</span>
-        <span class="mood-star" data-value="2">⭐</span>
-        <span class="mood-star" data-value="3">⭐</span>
-        <span class="mood-star" data-value="4">⭐</span>
-        <span class="mood-star" data-value="5">⭐</span>
-      </div>
-      <input type="text" id="moodComment" class="mood-input" placeholder="Комментарий (необязательно)">
-      <button class="btn" onclick="saveMood()" style="width:100%; margin-top:8px;">Сохранить настроение</button>
-    </div>
-  </div>
+  <div class="panel active" id="panel-today"></div>
+  <div class="panel" id="panel-achievements"></div>
+  <div class="panel" id="panel-heatmap"></div>
+  <div class="panel" id="panel-quizzes"></div>
+  <div class="panel" id="panel-flashcards"></div>
+  <div class="panel" id="panel-expenses"></div>
+  <div class="panel" id="panel-projects"></div>
+  <div class="panel" id="panel-forecast"></div>
+  <div class="panel" id="panel-guilds"></div>
+  <div class="panel" id="panel-settings"></div>
 
-  <div class="panel" id="panel-timers">
-    <div class="card">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="10"/><polyline class="icon-gradient" points="12 6 12 12 16 14"/></svg>
-        Таймеры здоровья
-      </h2>
-      <div style="display:grid; gap:12px;">
-        <button class="btn ghost" onclick="startTimer('teeth', 120)" style="display:flex; align-items:center; gap:12px; padding:16px;">
-          <svg class="icon-lg" viewBox="0 0 24 24"><path class="icon-gradient" d="M12 2C8 2 6 6 6 10c0 4 2 8 2 12h8c0-4 2-8 2-12 0-4-2-8-6-8z"/></svg>
-          <div style="text-align:left;">
-            <div style="font-weight:600;">Чистка зубов</div>
-            <div style="font-size:12px; color:var(--muted);">2 минуты</div>
-          </div>
-        </button>
-        <button class="btn ghost" onclick="showExerciseTimer()" style="display:flex; align-items:center; gap:12px; padding:16px;">
-          <svg class="icon-lg" viewBox="0 0 24 24"><path class="icon-gradient" d="M18 8h1a4 4 0 0 1 0 8h-1"/><path class="icon-gradient" d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line class="icon-gradient" x1="6" y1="1" x2="6" y2="4"/><line class="icon-gradient" x1="10" y1="1" x2="10" y2="4"/><line class="icon-gradient" x1="14" y1="1" x2="14" y2="4"/></svg>
-          <div style="text-align:left;">
-            <div style="font-weight:600;">Зарядка</div>
-            <div style="font-size:12px; color:var(--muted);">5/10/15 минут</div>
-          </div>
-        </button>
-        <button class="btn ghost" onclick="startTimer('pomodoro', 1500)" style="display:flex; align-items:center; gap:12px; padding:16px;">
-          <svg class="icon-lg" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="10"/><polyline class="icon-gradient" points="12 6 12 12 16 14"/></svg>
-          <div style="text-align:left;">
-            <div style="font-weight:600;">Помодоро</div>
-            <div style="font-size:12px; color:var(--muted);">25 минут учёбы</div>
-          </div>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-typing">
-    <div class="card">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24"><rect class="icon-gradient" x="2" y="4" width="20" height="16" rx="2"/><path class="icon-gradient" d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
-        Тренажёр печати JS
-      </h2>
-      <p style="color:var(--muted); font-size:13px; margin-bottom:12px;">Печатай код как можно быстрее и точнее. Без XP — только навык!</p>
-      <div class="typing-stats">
-        <div class="typing-stat">
-          <div class="typing-stat-value" id="typingWpm">0</div>
-          <div class="typing-stat-label">WPM</div>
-        </div>
-        <div class="typing-stat">
-          <div class="typing-stat-value" id="typingAccuracy">100%</div>
-          <div class="typing-stat-label">Точность</div>
-        </div>
-        <div class="typing-stat">
-          <div class="typing-stat-value" id="typingTime">0с</div>
-          <div class="typing-stat-label">Время</div>
-        </div>
-      </div>
-      <div class="typing-area" id="typingArea" onclick="document.getElementById('typingInput').focus()"></div>
-      <input type="text" id="typingInput" style="width:100%; padding:12px; background:var(--card-2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:16px; font-family:'Courier New',monospace; outline:none; margin-top:12px;" placeholder="Начни печатать..." oninput="handleTyping(event)">
-      <button class="btn" onclick="resetTyping()" style="width:100%; margin-top:12px;">Новый текст</button>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-snippets">
-    <div class="card">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24"><polyline class="icon-gradient" points="16 18 22 12 16 6"/><polyline class="icon-gradient" points="8 6 2 12 8 18"/></svg>
-        Мои сниппеты
-      </h2>
-      <p style="color:var(--muted); font-size:13px; margin-bottom:12px;">Сохраняй полезные куски кода, ссылки, шпаргалки</p>
-      <div class="add-task" style="flex-direction:column; gap:8px;">
-        <input type="text" id="snippetTitle" placeholder="Название (например: React useEffect)">
-        <input type="text" id="snippetTag" placeholder="Тег (JS, React, CSS...)">
-        <textarea id="snippetCode" placeholder="Код или заметка..." style="width:100%; min-height:80px; padding:12px; background:var(--card-2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:14px; font-family:'Courier New',monospace; outline:none; resize:vertical;"></textarea>
-        <button class="btn" onclick="addSnippet()" style="width:100%;">Добавить сниппет</button>
-      </div>
-      <div id="snippetsList" style="margin-top:16px;"></div>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-more">
-    <div class="card">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path class="icon-gradient" d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        План обучения
-      </h2>
-      <div style="display:grid; gap:8px;">
-        <button class="btn ghost" onclick="switchTab('year1')" style="text-align:left; padding:16px;">Год 1 — Junior Frontend</button>
-        <button class="btn ghost" onclick="switchTab('years')" style="text-align:left; padding:16px;">Годы 2-5 — Рост до Senior</button>
-      </div>
-    </div>
-    <div class="card">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24"><path class="icon-gradient" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        Привычки
-      </h2>
-      <div id="habitsList" style="margin-bottom:12px;"></div>
-      <div class="add-task">
-        <input type="text" id="newHabitName" placeholder="Новая привычка...">
-        <button class="btn" onclick="addHabit()">+</button>
-      </div>
-    </div>
-    <div class="card">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24"><line class="icon-gradient" x1="18" y1="20" x2="18" y2="10"/><line class="icon-gradient" x1="12" y1="20" x2="12" y2="4"/><line class="icon-gradient" x1="6" y1="20" x2="6" y2="14"/></svg>
-        График за 7 дней
-      </h2>
-      <canvas id="chart7" width="800" height="200" style="width:100%; height:auto;"></canvas>
-    </div>
-    <div class="card">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="3"/><path class="icon-gradient" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Настройки
-      </h2>
-      <button class="btn danger" style="width:100%; margin-bottom:8px;" onclick="resetAll()">Сбросить прогресс</button>
-      <button class="btn ghost" style="width:100%;" onclick="logout()">Выйти из аккаунта</button>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-year1">
-    <div class="card">
-      <h2>Год 1 — Junior Frontend</h2>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:12px">52 недели · 365 дней</p>
-      <div style="display:flex; gap:8px; margin-bottom:12px;">
-        <button class="btn ghost" onclick="changeDay(-1)">←</button>
-        <input type="date" id="dayPicker" style="flex:1; padding:10px; background:var(--card-2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:14px; outline:none; text-align:center;">
-        <button class="btn ghost" onclick="changeDay(1)">→</button>
-      </div>
-      <div id="dayInfo" style="font-size:12px; color:var(--muted); text-align:center; margin-bottom:12px;"></div>
-      <div id="dayWeekBanner"></div>
-      <ul class="task-list" id="dayTasks"></ul>
-      <div class="add-task">
-        <input type="text" id="newDayTask" placeholder="Своя задача...">
-        <input type="number" id="newDayXp" placeholder="XP" value="20" min="1" max="500">
-        <button class="btn" onclick="addCustomTask('day')">+</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-years">
-    <div class="card">
-      <h2>Годы 2-5 + Инвестиции</h2>
-      <div id="yearContent"></div>
-    </div>
-  </div>
-
-  <div class="mobile-nav">
-    <button class="mobile-nav-item active" data-tab="today">
-      <svg class="icon" viewBox="0 0 24 24"><rect class="icon-gradient" x="3" y="4" width="18" height="18" rx="2" ry="2"/><line class="icon-gradient" x1="16" y1="2" x2="16" y2="6"/><line class="icon-gradient" x1="8" y1="2" x2="8" y2="6"/><line class="icon-gradient" x1="3" y1="10" x2="21" y2="10"/></svg>
-      Сегодня
-    </button>
-    <button class="mobile-nav-item" data-tab="timers">
-      <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="10"/><polyline class="icon-gradient" points="12 6 12 12 16 14"/></svg>
-      Таймеры
-    </button>
-    <button class="mobile-nav-item" data-tab="typing">
-      <svg class="icon" viewBox="0 0 24 24"><rect class="icon-gradient" x="2" y="4" width="20" height="16" rx="2"/><path class="icon-gradient" d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
-      Печать
-    </button>
-    <button class="mobile-nav-item" data-tab="snippets">
-      <svg class="icon" viewBox="0 0 24 24"><polyline class="icon-gradient" points="16 18 22 12 16 6"/><polyline class="icon-gradient" points="8 6 2 12 8 18"/></svg>
-      Код
-    </button>
-    <button class="mobile-nav-item" data-tab="more">
-      <svg class="icon" viewBox="0 0 24 24"><circle class="icon-gradient" cx="12" cy="12" r="1"/><circle class="icon-gradient" cx="12" cy="5" r="1"/><circle class="icon-gradient" cx="12" cy="19" r="1"/></svg>
-      Ещё
-    </button>
-  </div>
-</div>
-
-<div class="timer-modal" id="timerModal">
-  <div class="timer-box">
-    <h3 id="timerTitle" style="color:var(--accent-2); margin-bottom:8px;">Таймер</h3>
-    <div class="timer-display" id="timerDisplay">02:00</div>
-    <div class="timer-controls">
-      <button class="btn" onclick="toggleTimer()">Старт/Пауза</button>
-      <button class="btn ghost" onclick="closeTimer()">Закрыть</button>
-    </div>
-  </div>
+  <div class="mobile-nav" id="mobileNav"></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script type="module">
   await new Promise(resolve => setTimeout(resolve, 100));
-  const { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, ref, set, onValue } = window.fbFn;
+  const { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, ref, set, onValue, push, get, child, update, remove } = window.fbFn;
   const auth = window.fbAuth;
   const db = window.fbDb;
+
+  // ============ i18n ============
+  const i18n = {
+    ru: { subtitle: 'Твой путь за 5 лет · Junior → Senior', step2: 'Расскажи о себе', step3: 'Цели', step4: 'Языки программирования', step4desc: 'Выбери что хочешь изучать', login: 'Войти', register: 'Зарегистрироваться', noAcc: 'Нет аккаунта? Зарегистрироваться', hasAcc: 'Уже есть аккаунт? Войти', guest: 'Продолжить локально', start: 'Начать путь 🚀', next: 'Далее →', name: 'Имя', age: 'Возраст', goal: 'Цель на год', level: 'Текущий уровень', email: 'Email', pass: 'Пароль (мин. 8 символов)' },
+    en: { subtitle: 'Your 5-year journey · Junior → Senior', step2: 'Tell about yourself', step3: 'Goals', step4: 'Programming languages', step4desc: 'Choose what to learn', login: 'Sign in', register: 'Sign up', noAcc: "No account? Sign up", hasAcc: 'Have account? Sign in', guest: 'Continue locally', start: 'Start journey 🚀', next: 'Next →', name: 'Name', age: 'Age', goal: 'Year goal', level: 'Current level', email: 'Email', pass: 'Password (min 8 chars)' },
+    es: { subtitle: 'Tu camino de 5 años · Junior → Senior', step2: 'Cuéntanos de ti', step3: 'Metas', step4: 'Lenguajes', step4desc: 'Elige qué aprender', login: 'Entrar', register: 'Registrarse', noAcc: '¿Sin cuenta? Regístrate', hasAcc: '¿Tienes cuenta? Entra', guest: 'Continuar local', start: 'Empezar 🚀', next: 'Siguiente →', name: 'Nombre', age: 'Edad', goal: 'Meta del año', level: 'Nivel actual', email: 'Correo', pass: 'Contraseña (mín 8)' },
+    de: { subtitle: 'Dein 5-Jahres-Weg · Junior → Senior', step2: 'Über dich', step3: 'Ziele', step4: 'Programmiersprachen', step4desc: 'Wähle zum Lernen', login: 'Anmelden', register: 'Registrieren', noAcc: 'Kein Konto? Registrieren', hasAcc: 'Konto vorhanden? Anmelden', guest: 'Lokal fortfahren', start: 'Start ', next: 'Weiter →', name: 'Name', age: 'Alter', goal: 'Jahresziel', level: 'Aktuelles Level', email: 'E-Mail', pass: 'Passwort (min 8)' },
+    fr: { subtitle: 'Ton parcours de 5 ans · Junior → Senior', step2: 'Parle de toi', step3: 'Objectifs', step4: 'Langages', step4desc: 'Choisis à apprendre', login: 'Connexion', register: "S'inscrire", noAcc: 'Pas de compte? Inscris-toi', hasAcc: 'Déjà un compte? Connecte-toi', guest: 'Continuer localement', start: 'Commencer 🚀', next: 'Suivant →', name: 'Nom', age: 'Âge', goal: 'Objectif annuel', level: 'Niveau actuel', email: 'E-mail', pass: 'Mot de passe (min 8)' },
+    zh: { subtitle: '你的5年旅程 · Junior → Senior', step2: '介绍自己', step3: '目标', step4: '编程语言', step4desc: '选择学习内容', login: '登录', register: '注册', noAcc: '没有账号？注册', hasAcc: '已有账号？登录', guest: '本地继续', start: '开始 🚀', next: '下一步 →', name: '姓名', age: '年龄', goal: '年度目标', level: '当前等级', email: '邮箱', pass: '密码（至少8位）' },
+    ja: { subtitle: '5年の旅 · Junior → Senior', step2: '自己紹介', step3: '目標', step4: 'プログラミング言語', step4desc: '学ぶものを選択', login: 'ログイン', register: '登録', noAcc: 'アカウントなし？登録', hasAcc: 'アカウントあり？ログイン', guest: 'ローカルで続行', start: '開始 🚀', next: '次へ →', name: '名前', age: '年齢', goal: '年間目標', level: '現在のレベル', email: 'メール', pass: 'パスワード（8文字以上）' },
+    ko: { subtitle: '5년의 여정 · Junior → Senior', step2: '자기소개', step3: '목표', step4: '프로그래밍 언어', step4desc: '배울 것을 선택', login: '로그인', register: '회원가입', noAcc: '계정 없음? 가입', hasAcc: '계정 있음? 로그인', guest: '로컬로 계속', start: '시작 🚀', next: '다음 →', name: '이름', age: '나이', goal: '연간 목표', level: '현재 레벨', email: '이메일', pass: '비밀번호 (최소 8자)' },
+    pt: { subtitle: 'Sua jornada de 5 anos · Junior → Senior', step2: 'Sobre você', step3: 'Metas', step4: 'Linguagens', step4desc: 'Escolha o que aprender', login: 'Entrar', register: 'Cadastrar', noAcc: 'Sem conta? Cadastre-se', hasAcc: 'Já tem conta? Entre', guest: 'Continuar local', start: 'Começar 🚀', next: 'Próximo →', name: 'Nome', age: 'Idade', goal: 'Meta anual', level: 'Nível atual', email: 'E-mail', pass: 'Senha (mín 8)' },
+    ar: { subtitle: 'رحلتك لمدة 5 سنوات · Junior → Senior', step2: 'عنك', step3: 'أهداف', step4: 'لغات البرمجة', step4desc: 'اختر ما تتعلمه', login: 'تسجيل الدخول', register: 'تسجيل', noAcc: 'لا حساب؟ سجل', hasAcc: 'لديك حساب؟ ادخل', guest: 'متابعة محلياً', start: 'ابدأ 🚀', next: 'التالي →', name: 'الاسم', age: 'العمر', goal: 'هدف السنة', level: 'المستوى الحالي', email: 'البريد', pass: 'كلمة المرور (8+)' },
+    hi: { subtitle: 'तुम्हारी 5 साल की यात्रा · Junior → Senior', step2: 'अपने बारे में', step3: 'लक्ष्य', step4: 'प्रोग्रामिंग भाषाएँ', step4desc: 'सीखने के लिए चुनें', login: 'लॉगिन', register: 'रजिस्टर', noAcc: 'अकाउंट नहीं? रजिस्टर', hasAcc: 'अकाउंट है? लॉगिन', guest: 'लोकल जारी', start: 'शुरू ', next: 'आगे →', name: 'नाम', age: 'उम्र', goal: 'साल का लक्ष्य', level: 'वर्तमान स्तर', email: 'ईमेल', pass: 'पासवर्ड (8+)' },
+    tr: { subtitle: '5 yıllık yolculuk · Junior → Senior', step2: 'Kendinden bahset', step3: 'Hedefler', step4: 'Programlama dilleri', step4desc: 'Öğreneceklerini seç', login: 'Giriş', register: 'Kayıt', noAcc: 'Hesap yok? Kaydol', hasAcc: 'Hesabın var? Giriş', guest: 'Yerel devam', start: 'Başla 🚀', next: 'İleri →', name: 'İsim', age: 'Yaş', goal: 'Yıl hedefi', level: 'Mevcut seviye', email: 'E-posta', pass: 'Şifre (min 8)' }
+  };
+
+  const programmingLangs = [
+    { id: 'js', name: 'JavaScript', flag: '🟨' },
+    { id: 'ts', name: 'TypeScript', flag: '🟦' },
+    { id: 'python', name: 'Python', flag: '🐍' },
+    { id: 'java', name: 'Java', flag: '' },
+    { id: 'cpp', name: 'C++', flag: '⚙️' },
+    { id: 'csharp', name: 'C#', flag: '' },
+    { id: 'go', name: 'Go', flag: '🐹' },
+    { id: 'rust', name: 'Rust', flag: '🦀' },
+    { id: 'swift', name: 'Swift', flag: '🍎' },
+    { id: 'kotlin', name: 'Kotlin', flag: '🤖' },
+    { id: 'ruby', name: 'Ruby', flag: '' },
+    { id: 'php', name: 'PHP', flag: '🐘' },
+    { id: 'scala', name: 'Scala', flag: '🔺' },
+    { id: 'dart', name: 'Dart', flag: '🎯' },
+    { id: 'r', name: 'R', flag: '📊' },
+    { id: 'lua', name: 'Lua', flag: '🌙' },
+    { id: 'perl', name: 'Perl', flag: '🐪' },
+    { id: 'haskell', name: 'Haskell', flag: 'λ' },
+    { id: 'elixir', name: 'Elixir', flag: '💧' },
+    { id: 'zig', name: 'Zig', flag: '⚡' },
+    { id: 'nim', name: 'Nim', flag: '👑' },
+    { id: 'julia', name: 'Julia', flag: '🔬' },
+    { id: 'clojure', name: 'Clojure', flag: '🌀' },
+    { id: 'sql', name: 'SQL', flag: '🗄️' },
+    { id: 'html', name: 'HTML/CSS', flag: '🌐' },
+    { id: 'assembly', name: 'Assembly', flag: '🔧' }
+  ];
 
   let currentUser = null;
   let isGuest = false;
   let authMode = 'login';
   let authStep = 1;
+  let selectedLangs = [];
+  let interfaceLang = 'ru';
   let saveTimeout = null;
-  let timerInterval = null;
-  let timerSeconds = 0;
-  let timerRunning = false;
-  let typingStartTime = null;
-  let typingErrors = 0;
-  let typingText = '';
-  let authAttempts = [];
+  let guildUnsubscribe = null;
 
-  const STORAGE_KEY = 'lifeos_v8';
+  const STORAGE_KEY = 'lifeos_v9';
   const defaultState = {
     xp: 0, totalXp: 0, completedTasks: {}, customTasks: {},
-    habits: [],
-    habitLog: {}, bestStreak: 0,
-    registrationDate: null,
-    profile: { name: '', age: 0, goal: '', level: '' },
-    notifications: false,
-    snippets: [],
-    moods: {},
-    lastActive: null
+    habits: [], habitLog: {}, bestStreak: 0,
+    registrationDate: null, lastLogin: null, loginStreak: 0,
+    profile: { name: '', age: 0, goal: '', level: '', langs: [], interfaceLang: 'ru' },
+    notifications: false, snippets: [], moods: {},
+    achievements: [], dailyBonusClaimed: null,
+    expenses: [], projects: [], flashcards: [], quizScores: {},
+    theme: 'dark', accentColor: '#8b5cf6',
+    guildId: null, guildContribution: 0,
+    burnoutHistory: []
   };
 
   let state = structuredClone(defaultState);
 
-  const quotes = [
-    { text: "Код — это поэзия, которую понимает машина.", author: "Неизвестный автор" },
-    { text: "Любой дурак может написать код, который понимает компьютер. Хороший программист пишет код, который понимает человек.", author: "Мартин Фаулер" },
-    { text: "Сначала реши задачу. Потом пиши код.", author: "Джон Джонсон" },
-    { text: "Простота — это высшая форма изысканности.", author: "Леонардо да Винчи" },
-    { text: "Не бойся медлить, бойся остановиться.", author: "Китайская пословица" },
-    { text: "Единственный способ делать великую работу — любить то, что делаешь.", author: "Стив Джобс" },
-    { text: "Программирование — это не о том, что ты знаешь, а о том, что ты можешь узнать.", author: "Крис Пайн" },
-    { text: "Дисциплина — мост между целями и достижениями.", author: "Джим Рон" },
-    { text: "Успех — это сумма маленьких усилий, повторяющихся изо дня в день.", author: "Роберт Кольер" },
-    { text: "Лучшее время начать — сейчас.", author: "Народная мудрость" }
+  // ============ Achievements ============
+  const ACHIEVEMENTS = [
+    { id: 'first_task', icon: '', name: 'Первый шаг', desc: 'Выполни первую задачу', check: s => Object.keys(s.completedTasks).length >= 1 },
+    { id: 'ten_tasks', icon: '🔥', name: 'Разгон', desc: '10 задач выполнено', check: s => Object.keys(s.completedTasks).length >= 10 },
+    { id: 'hundred_tasks', icon: '💯', name: 'Сотня', desc: '100 задач', check: s => Object.keys(s.completedTasks).length >= 100 },
+    { id: 'xp_1000', icon: '⭐', name: 'Тысячник', desc: '1000 XP', check: s => s.totalXp >= 1000 },
+    { id: 'xp_10000', icon: '🌟', name: 'Легенда', desc: '10000 XP', check: s => s.totalXp >= 10000 },
+    { id: 'streak_7', icon: '🔥', name: 'Неделя', desc: 'Серия 7 дней', check: s => s.bestStreak >= 7 },
+    { id: 'streak_30', icon: '', name: 'Месяц', desc: 'Серия 30 дней', check: s => s.bestStreak >= 30 },
+    { id: 'habit_5', icon: '✨', name: 'Привычка', desc: '5 привычек', check: s => s.habits.length >= 5 },
+    { id: 'snippet_5', icon: '📝', name: 'Коллекционер', desc: '5 сниппетов', check: s => s.snippets.length >= 5 },
+    { id: 'guild_join', icon: '🏰', name: 'Гильдеец', desc: 'Вступи в гильдию', check: s => s.guildId !== null },
+    { id: 'guild_1000', icon: '👑', name: 'Лидер', desc: '1000 баллов гильдии', check: s => s.guildContribution >= 1000 },
+    { id: 'expense_track', icon: '💰', name: 'Эконом', desc: 'Первая запись расхода', check: s => s.expenses.length >= 1 },
+    { id: 'project_done', icon: '🚀', name: 'Проект', desc: 'Заверши pet-проект', check: s => s.projects.some(p => p.stages.every(st => st.done)) },
+    { id: 'quiz_5', icon: '', name: 'Умник', desc: 'Пройди 5 квизов', check: s => Object.keys(s.quizScores).length >= 5 },
+    { id: 'flash_20', icon: '', name: 'Память', desc: '20 карточек', check: s => s.flashcards.length >= 20 }
   ];
 
-  const challenges = [
-    "Реши 1 задачу на LeetCode (Easy)",
-    "Прочитай 1 страницу документации React",
-    "Напиши функцию без использования циклов (только map/filter/reduce)",
-    "Объясни вслух, как работает замыкание",
-    "Найди и исправь 1 баг в своём старом коде",
-    "Выучи 5 новых методов массивов в JS",
-    "Напиши компонент на React без использования useState",
-    "Рефакторинг: улучши читаемость старого кода",
-    "Посмотри 1 видео по алгоритмам (15 мин)",
-    "Напиши тест для одной из своих функций"
+  // ============ Quiz questions ============
+  const QUIZZES = {
+    js: [
+      { q: 'Что выведет typeof null?', options: ['"null"', '"object"', '"undefined"', '"number"'], correct: 1 },
+      { q: 'Как объявить константу?', options: ['var x', 'let x', 'const x', 'constant x'], correct: 2 },
+      { q: 'Что такое замыкание?', options: ['Цикл', 'Функция + её лексическое окружение', 'Массив', 'Объект'], correct: 1 },
+      { q: 'Метод для добавления в конец массива?', options: ['push()', 'pop()', 'shift()', 'unshift()'], correct: 0 },
+      { q: 'Что вернёт [1,2,3].map(x => x*2)?', options: ['[1,2,3]', '[2,4,6]', '6', 'undefined'], correct: 1 }
+    ],
+    react: [
+      { q: 'Хук для состояния?', options: ['useEffect', 'useState', 'useContext', 'useRef'], correct: 1 },
+      { q: 'Как передать данные дочернему компоненту?', options: ['state', 'props', 'context', 'redux'], correct: 1 },
+      { q: 'Что делает useEffect?', options: ['Рендер', 'Побочные эффекты', 'Состояние', 'Роутинг'], correct: 1 },
+      { q: 'Правило хуков?', options: ['В циклах', 'В условиях', 'Только в теле компонента', 'Везде'], correct: 2 },
+      { q: 'Virtual DOM это...', options: ['Реальный DOM', 'Лёгкая копия DOM', 'База данных', 'CSS'], correct: 1 }
+    ],
+    python: [
+      { q: 'Как создать список?', options: ['[]', '{}', '()', '""'], correct: 0 },
+      { q: 'Функция для длины?', options: ['size()', 'len()', 'length()', 'count()'], correct: 1 },
+      { q: 'Ключевое слово для функции?', options: ['func', 'function', 'def', 'fn'], correct: 2 },
+      { q: 'Что выведет print(type(5))?', options: ["<class 'int'>", "<type 'int'>", 'int', '5'], correct: 0 },
+      { q: 'Как импортировать модуль?', options: ['include', 'require', 'import', 'using'], correct: 2 }
+    ]
+  };
+
+  // ============ Flashcards ============
+  const DEFAULT_FLASHCARDS = [
+    { front: 'Closure (Замыкание)', back: 'Функция, запоминающая своё лексическое окружение' },
+    { front: 'Promise', back: 'Объект, представляющий результат асинхронной операции' },
+    { front: 'DOM', back: 'Document Object Model — программный интерфейс HTML' },
+    { front: 'API', back: 'Application Programming Interface — интерфейс взаимодействия' },
+    { front: 'REST', back: 'Архитектурный стиль для веб-сервисов' },
+    { front: 'Git', back: 'Система контроля версий' },
+    { front: 'npm', back: 'Node Package Manager — менеджер пакетов Node.js' },
+    { front: 'TypeScript', back: 'Типизированный надмножество JavaScript' },
+    { front: 'React', back: 'Библиотека для создания UI от Facebook' },
+    { front: 'Node.js', back: 'Среда выполнения JS на сервере' }
   ];
 
-  const resources = [
-    { title: "MDN Web Docs — JavaScript", url: "https://developer.mozilla.org/ru/docs/Web/JavaScript" },
-    { title: "React Official Documentation", url: "https://react.dev" },
-    { title: "TypeScript Handbook", url: "https://www.typescriptlang.org/docs/handbook/intro.html" },
-    { title: "Eloquent JavaScript (бесплатная книга)", url: "https://eloquentjavascript.net" },
-    { title: "JavaScript.info — современный учебник", url: "https://learn.javascript.ru" },
-    { title: "CSS-Tricks — Flexbox Guide", url: "https://css-tricks.com/snippets/css/a-guide-to-flexbox/" },
-    { title: "Git Pro Book (бесплатно)", url: "https://git-scm.com/book/ru/v2" },
-    { title: "Node.js Best Practices", url: "https://github.com/goldbergyoni/nodebestpractices" }
+  // ============ Guild Shop ============
+  const GUILD_SHOP = [
+    { id: 'xp_boost', icon: '⚡', name: 'XP Бустер x2', price: 500, desc: 'Двойной XP на 1 час' },
+    { id: 'habit_boost', icon: '🔥', name: 'Бустер привычек', price: 300, desc: 'Двойные баллы за привычку' },
+    { id: 'avatar_frame', icon: '🎨', name: 'Рамка аватара', price: 750, desc: 'Уникальная рамка' },
+    { id: 'title_vet', icon: '🏆', name: 'Титул "Ветеран"', price: 2000, desc: 'Особый значок' },
+    { id: 'lootbox', icon: '🎁', name: 'Лутбокс', price: 200, desc: 'Случайный бонус 50-500 XP' },
+    { id: 'skin', icon: '🌟', name: 'Скин профиля', price: 1000, desc: 'Меняет цвет интерфейса' }
   ];
 
-  const typingTexts = [
-    'const user = { name: "Alex", age: 20, skills: ["JS", "React"] };',
-    'function calculate(a, b) { return a + b; }',
-    'if (condition) { doSomething(); } else { doOther(); }',
-    'array.map(item => item.value).filter(x => x > 0);',
-    'class Component extends React.Component { render() { return <div>Hello</div>; } }',
-    'async function fetchData() { const res = await fetch(url); return res.json(); }',
-    'const [state, setState] = useState(initialValue);',
-    'try { riskyOperation(); } catch (error) { console.error(error); }',
-    'import { useState, useEffect } from "react";',
-    'export default function App() { return <Main />; }'
-  ];
+  // ============ Helpers ============
+  function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+  function todayStr() { return new Date().toISOString().slice(0,10); }
+  function addDays(iso, n) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
+  function daysBetween(a, b) { return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000); }
+  function getDayOfWeek(iso) { return new Date(iso + 'T00:00:00').getDay(); }
+  function getWeekStart(iso) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1)); return d.toISOString().slice(0,10); }
+  function genCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
+  function t(key) { return i18n[interfaceLang]?.[key] || i18n.ru[key] || key; }
 
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  // ============ Auth ============
+  function renderLangGrid() {
+    const grid = document.getElementById('langGrid');
+    grid.innerHTML = programmingLangs.map(l => 
+      `<div class="lang-chip ${selectedLangs.includes(l.id) ? 'active' : ''}" onclick="toggleLang('${l.id}')">${l.flag} ${l.name}</div>`
+    ).join('');
   }
 
-  function validateEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
+  window.toggleLang = (id) => {
+    if (selectedLangs.includes(id)) selectedLangs = selectedLangs.filter(x => x !== id);
+    else selectedLangs.push(id);
+    renderLangGrid();
+  };
 
-  function validatePassword(pass) {
-    return pass.length >= 8 && /\d/.test(pass) && /[a-zA-Z]/.test(pass);
-  }
-
-  function checkRateLimit() {
-    const now = Date.now();
-    authAttempts = authAttempts.filter(t => now - t < 60000);
-    if (authAttempts.length >= 5) {
-      return false;
-    }
-    authAttempts.push(now);
-    return true;
-  }
+  window.changeInterfaceLang = (lang) => {
+    interfaceLang = lang;
+    const tr = i18n[lang] || i18n.ru;
+    document.getElementById('authSubtitle').textContent = tr.subtitle;
+    document.getElementById('step2Title').textContent = tr.step2;
+    document.getElementById('step3Title').textContent = tr.step3;
+    document.getElementById('step4Title').textContent = tr.step4;
+    document.getElementById('step4Desc').textContent = tr.step4desc;
+    document.getElementById('authActionBtn').textContent = authMode === 'login' ? tr.login : tr.register;
+    document.getElementById('authToggleText').textContent = authMode === 'login' ? tr.noAcc : tr.hasAcc;
+    document.querySelector('.guest-btn').textContent = tr.guest;
+  };
 
   window.toggleAuthMode = () => {
     authMode = authMode === 'login' ? 'register' : 'login';
-    const btn = document.getElementById('authActionBtn');
-    const toggleText = document.getElementById('authToggleText');
-    const errEl = document.getElementById('authError');
-    errEl.style.display = 'none';
-    if (authMode === 'login') {
-      btn.textContent = 'Войти';
-      toggleText.textContent = 'Нет аккаунта? Зарегистрироваться';
-    } else {
-      btn.textContent = 'Зарегистрироваться';
-      toggleText.textContent = 'Уже есть аккаунт? Войти';
-    }
+    const tr = i18n[interfaceLang] || i18n.ru;
+    document.getElementById('authActionBtn').textContent = authMode === 'login' ? tr.login : tr.register;
+    document.getElementById('authToggleText').textContent = authMode === 'login' ? tr.noAcc : tr.hasAcc;
+    document.getElementById('authError').style.display = 'none';
   };
 
   window.handleAuth = async () => {
     const email = document.getElementById('authEmail').value.trim();
     const pass = document.getElementById('authPass').value;
     const errEl = document.getElementById('authError');
-    const emailInput = document.getElementById('authEmail');
-    const passInput = document.getElementById('authPass');
-    
-    emailInput.classList.remove('error');
-    passInput.classList.remove('error');
-    errEl.style.display = 'none';
-
-    if (!email || !pass) { 
-      errEl.textContent = 'Введите email и пароль'; 
-      errEl.style.display = 'block'; 
-      return; 
-    }
-
-    if (!validateEmail(email)) {
-      errEl.textContent = 'Некорректный формат email';
-      errEl.style.display = 'block';
-      emailInput.classList.add('error');
-      return;
-    }
-
-    if (!validatePassword(pass)) {
-      errEl.textContent = 'Пароль: мин. 8 символов, 1 цифра, 1 буква';
-      errEl.style.display = 'block';
-      passInput.classList.add('error');
-      return;
-    }
-
-    if (!checkRateLimit()) {
-      errEl.textContent = 'Слишком много попыток. Подожди 1 минуту.';
-      errEl.style.display = 'block';
-      return;
-    }
-
+    if (!email || !pass) { errEl.textContent = 'Введите email и пароль'; errEl.style.display = 'block'; return; }
+    if (pass.length < 8) { errEl.textContent = 'Пароль минимум 8 символов'; errEl.style.display = 'block'; return; }
     try {
-      if (authMode === 'login') {
-        await signInWithEmailAndPassword(auth, email, pass);
-      } else {
-        await createUserWithEmailAndPassword(auth, email, pass);
-      }
+      if (authMode === 'login') await signInWithEmailAndPassword(auth, email, pass);
+      else await createUserWithEmailAndPassword(auth, email, pass);
     } catch (error) {
-      const code = error.code;
-      let message = '';
-      if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
-        message = 'Неверный email или пароль. Если нет аккаунта — нажми "Зарегистрироваться".';
-      } else if (code === 'auth/email-already-in-use') {
-        message = 'Email уже зарегистрирован. Нажми "Войти".';
-      } else if (code === 'auth/weak-password') {
-        message = 'Пароль слишком слабый.';
-      } else if (code === 'auth/too-many-requests') {
-        message = 'Слишком много попыток. Подожди 10 минут.';
-      } else {
-        message = error.message.replace('Firebase:', '').trim();
-      }
-      errEl.textContent = message;
+      errEl.textContent = error.message.replace('Firebase:', '').trim();
       errEl.style.display = 'block';
     }
   };
@@ -867,25 +610,30 @@
       const name = document.getElementById('userName').value.trim();
       const age = parseInt(document.getElementById('userAge').value);
       if (!name || !age) { showToast('Заполни все поля'); return; }
-      state.profile = { name, age, goal: '', level: '' };
+      state.profile = { ...state.profile, name, age };
+    } else if (step === 4) {
+      const goal = document.getElementById('userGoal').value.trim();
+      const level = document.getElementById('userLevel').value;
+      if (!goal || !level) { showToast('Заполни все поля'); return; }
+      state.profile.goal = goal;
+      state.profile.level = level;
     }
     document.querySelectorAll('.auth-step').forEach(s => s.classList.remove('active'));
     document.getElementById('authStep' + step).classList.add('active');
-    document.querySelectorAll('.auth-progress-dot').forEach((d, i) => {
-      d.classList.toggle('active', i < step);
-    });
+    document.querySelectorAll('.auth-progress-dot').forEach((d, i) => d.classList.toggle('active', i < step));
     authStep = step;
+    if (step === 4) renderLangGrid();
   };
 
   window.finishRegistration = () => {
-    const goal = document.getElementById('userGoal').value.trim();
-    const level = document.getElementById('userLevel').value;
-    if (!goal || !level) { showToast('Заполни все поля'); return; }
-    state.profile.goal = goal;
-    state.profile.level = level;
+    if (selectedLangs.length === 0) { showToast('Выбери хотя бы 1 язык'); return; }
+    state.profile.langs = selectedLangs;
+    state.profile.interfaceLang = interfaceLang;
     state.registrationDate = todayStr();
-    state.lastActive = todayStr();
-    window.debouncedSave();
+    state.lastLogin = todayStr();
+    state.loginStreak = 1;
+    state.flashcards = DEFAULT_FLASHCARDS.map((c, i) => ({ ...c, id: 'fc_' + i, lastReview: null, level: 0 }));
+    saveToCloud();
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     initApp();
@@ -894,7 +642,9 @@
   window.continueAsGuest = () => {
     isGuest = true;
     state.registrationDate = todayStr();
-    state.lastActive = todayStr();
+    state.lastLogin = todayStr();
+    state.loginStreak = 1;
+    state.flashcards = DEFAULT_FLASHCARDS.map((c, i) => ({ ...c, id: 'fc_' + i, lastReview: null, level: 0 }));
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     loadLocalState();
@@ -902,10 +652,7 @@
   };
 
   window.logout = async () => {
-    if (confirm('Выйти из аккаунта?')) {
-      await signOut(auth);
-      location.reload();
-    }
+    if (confirm('Выйти из аккаунта?')) { await signOut(auth); location.reload(); }
   };
 
   onAuthStateChanged(auth, async (user) => {
@@ -915,39 +662,57 @@
       const userRef = ref(db, 'users/' + user.uid);
       onValue(userRef, (snapshot) => {
         const data = snapshot.val();
-        if (data) {
-          state = { ...defaultState, ...data };
-        } else {
-          loadLocalState();
-          saveToCloud();
-        }
+        if (data) state = { ...defaultState, ...data };
+        else { loadLocalState(); saveToCloud(); }
         
-        // Проверяем, нужно ли показать шаги профиля
+        interfaceLang = state.profile.interfaceLang || 'ru';
+        selectedLangs = state.profile.langs || [];
+        
         if (!state.profile.name || !state.profile.goal) {
           document.getElementById('authScreen').style.display = 'flex';
           document.getElementById('mainApp').style.display = 'none';
           document.querySelectorAll('.auth-step').forEach(s => s.classList.remove('active'));
-          document.getElementById('authStep2').classList.add('active');
-          document.querySelectorAll('.auth-progress-dot').forEach((d, i) => {
-            d.classList.toggle('active', i < 2);
-          });
-          authStep = 2;
+          if (!state.profile.name) {
+            document.getElementById('authStep2').classList.add('active');
+            document.querySelectorAll('.auth-progress-dot').forEach((d, i) => d.classList.toggle('active', i < 2));
+            authStep = 2;
+          } else {
+            document.getElementById('authStep4').classList.add('active');
+            document.querySelectorAll('.auth-progress-dot').forEach((d, i) => d.classList.toggle('active', i < 4));
+            authStep = 4;
+            renderLangGrid();
+          }
         } else {
           document.getElementById('authScreen').style.display = 'none';
           document.getElementById('mainApp').style.display = 'block';
+          checkDailyLogin();
           initApp();
         }
       });
+      
+      // Подписка на гильдию
+      if (state.guildId) subscribeToGuild(state.guildId);
     }
   });
+
+  function checkDailyLogin() {
+    const today = todayStr();
+    if (state.lastLogin !== today) {
+      const yesterday = addDays(today, -1);
+      if (state.lastLogin === yesterday) state.loginStreak = (state.loginStreak || 0) + 1;
+      else if (state.lastLogin) state.loginStreak = 1;
+      else state.loginStreak = 1;
+      state.lastLogin = today;
+      state.dailyBonusClaimed = null;
+      saveToCloud();
+      showToast(` Серия входов: ${state.loginStreak} дней!`);
+    }
+  }
 
   function loadLocalState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        state = { ...defaultState, ...parsed };
-      }
+      if (raw) state = { ...defaultState, ...JSON.parse(raw) };
     } catch(e) {}
   }
 
@@ -963,13 +728,12 @@
       try {
         await set(ref(db, 'users/' + currentUser.uid), state);
         document.getElementById('syncStatus').textContent = 'Синхронизировано';
-      } catch (e) {
-        document.getElementById('syncStatus').textContent = 'Ошибка сети';
-      }
+      } catch (e) { document.getElementById('syncStatus').textContent = 'Ошибка сети'; }
     }, 800);
   }
   window.debouncedSave = saveToCloud;
 
+  // ============ XP & Levels ============
   function levelFromXp(xp) { return Math.max(1, Math.floor(Math.sqrt(xp / 50)) + 1); }
   function xpForLevel(lvl) { return (lvl-1)*(lvl-1)*50; }
   function xpForNextLevel(lvl) { return lvl*lvl*50; }
@@ -980,585 +744,287 @@
     if (lvl < 51) return 'Senior'; return 'Tech Lead';
   }
   
-  window.addXp = (amount) => {
+  window.addXp = (amount, skipGuild = false) => {
     state.xp += amount;
     if (amount > 0) state.totalXp += amount;
     if (state.xp < 0) state.xp = 0;
-    window.debouncedSave();
+    if (!skipGuild && state.guildId && amount > 0) {
+      const guildPoints = Math.floor(amount / 2);
+      state.guildContribution = (state.guildContribution || 0) + guildPoints;
+      updateGuildPoints(guildPoints);
+    }
+    checkAchievements();
+    saveToCloud();
     renderHeader();
   };
 
-  function todayStr() { return new Date().toISOString().slice(0,10); }
-  function formatDate(iso) { return new Date(iso + 'T00:00:00').toLocaleDateString('ru-RU', { weekday:'short', day:'numeric', month:'short' }); }
-  function addDays(iso, n) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
-  function daysBetween(a, b) { return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000); }
-  function getDayOfWeek(iso) { return new Date(iso + 'T00:00:00').getDay(); }
-
-  function getYear1Start() {
-    const saved = localStorage.getItem('lifeos_year1_start');
-    if (saved) return saved;
-    const today = todayStr();
-    localStorage.setItem('lifeos_year1_start', today);
-    return today;
-  }
-
-  const YEAR1 = [
-    { title: 'Неделя 1 — HTML/CSS/Git', topic: 'Основы веб-разработки', goal: 'Сверстать первую страницу', project: 'Страница-визитка',
-      days: {
-        1: [{t:'Установка VS Code, Node, Git',s:'node -v, git --version',xp:30,b:'git'},{t:'Git и GitHub — основы',s:'Владилен Минин',xp:60,b:'git'}],
-        2: [{t:'Git: ветки, merge, PR',xp:60,b:'git'},{t:'HTML: теги, семантика',xp:70,b:'html'},{t:'CSS: селекторы, box-model',xp:70,b:'html'}],
-        3: [{t:'HTML: формы, таблицы',xp:60,b:'html'},{t:'CSS: Flexbox',s:'Flexbox Froggy',xp:70,b:'html'},{t:'Практика: карточка товара',xp:50,b:'project'}],
-        4: [{t:'CSS: Grid, позиционирование',xp:70,b:'html'},{t:'CSS: адаптивность',xp:70,b:'html'},{t:'Практика: адаптивная галерея',xp:60,b:'project'}],
-        5: [{t:'CSS: переменные, transitions',xp:60,b:'html'},{t:'Проект: Визитка (HTML)',s:'Обо мне, навыки, контакты',xp:70,b:'project'}],
-        6: [{t:'Проект: Визитка (CSS+адаптив)',xp:80,b:'project'},{t:'GitHub + README',xp:30,b:'git'},{t:'Встреча с другом',xp:20,b:'routine'}],
-        0: [{t:'Отдых (2+ часа)',xp:10,b:'routine'},{t:'Ревью недели + план',xp:40,b:'routine'}]
+  // ============ Achievements ============
+  function checkAchievements() {
+    ACHIEVEMENTS.forEach(a => {
+      if (!state.achievements.includes(a.id) && a.check(state)) {
+        state.achievements.push(a.id);
+        state.xp += 100;
+        state.totalXp += 100;
+        showToast(`🏆 Достижение: ${a.name}! +100 XP`);
       }
-    },
-    { title: 'Неделя 52 — Итоги года', topic: 'Подведение итогов', goal: 'Осознать прогресс', project: 'Итоговый пост',
-      days: {
-        1: [{t:'Итоги года: список проектов',xp:70,b:'book'},{t:'Обновление GitHub',xp:50,b:'git'}],
-        5: [{t:'Празднование окончания года 1!',xp:100,b:'routine'},{t:'Благодарность себе',xp:50,b:'book'}],
-        6: [{t:'Встреча с друзьями',xp:40,b:'routine'}],
-        0: [{t:'ГОД 1 ЗАВЕРШЁН! Ты — Junior Frontend Developer',xp:200,b:'routine'},{t:'Переход к Году 2',xp:50,b:'routine'}]
+    });
+  }
+
+  // ============ Guild ============
+  async function subscribeToGuild(guildId) {
+    if (guildUnsubscribe) guildUnsubscribe();
+    const guildRef = ref(db, 'guilds/' + guildId);
+    guildUnsubscribe = onValue(guildRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        window.currentGuild = data;
+        if (document.getElementById('panel-guilds').classList.contains('active')) renderGuilds();
+        document.getElementById('guildPoints').textContent = data.totalPoints || 0;
       }
-    }
-  ];
-
-  function buildDayTasks(isoDate) {
-    const start = getYear1Start();
-    const dayNum = daysBetween(start, isoDate);
-    if (dayNum < 0 || dayNum >= 365) return [];
-    const weekNum = Math.min(Math.floor(dayNum / 7), YEAR1.length - 1);
-    const dayOfWeek = getDayOfWeek(isoDate);
-    const dowKey = dayOfWeek === 0 ? 0 : dayOfWeek;
-    const week = YEAR1[weekNum];
-    const dayTasks = week.days[dowKey] || week.days[1] || [];
-
-    const mainTopic = dayTasks.find(t => t.b && !['book','routine'].includes(t.b)) || dayTasks[0];
-    const mainTopicText = mainTopic ? mainTopic.t : 'Учёба по плану недели';
-    const mainTopicSub = mainTopic?.s || `Тема недели: ${week.topic}`;
-    
-    const bgLang = (dowKey === 1 || dowKey === 3 || dowKey === 5) ? 'py' : (dowKey === 2 || dowKey === 4) ? 'cpp' : null;
-    const monthIdx = Math.floor(weekNum / 4);
-    const pyTopics = ['Основы: переменные, типы', 'Условия и циклы', 'Функции, списки', 'ООП: классы', 'Работа с файлами', 'Модули, pip', 'REST API на Flask', 'Базы данных: sqlite3', 'Автоматизация скриптов', 'Data Science: pandas', 'Тестирование: pytest', 'Мини-проект на Python'];
-    const cppTopics = ['Основы: cout, cin, типы', 'Условия, циклы, функции', 'Массивы, строки, указатели', 'STL: vector, map, set', 'ООП: классы, наследование', 'Шаблоны (templates)', 'Алгоритмы сортировки', 'Структуры данных', 'Работа с памятью', 'Многопоточность (базово)', 'LeetCode (Medium)', 'Финальный проект'];
-    const bgTopic = bgLang === 'py' ? (pyTopics[monthIdx] || 'Практика') : bgLang === 'cpp' ? (cppTopics[monthIdx] || 'Практика') : null;
-
-    const tasks = [];
-    tasks.push({ key: 'r_wake', time: '08:00', text: 'Подъём, стакан воды', xp: 30, badge: 'routine' });
-    tasks.push({ key: 'r_shower', time: '08:15', text: 'Душ, сборы', xp: 0, badge: 'routine' });
-    tasks.push({ key: 'r_breakfast', time: '08:45', text: 'Завтрак', xp: 0, badge: 'routine' });
-    tasks.push({ key: 'r_study1', time: '09:00', text: `Учёба (3 часа): ${mainTopicText}`, sub: mainTopicSub, xp: 100, badge: mainTopic?.b || 'routine' });
-    tasks.push({ key: 'r_english', time: '12:00', text: 'Английский (30 мин)', sub: 'Duolingo / слова / чтение документации', xp: 40, badge: 'en' });
-    tasks.push({ key: 'r_lunch', time: '12:30', text: 'Обед, отдых', xp: 0, badge: 'routine' });
-    
-    if (bgLang === 'py') tasks.push({ key: 'r_study2', time: '13:30', text: `Python (1 час): ${bgTopic}`, sub: 'Синтаксис, задачи на Codewars', xp: 50, badge: 'py' });
-    else if (bgLang === 'cpp') tasks.push({ key: 'r_study2', time: '13:30', text: `C++ (1 час): ${bgTopic}`, sub: 'Основы, алгоритмы, STL', xp: 50, badge: 'cpp' });
-    else tasks.push({ key: 'r_study2', time: '13:30', text: 'Лёгкая учёба / повторение', xp: 50, badge: 'routine' });
-
-    tasks.push({ key: 'r_road', time: '14:30', text: 'Дорога на работу', xp: 0, badge: 'routine' });
-    tasks.push({ key: 'r_work', time: '15:00', text: 'Работа (до 23:00)', xp: 0, badge: 'routine' });
-    
-    if (dowKey === 6 || dowKey === 0) {
-      tasks.push({ key: 'r_friends', time: '16:00', text: 'Встреча с другом (Вадик / Полина / Никита)', xp: 20, badge: 'routine' });
-      tasks.push({ key: 'r_rest', time: '19:00', text: 'Отдых без чувства вины', xp: 10, badge: 'routine' });
-    } else {
-      tasks.push({ key: 'r_dinner', time: '23:00', text: 'Ужин, свободное время', xp: 0, badge: 'routine' });
-    }
-    tasks.push({ key: 'r_sleep', time: '00:00', text: 'Отбой (8 часов сна)', xp: 20, badge: 'routine' });
-
-    dayTasks.forEach((t, i) => {
-      if (t === mainTopic) return;
-      tasks.push({ key: `study_${i}`, text: t.t, sub: t.s || '', xp: t.xp, badge: t.b });
     });
-    return { tasks, week };
   }
 
-  function taskKey(prefix, id, date) { return `${prefix}:${id}:${date}`; }
-
-  function renderTaskList(tasks, containerId, dateKey, prefix, weekInfo) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '';
-    const bannerId = containerId === 'todayTasks' ? 'todayWeekBanner' : 'dayWeekBanner';
-    const banner = document.getElementById(bannerId);
-    if (banner && weekInfo) {
-      banner.innerHTML = `<div style="background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(236,72,153,0.08));border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;"><h3 style="font-size:15px;color:var(--accent-2);margin-bottom:4px;">${weekInfo.title}</h3><p style="font-size:13px;color:var(--muted);"><strong>Тема:</strong> ${weekInfo.topic}</p>${weekInfo.project ? `<div style="margin-top:8px;padding:8px 12px;background:rgba(16,185,129,0.1);border-left:3px solid var(--green);border-radius:6px;font-size:13px;"><strong style="color:var(--green);">Проект недели:</strong> ${weekInfo.project}</div>` : ''}</div>`;
-    } else if (banner) { banner.innerHTML = ''; }
-
-    const customs = state.customTasks[dateKey] || [];
-    const allTasks = [...tasks.map(t => ({ ...t, type: 'preset' })), ...customs.map(t => ({ ...t, key: 'custom:'+t.id, type: 'custom' }))];
-
-    let nextKey = null;
-    for (const task of allTasks) {
-      if (!state.completedTasks[taskKey(prefix, task.key, dateKey)]) { nextKey = taskKey(prefix, task.key, dateKey); break; }
-    }
-
-    allTasks.forEach(task => {
-      const key = taskKey(prefix, task.key, dateKey);
-      const done = !!state.completedTasks[key];
-      const isNext = key === nextKey;
-      const isRoutine = task.badge === 'routine';
-      const li = document.createElement('li');
-      li.className = 'task-item' + (done ? ' done' : '') + (isRoutine ? ' routine' : '') + (isNext ? ' next' : '');
-      
-      let badgeHtml = '';
-      if (task.badge && !isRoutine) {
-        badgeHtml = `<span class="badge ${task.badge}">${task.badge.toUpperCase()}</span>`;
-      }
-      
-      li.innerHTML = `<input type="checkbox" ${done ? 'checked' : ''} data-key="${key}" data-xp="${task.xp}"><span class="task-text">${task.time ? `<span class="task-time">${task.time}</span>` : ''} ${task.text}${badgeHtml}${task.sub ? `<small>${task.sub}</small>` : ''}</span><span class="task-xp">+${task.xp}</span>${task.type === 'custom' ? `<button class="task-del" data-key="${key}">×</button>` : ''}`;
-      container.appendChild(li);
-    });
-
-    container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener('change', e => {
-        const key = e.target.dataset.key;
-        const xp = parseInt(e.target.dataset.xp);
-        const li = e.target.closest('.task-item');
-        if (e.target.checked) { state.completedTasks[key] = true; window.addXp(xp); li.classList.add('done'); }
-        else { delete state.completedTasks[key]; window.addXp(-xp); li.classList.remove('done'); }
-        updateProgress(containerId);
-        renderHeader();
-        renderTaskList(tasks, containerId, dateKey, prefix, weekInfo);
-      });
-    });
-
-    container.querySelectorAll('.task-del').forEach(btn => {
-      btn.addEventListener('click', e => {
-        const key = e.target.dataset.key;
-        if (!confirm('Удалить?')) return;
-        const xpMatch = e.target.closest('.task-item').querySelector('.task-xp').textContent.match(/\d+/);
-        if (xpMatch && state.completedTasks[key]) window.addXp(-parseInt(xpMatch[0]));
-        delete state.completedTasks[key];
-        for (const d in state.customTasks) state.customTasks[d] = state.customTasks[d].filter(t => 'custom:'+t.id !== key);
-        window.debouncedSave();
-        renderToday(); renderDay();
-      });
-    });
-    updateProgress(containerId);
-  }
-
-  function updateProgress(containerId) {
-    const items = document.getElementById(containerId).querySelectorAll('.task-item');
-    let done = 0;
-    items.forEach(i => { if (i.classList.contains('done')) done++; });
-    const pct = items.length ? Math.round(done/items.length*100) : 0;
-    const pId = containerId === 'todayTasks' ? 'todayProgress' : 'dayProgress';
-    const vId = containerId === 'todayTasks' ? 'todayProgressValue' : 'dayProgressValue';
-    document.getElementById(pId).style.width = pct + '%';
-    document.getElementById(vId).textContent = pct + '%';
-    updateProgressRing(pct);
-  }
-
-  function updateProgressRing(pct) {
-    const ring = document.getElementById('progressRing');
-    const circumference = 2 * Math.PI * 42;
-    const offset = circumference - (pct / 100) * circumference;
-    ring.style.strokeDashoffset = offset;
-  }
-
-  window.completeNextTask = () => {
-    const cb = document.querySelector('#todayTasks .task-item:not(.done) input[type="checkbox"]');
-    if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change')); showToast('Задача выполнена!'); }
-    else { showToast('Все задачи выполнены!'); }
-  };
-
-  window.renderToday = () => {
-    const today = todayStr();
-    document.getElementById('todayDateLabel').textContent = formatDate(today);
-    
-    const welcomeMsg = document.getElementById('welcomeMessage');
-    const taskList = document.getElementById('todayTasks');
-    const challengeCard = document.getElementById('challengeCard');
-    const resourceCard = document.getElementById('resourceCard');
-    
-    if (state.registrationDate && today === state.registrationDate) {
-      welcomeMsg.style.display = 'block';
-      document.getElementById('welcomeName').textContent = state.profile.name || 'друг';
-      taskList.innerHTML = '';
-      challengeCard.style.display = 'none';
-      resourceCard.style.display = 'none';
-      document.getElementById('todayProgress').style.width = '0%';
-      document.getElementById('todayProgressValue').textContent = '0%';
-      updateProgressRing(0);
-      return;
-    } else {
-      welcomeMsg.style.display = 'none';
-    }
-    
-    // Показываем челлендж и ресурс только в будни
-    const dow = getDayOfWeek(today);
-    if (dow >= 1 && dow <= 5) {
-      const dayOfYear = Math.floor((new Date(today) - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-      const challenge = challenges[dayOfYear % challenges.length];
-      document.getElementById('challengeText').textContent = challenge;
-      challengeCard.style.display = 'block';
-      
-      const resource = resources[dayOfYear % resources.length];
-      document.getElementById('resourceLink').textContent = resource.title;
-      document.getElementById('resourceLink').href = resource.url;
-      resourceCard.style.display = 'block';
-    } else {
-      challengeCard.style.display = 'none';
-      resourceCard.style.display = 'none';
-    }
-    
-    const result = buildDayTasks(today);
-    if (!result || !result.tasks.length) {
-      renderTaskList([{ key: 'generic', text: 'Учёба по текущему плану', xp: 100 }], 'todayTasks', 'today:'+today, 'today', null);
-      return;
-    }
-    renderTaskList(result.tasks, 'todayTasks', 'today:'+today, 'today', result.week);
-  };
-
-  window.addCustomTask = (scope) => {
-    let text, xp, dateKey;
-    if (scope === 'today') {
-      text = document.getElementById('newTodayTask').value.trim();
-      xp = parseInt(document.getElementById('newTodayXp').value) || 20;
-      dateKey = 'today:'+todayStr();
-      document.getElementById('newTodayTask').value = '';
-    } else {
-      text = document.getElementById('newDayTask').value.trim();
-      xp = parseInt(document.getElementById('newDayXp').value) || 20;
-      dateKey = currentDay;
-      document.getElementById('newDayTask').value = '';
-    }
-    if (!text) return;
-    if (!state.customTasks[dateKey]) state.customTasks[dateKey] = [];
-    state.customTasks[dateKey].push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), text, xp });
-    window.debouncedSave();
-    if (scope === 'today') renderToday(); else renderDay();
-  };
-
-  let currentDay = todayStr();
-  window.renderDay = () => {
-    const start = getYear1Start();
-    const dayNum = daysBetween(start, currentDay);
-    const picker = document.getElementById('dayPicker');
-    picker.value = currentDay; picker.min = start; picker.max = addDays(start, 364);
-    const info = document.getElementById('dayInfo');
-    if (dayNum < 0) info.textContent = 'До старта года';
-    else if (dayNum >= 365) info.textContent = 'Год 1 завершён';
-    else info.innerHTML = `М${Math.floor(dayNum/30)+1} · Н${Math.floor(dayNum/7)+1} · День ${dayNum+1}/365`;
-    
-    const result = buildDayTasks(currentDay);
-    if (!result || !result.tasks.length) {
-      renderTaskList([{ key: 'generic', text: 'Учёба по плану', xp: 100 }], 'dayTasks', currentDay, 'day', null);
-      return;
-    }
-    renderTaskList(result.tasks, 'dayTasks', currentDay, 'day', result.week);
-  };
-
-  window.changeDay = (delta) => {
-    currentDay = addDays(currentDay, delta);
-    const start = getYear1Start();
-    const end = addDays(start, 364);
-    if (currentDay < start) currentDay = start;
-    if (currentDay > end) currentDay = end;
-    renderDay();
-  };
-  document.getElementById('dayPicker').addEventListener('change', e => { currentDay = e.target.value; renderDay(); });
-
-  window.addHabit = () => {
-    const name = document.getElementById('newHabitName').value.trim();
+  window.createGuild = () => {
+    const name = prompt('Название гильдии:');
     if (!name) return;
-    state.habits.push({ id: 'h_' + Date.now().toString(36), name });
-    window.debouncedSave();
-    document.getElementById('newHabitName').value = '';
-    renderHabits();
-    showToast('Привычка добавлена!');
-  };
-
-  function renderHabits() {
-    const container = document.getElementById('habitsList');
-    if (!container) return;
-    container.innerHTML = '';
-    const today = todayStr();
-    
-    state.habits.forEach(h => {
-      const log = state.habitLog[h.id] || {};
-      let streak = 0;
-      let d = today;
-      while (log[d]) { streak++; d = addDays(d, -1); }
-      
-      const item = document.createElement('div');
-      item.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--card-2); border-radius:10px; margin-bottom:8px;';
-      item.innerHTML = `
-        <div>
-          <div style="font-weight:600;">${escapeHtml(h.name)}</div>
-          <div style="font-size:12px; color:var(--yellow);">Серия: ${streak} дней</div>
-        </div>
-        <button class="btn" onclick="toggleHabit('${h.id}')" style="padding:8px 12px;">${log[today] ? 'Выполнено' : 'Отметить'}</button>
-      `;
-      container.appendChild(item);
+    const code = genCode();
+    const guildId = 'g_' + Date.now().toString(36);
+    const guildData = {
+      name, code, ownerId: currentUser.uid,
+      members: { [currentUser.uid]: { name: state.profile.name, contribution: 0 } },
+      totalPoints: 0, createdAt: Date.now(), shopPurchases: []
+    };
+    set(ref(db, 'guilds/' + guildId), guildData).then(() => {
+      state.guildId = guildId;
+      state.guildContribution = 0;
+      saveToCloud();
+      subscribeToGuild(guildId);
+      showToast('Гильдия создана! Код: ' + code);
+      renderGuilds();
     });
-  }
-
-  window.toggleHabit = (habitId) => {
-    const today = todayStr();
-    if (!state.habitLog[habitId]) state.habitLog[habitId] = {};
-    
-    if (state.habitLog[habitId][today]) {
-      delete state.habitLog[habitId][today];
-      window.addXp(-20);
-    } else {
-      state.habitLog[habitId][today] = true;
-      window.addXp(20);
-      let s = 0; let d = today;
-      while(state.habitLog[habitId][d]) { s++; d = addDays(d,-1); }
-      if (s === 7) window.addXp(50);
-      if (s === 30) window.addXp(150);
-      if (s > state.bestStreak) state.bestStreak = s;
-      showToast('Привычка отмечена! +20 XP');
-    }
-    window.debouncedSave();
-    renderHabits();
-    renderHeader();
   };
 
-  window.saveMood = () => {
-    const stars = document.querySelectorAll('.mood-star.active');
-    const value = stars.length;
-    const comment = document.getElementById('moodComment').value.trim();
-    if (value === 0) { showToast('Выбери оценку'); return; }
-    
-    const today = todayStr();
-    state.moods[today] = { value, comment, timestamp: Date.now() };
-    window.debouncedSave();
-    document.getElementById('moodComment').value = '';
-    showToast('Настроение сохранено!');
-    renderHeader();
-  };
-
-  document.querySelectorAll('.mood-star').forEach(star => {
-    star.addEventListener('click', () => {
-      const value = parseInt(star.dataset.value);
-      document.querySelectorAll('.mood-star').forEach((s, i) => {
-        s.classList.toggle('active', i < value);
-      });
+  window.joinGuild = () => {
+    const code = prompt('Введи код гильдии (6 символов):').toUpperCase().trim();
+    if (!code) return;
+    get(child(ref(db), 'guilds')).then((snapshot) => {
+      const guilds = snapshot.val() || {};
+      const guild = Object.entries(guilds).find(([id, g]) => g.code === code);
+      if (!guild) { showToast('Гильдия не найдена'); return; }
+      const [guildId, data] = guild;
+      update(ref(db, 'guilds/' + guildId + '/members/' + currentUser.uid), { name: state.profile.name, contribution: 0 });
+      state.guildId = guildId;
+      state.guildContribution = 0;
+      saveToCloud();
+      subscribeToGuild(guildId);
+      showToast('Ты в гильдии ' + data.name + '!');
+      renderGuilds();
     });
-  });
-
-  window.addSnippet = () => {
-    const title = document.getElementById('snippetTitle').value.trim();
-    const tag = document.getElementById('snippetTag').value.trim();
-    const code = document.getElementById('snippetCode').value.trim();
-    if (!title || !code) { showToast('Заполни название и код'); return; }
-    state.snippets.push({
-      id: 's_' + Date.now().toString(36),
-      title, tag: tag || 'Общее', code,
-      createdAt: todayStr()
-    });
-    window.debouncedSave();
-    document.getElementById('snippetTitle').value = '';
-    document.getElementById('snippetTag').value = '';
-    document.getElementById('snippetCode').value = '';
-    renderSnippets();
-    showToast('Сниппет сохранён!');
   };
 
-  window.copySnippet = (id) => {
-    const snippet = state.snippets.find(s => s.id === id);
-    if (snippet) {
-      navigator.clipboard.writeText(snippet.code).then(() => {
-        showToast('Скопировано в буфер!');
+  async function updateGuildPoints(points) {
+    if (!state.guildId) return;
+    const guildRef = ref(db, 'guilds/' + state.guildId);
+    const snapshot = await get(guildRef);
+    const data = snapshot.val();
+    if (data) {
+      update(guildRef, {
+        totalPoints: (data.totalPoints || 0) + points,
+        ['members/' + currentUser.uid + '/contribution']: (data.members?.[currentUser.uid]?.contribution || 0) + points
       });
     }
-  };
-
-  window.deleteSnippet = (id) => {
-    if (!confirm('Удалить сниппет?')) return;
-    state.snippets = state.snippets.filter(s => s.id !== id);
-    window.debouncedSave();
-    renderSnippets();
-  };
-
-  function renderSnippets() {
-    const container = document.getElementById('snippetsList');
-    if (!container) return;
-    container.innerHTML = '';
-    if (!state.snippets.length) {
-      container.innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px;">Пока нет сниппетов. Добавь первый!</p>';
-      return;
-    }
-    state.snippets.slice().reverse().forEach(s => {
-      const card = document.createElement('div');
-      card.className = 'snippet-card';
-      card.innerHTML = `
-        <h4>${escapeHtml(s.title)}</h4>
-        <span class="snippet-tag">${escapeHtml(s.tag)}</span>
-        <pre>${escapeHtml(s.code)}</pre>
-        <div class="snippet-actions">
-          <button onclick="copySnippet('${s.id}')">Копировать</button>
-          <button onclick="deleteSnippet('${s.id}')" style="color:var(--red);">Удалить</button>
-        </div>
-      `;
-      container.appendChild(card);
-    });
   }
 
-  window.startTimer = (type, seconds) => {
-    timerSeconds = seconds;
-    timerRunning = false;
-    document.getElementById('timerTitle').textContent = type === 'teeth' ? 'Чистка зубов' : type === 'pomodoro' ? 'Помодоро' : 'Зарядка';
-    updateTimerDisplay();
-    document.getElementById('timerModal').classList.add('active');
-  };
-
-  window.showExerciseTimer = () => {
-    const duration = prompt('Выбери длительность зарядки (минуты): 5, 10 или 15', '10');
-    const minutes = parseInt(duration);
-    if (minutes && [5, 10, 15].includes(minutes)) {
-      startTimer('exercise', minutes * 60);
-    }
-  };
-
-  window.toggleTimer = () => {
-    timerRunning = !timerRunning;
-    if (timerRunning) {
-      timerInterval = setInterval(() => {
-        timerSeconds--;
-        updateTimerDisplay();
-        if (timerSeconds <= 0) {
-          clearInterval(timerInterval);
-          timerRunning = false;
-          showToast('Таймер завершён! +20 XP');
-          window.addXp(20);
-          closeTimer();
-        }
-      }, 1000);
+  window.buyGuildItem = async (itemId) => {
+    const item = GUILD_SHOP.find(i => i.id === itemId);
+    if (!item) return;
+    const guildRef = ref(db, 'guilds/' + state.guildId);
+    const snapshot = await get(guildRef);
+    const data = snapshot.val();
+    if ((data.totalPoints || 0) < item.price) { showToast('Недостаточно баллов'); return; }
+    if (!confirm(`Купить ${item.name} за ${item.price} баллов?`)) return;
+    
+    update(guildRef, {
+      totalPoints: data.totalPoints - item.price,
+      ['shopPurchases/' + Date.now()]: { itemId, buyer: currentUser.uid, buyerName: state.profile.name, at: Date.now() }
+    });
+    
+    // Применение эффекта
+    if (itemId === 'lootbox') {
+      const bonus = 50 + Math.floor(Math.random() * 450);
+      state.xp += bonus;
+      state.totalXp += bonus;
+      showToast(`🎁 Лутбокс: +${bonus} XP!`);
+    } else if (itemId === 'xp_boost') {
+      showToast('⚡ XP Бустер активирован на 1 час!');
     } else {
-      clearInterval(timerInterval);
+      showToast(`Куплено: ${item.name}`);
+    }
+    saveToCloud();
+    renderGuilds();
+  };
+
+  window.leaveGuild = () => {
+    if (!confirm('Покинуть гильдию?')) return;
+    if (state.guildId) {
+      remove(ref(db, 'guilds/' + state.guildId + '/members/' + currentUser.uid));
+    }
+    state.guildId = null;
+    state.guildContribution = 0;
+    saveToCloud();
+    if (guildUnsubscribe) guildUnsubscribe();
+    showToast('Ты покинул гильдию');
+    renderGuilds();
+  };
+
+  // ============ Expenses ============
+  window.addExpense = () => {
+    const amount = parseFloat(prompt('Сумма:'));
+    if (!amount) return;
+    const category = prompt('Категория (еда/транспорт/развлечения/учёба/другое):') || 'другое';
+    const desc = prompt('Описание:') || '';
+    state.expenses.push({ id: 'e_' + Date.now(), amount, category, desc, date: todayStr() });
+    saveToCloud();
+    renderExpenses();
+    showToast('Расход добавлен');
+  };
+
+  // ============ Projects ============
+  window.addProject = () => {
+    const name = prompt('Название проекта:');
+    if (!name) return;
+    const stagesStr = prompt('Этапы (через запятую):') || 'Идея,Дизайн,Разработка,Тестирование,Деплой';
+    const stages = stagesStr.split(',').map(s => ({ name: s.trim(), done: false }));
+    state.projects.push({ id: 'p_' + Date.now(), name, stages, createdAt: todayStr() });
+    saveToCloud();
+    renderProjects();
+    checkAchievements();
+  };
+
+  window.toggleStage = (projectId, stageIdx) => {
+    const project = state.projects.find(p => p.id === projectId);
+    if (project) {
+      project.stages[stageIdx].done = !project.stages[stageIdx].done;
+      saveToCloud();
+      renderProjects();
+      checkAchievements();
     }
   };
 
-  window.closeTimer = () => {
-    clearInterval(timerInterval);
-    timerRunning = false;
-    document.getElementById('timerModal').classList.remove('active');
+  // ============ Flashcards ============
+  let currentCardIdx = 0;
+  window.flipCard = () => {
+    const card = document.getElementById('flashcard');
+    if (card) card.classList.toggle('flipped');
+  };
+  window.nextCard = () => {
+    currentCardIdx = (currentCardIdx + 1) % state.flashcards.length;
+    renderFlashcard();
+  };
+  window.addFlashcard = () => {
+    const front = prompt('Вопрос/термин:');
+    if (!front) return;
+    const back = prompt('Ответ/определение:');
+    if (!back) return;
+    state.flashcards.push({ id: 'fc_' + Date.now(), front, back, lastReview: null, level: 0 });
+    saveToCloud();
+    renderFlashcards();
+    checkAchievements();
   };
 
-  function updateTimerDisplay() {
-    const mins = Math.floor(timerSeconds / 60);
-    const secs = timerSeconds % 60;
-    document.getElementById('timerDisplay').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  // ============ Quiz ============
+  let currentQuiz = null;
+  let currentQuizIdx = 0;
+  let quizCorrect = 0;
+  window.startQuiz = (lang) => {
+    const questions = QUIZZES[lang] || QUIZZES.js;
+    currentQuiz = questions.sort(() => Math.random() - 0.5).slice(0, 5);
+    currentQuizIdx = 0;
+    quizCorrect = 0;
+    renderQuizQuestion();
+  };
+  window.answerQuiz = (optIdx) => {
+    const q = currentQuiz[currentQuizIdx];
+    const options = document.querySelectorAll('.quiz-option');
+    options.forEach((o, i) => {
+      o.disabled = true;
+      if (i === q.correct) o.classList.add('correct');
+      else if (i === optIdx) o.classList.add('wrong');
+    });
+    if (optIdx === q.correct) quizCorrect++;
+    setTimeout(() => {
+      currentQuizIdx++;
+      if (currentQuizIdx < currentQuiz.length) renderQuizQuestion();
+      else finishQuiz();
+    }, 1000);
+  };
+  function finishQuiz() {
+    const score = Math.round(quizCorrect / currentQuiz.length * 100);
+    state.quizScores['q_' + Date.now()] = { score, date: todayStr() };
+    const xp = quizCorrect * 20;
+    state.xp += xp;
+    state.totalXp += xp;
+    showToast(`Квиз завершён! ${score}% · +${xp} XP`);
+    saveToCloud();
+    checkAchievements();
+    renderQuizzes();
   }
 
-  function initTyping() {
-    typingText = typingTexts[Math.floor(Math.random() * typingTexts.length)];
-    document.getElementById('typingArea').innerHTML = typingText.split('').map((c, i) => `<span id="char${i}">${c}</span>`).join('');
-    document.getElementById('typingInput').value = '';
-    typingStartTime = null;
-    typingErrors = 0;
-    document.getElementById('typingWpm').textContent = '0';
-    document.getElementById('typingAccuracy').textContent = '100%';
-    document.getElementById('typingTime').textContent = '0с';
+  // ============ Forecast & Burnout ============
+  function calcForecast() {
+    const daysSinceReg = state.registrationDate ? daysBetween(state.registrationDate, todayStr()) : 1;
+    const tasksPerDay = Object.keys(state.completedTasks).length / Math.max(daysSinceReg, 1);
+    const tasksToJunior = 500;
+    const daysLeft = Math.ceil((tasksToJunior - Object.keys(state.completedTasks).length) / Math.max(tasksPerDay, 0.1));
+    return { daysLeft, tasksPerDay: tasksPerDay.toFixed(1) };
   }
 
-  window.handleTyping = (e) => {
-    const input = e.target.value;
-    if (!typingStartTime && input.length > 0) typingStartTime = Date.now();
-    
-    let errors = 0;
-    for (let i = 0; i < typingText.length; i++) {
-      const charEl = document.getElementById('char' + i);
-      if (!charEl) continue;
-      if (i < input.length) {
-        if (input[i] === typingText[i]) {
-          charEl.className = 'correct';
-        } else {
-          charEl.className = 'incorrect';
-          errors++;
-        }
-      } else if (i === input.length) {
-        charEl.className = 'current';
-      } else {
-        charEl.className = '';
-      }
+  function calcBurnout() {
+    const recentMoods = Object.entries(state.moods)
+      .filter(([d]) => daysBetween(d, todayStr()) <= 7)
+      .map(([_, v]) => v.value);
+    if (recentMoods.length === 0) return { score: 50, level: 'med' };
+    const avg = recentMoods.reduce((a, b) => a + b, 0) / recentMoods.length;
+    const score = Math.round(avg / 5 * 100);
+    const level = score >= 70 ? 'low' : score >= 40 ? 'med' : 'high';
+    return { score, level, avg: avg.toFixed(1) };
+  }
+
+  // ============ Themes ============
+  const THEMES = [
+    { id: 'dark', name: 'Тёмная', bg: '#0a0e1a' },
+    { id: 'light', name: 'Светлая', bg: '#f8fafc' },
+    { id: 'midnight', name: 'Полночь', bg: '#000000' },
+    { id: 'forest', name: 'Лес', bg: '#0f1f15' }
+  ];
+  const ACCENTS = ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#06b6d4'];
+
+  window.applyTheme = (themeId) => {
+    state.theme = themeId;
+    document.documentElement.setAttribute('data-theme', themeId === 'light' ? 'light' : 'dark');
+    if (themeId === 'midnight') {
+      document.documentElement.style.setProperty('--bg', '#000000');
+      document.documentElement.style.setProperty('--bg-2', '#0a0a0a');
+    } else if (themeId === 'forest') {
+      document.documentElement.style.setProperty('--bg', '#0f1f15');
+      document.documentElement.style.setProperty('--bg-2', '#1a2f22');
+    } else {
+      document.documentElement.style.removeProperty('--bg');
+      document.documentElement.style.removeProperty('--bg-2');
     }
-    
-    typingErrors = errors;
-    const accuracy = Math.round((1 - errors / Math.max(input.length, 1)) * 100);
-    document.getElementById('typingAccuracy').textContent = accuracy + '%';
-    
-    if (typingStartTime) {
-      const elapsed = (Date.now() - typingStartTime) / 1000;
-      document.getElementById('typingTime').textContent = Math.round(elapsed) + 'с';
-      const words = input.length / 5;
-      const wpm = Math.round(words / (elapsed / 60));
-      document.getElementById('typingWpm').textContent = wpm;
-    }
-    
-    if (input.length >= typingText.length) {
-      const elapsed = (Date.now() - typingStartTime) / 1000;
-      const words = typingText.length / 5;
-      const wpm = Math.round(words / (elapsed / 60));
-      showToast(`Отлично! ${wpm} WPM, ${accuracy}% точности. Тренируйся ещё!`);
-      setTimeout(resetTyping, 2000);
-    }
+    saveToCloud();
+    renderSettings();
   };
 
-  window.resetTyping = initTyping;
+  window.applyAccent = (color) => {
+    state.accentColor = color;
+    document.documentElement.style.setProperty('--accent-color', color);
+    document.documentElement.style.setProperty('--accent-color-2', color);
+    saveToCloud();
+    renderSettings();
+  };
 
-  function drawChart7() {
-    const canvas = document.getElementById('chart7');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.width, H = canvas.height;
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, W, H);
-    
-    const today = todayStr();
-    const data = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = addDays(today, -i);
-      let done = 0, total = 10;
-      for (const key in state.completedTasks) {
-        if (key.includes(date)) done++;
-      }
-      data.push({ pct: Math.min(done / total, 1), day: new Date(date+'T00:00:00').toLocaleDateString('ru-RU', {weekday:'short'}) });
-    }
-    
-    const pad = { l: 40, r: 20, t: 20, b: 40 };
-    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    
-    ctx.beginPath();
-    data.forEach((d, i) => {
-      const x = pad.l + (cw / 6) * i;
-      const y = pad.t + ch - ch * d.pct;
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.lineTo(pad.l + cw, pad.t + ch);
-    ctx.lineTo(pad.l, pad.t + ch);
-    ctx.closePath();
-    const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ch);
-    grad.addColorStop(0, 'rgba(139,92,246,0.4)'); grad.addColorStop(1, 'rgba(236,72,153,0)');
-    ctx.fillStyle = grad; ctx.fill();
-    
-    ctx.strokeStyle = '#8b5cf6'; ctx.lineWidth = 3;
-    ctx.beginPath();
-    data.forEach((d, i) => {
-      const x = pad.l + (cw / 6) * i;
-      const y = pad.t + ch - ch * d.pct;
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    
-    data.forEach((d, i) => {
-      const x = pad.l + (cw / 6) * i;
-      const y = pad.t + ch - ch * d.pct;
-      ctx.fillStyle = '#8b5cf6'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 11px sans-serif';
-      ctx.fillText(Math.round(d.pct*100)+'%', x - 12, y - 10);
-      ctx.fillStyle = '#9ca3af'; ctx.font = '11px sans-serif';
-      ctx.fillText(d.day, x - 10, H - pad.b + 15);
-    });
-  }
-
+  // ============ UI Rendering ============
   function renderHeader() {
     const lvl = levelFromXp(state.xp);
     const progress = (state.xp - xpForLevel(lvl)) / (xpForNextLevel(lvl) - xpForLevel(lvl));
@@ -1566,51 +1032,538 @@
     document.getElementById('xpNumbers').textContent = `${state.xp} / ${xpForNextLevel(lvl)} XP`;
     document.getElementById('xpFill').style.width = Math.min(100, progress * 100) + '%';
     document.getElementById('totalXp').textContent = state.totalXp;
-    
-    const todayTasks = document.querySelectorAll('#todayTasks .task-item');
-    let done = 0;
-    todayTasks.forEach(t => { if (t.classList.contains('done')) done++; });
-    document.getElementById('todayDone').textContent = `${done}/${todayTasks.length}`;
-    document.getElementById('totalTasks').textContent = Object.keys(state.completedTasks).length;
     document.getElementById('bestStreak').textContent = state.bestStreak;
-    
-    const today = todayStr();
-    const mood = state.moods[today];
-    document.getElementById('moodToday').textContent = mood ? '⭐'.repeat(mood.value) : '—';
-    
-    if (state.profile.name) {
-      document.getElementById('userGreeting').textContent = `Привет, ${state.profile.name}!`;
-    }
+    if (state.profile.name) document.getElementById('userGreeting').textContent = `Привет, ${state.profile.name}!`;
   }
 
-  function setDailyQuote() {
-    const today = new Date();
-    const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
-    const quote = quotes[dayOfYear % quotes.length];
-    document.getElementById('quoteText').textContent = `"${quote.text}"`;
-    document.getElementById('quoteAuthor').textContent = `— ${quote.author}`;
+  function buildTabs() {
+    const tabs = [
+      { id: 'today', icon: '📅', name: 'Сегодня' },
+      { id: 'achievements', icon: '🏆', name: 'Достижения' },
+      { id: 'heatmap', icon: '📊', name: 'Карта' },
+      { id: 'quizzes', icon: '🎓', name: 'Квизы' },
+      { id: 'flashcards', icon: '🧠', name: 'Карточки' },
+      { id: 'expenses', icon: '💰', name: 'Расходы' },
+      { id: 'projects', icon: '🚀', name: 'Проекты' },
+      { id: 'forecast', icon: '', name: 'Прогноз' },
+      { id: 'guilds', icon: '🏰', name: 'Гильдии' },
+      { id: 'settings', icon: '⚙️', name: 'Настройки' }
+    ];
+    const mobileTabs = [
+      { id: 'today', icon: '📅' },
+      { id: 'achievements', icon: '🏆' },
+      { id: 'guilds', icon: '🏰' },
+      { id: 'forecast', icon: '📈' },
+      { id: 'settings', icon: '⚙️' }
+    ];
+    
+    document.getElementById('desktopTabs').innerHTML = tabs.map(t => 
+      `<button class="tab ${t.id === 'today' ? 'active' : ''}" data-tab="${t.id}">${t.icon} ${t.name}</button>`
+    ).join('');
+    document.getElementById('mobileNav').innerHTML = mobileTabs.map(t => 
+      `<button class="mobile-nav-item ${t.id === 'today' ? 'active' : ''}" data-tab="${t.id}"><span style="font-size:20px">${t.icon}</span></button>`
+    ).join('');
+    
+    document.querySelectorAll('.tab, .mobile-nav-item').forEach(tab => {
+      tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
   }
 
   window.switchTab = (tabName) => {
     document.querySelectorAll('.tab, .mobile-nav-item').forEach(t => t.classList.remove('active'));
     document.querySelectorAll(`[data-tab="${tabName}"]`).forEach(t => t.classList.add('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('panel-' + tabName).classList.add('active');
-    if (tabName === 'more') { drawChart7(); renderHabits(); }
-    if (tabName === 'typing') initTyping();
-    if (tabName === 'snippets') renderSnippets();
+    const panel = document.getElementById('panel-' + tabName);
+    panel.classList.add('active');
+    
+    if (tabName === 'today') renderToday();
+    else if (tabName === 'achievements') renderAchievements();
+    else if (tabName === 'heatmap') renderHeatmap();
+    else if (tabName === 'quizzes') renderQuizzes();
+    else if (tabName === 'flashcards') renderFlashcards();
+    else if (tabName === 'expenses') renderExpenses();
+    else if (tabName === 'projects') renderProjects();
+    else if (tabName === 'forecast') renderForecast();
+    else if (tabName === 'guilds') renderGuilds();
+    else if (tabName === 'settings') renderSettings();
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  document.querySelectorAll('.tab, .mobile-nav-item').forEach(tab => {
-    tab.addEventListener('click', () => window.switchTab(tab.dataset.tab));
-  });
+  function renderToday() {
+    const today = todayStr();
+    const panel = document.getElementById('panel-today');
+    panel.innerHTML = `
+      <div class="card">
+        <h2>🎯 Задачи на сегодня <span style="font-size:13px;color:var(--muted);font-weight:400;margin-left:auto">${today}</span></h2>
+        <div id="todayWeekBanner"></div>
+        <ul class="task-list" id="todayTasks"></ul>
+        <div class="progress-mini">
+          <span class="progress-mini-label">Прогресс:</span>
+          <div class="progress-mini-bar"><div class="progress-mini-fill" id="todayProgress" style="width:0%"></div></div>
+          <span class="progress-mini-value" id="todayProgressValue">0%</span>
+        </div>
+        <div class="quick-actions">
+          <button onclick="claimDailyBonus()"> Ежедневный бонус</button>
+          <button onclick="switchTab('guilds')">🏰 Гильдия</button>
+        </div>
+        <div class="add-task">
+          <input type="text" id="newTodayTask" placeholder="Своя задача...">
+          <input type="number" id="newTodayXp" placeholder="XP" value="20" min="1" max="500">
+          <button class="btn" onclick="addCustomTask('today')">+</button>
+        </div>
+      </div>
+    `;
+    
+    // Простые задачи дня
+    const tasks = [
+      { key: 'r_wake', time: '08:00', text: 'Подъём, стакан воды', xp: 30, badge: 'routine' },
+      { key: 'r_study', time: '09:00', text: `Учёба (3 часа): ${state.profile.langs?.[0] || 'JS'}`, xp: 100, badge: state.profile.langs?.[0] || 'js' },
+      { key: 'r_english', time: '12:00', text: 'Английский (30 мин)', xp: 40, badge: 'en' },
+      { key: 'r_lunch', time: '12:30', text: 'Обед', xp: 0, badge: 'routine' },
+      { key: 'r_study2', time: '13:30', text: 'Python/C++ (1 час)', xp: 50, badge: 'py' },
+      { key: 'r_work', time: '15:00', text: 'Работа (до 23:00)', xp: 0, badge: 'routine' },
+      { key: 'r_sleep', time: '00:00', text: 'Отбой', xp: 20, badge: 'routine' }
+    ];
+    
+    const container = document.getElementById('todayTasks');
+    container.innerHTML = '';
+    tasks.forEach(task => {
+      const key = 'today:' + task.key + ':' + today;
+      const done = !!state.completedTasks[key];
+      const li = document.createElement('li');
+      li.className = 'task-item' + (done ? ' done' : '') + (task.badge === 'routine' ? ' routine' : '');
+      li.innerHTML = `<input type="checkbox" ${done ? 'checked' : ''} data-key="${key}" data-xp="${task.xp}"><span class="task-text"><span class="task-time">${task.time}</span> ${task.text}<span class="badge ${task.badge}">${task.badge.toUpperCase()}</span></span><span class="task-xp">+${task.xp}</span>`;
+      container.appendChild(li);
+    });
+    
+    container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', e => {
+        const key = e.target.dataset.key;
+        const xp = parseInt(e.target.dataset.xp);
+        const li = e.target.closest('.task-item');
+        if (e.target.checked) { state.completedTasks[key] = true; window.addXp(xp); li.classList.add('done'); }
+        else { delete state.completedTasks[key]; window.addXp(-xp); li.classList.remove('done'); }
+        updateTodayProgress();
+        renderHeader();
+      });
+    });
+    updateTodayProgress();
+  }
+
+  function updateTodayProgress() {
+    const items = document.querySelectorAll('#todayTasks .task-item');
+    let done = 0;
+    items.forEach(i => { if (i.classList.contains('done')) done++; });
+    const pct = items.length ? Math.round(done/items.length*100) : 0;
+    document.getElementById('todayProgress').style.width = pct + '%';
+    document.getElementById('todayProgressValue').textContent = pct + '%';
+  }
+
+  window.claimDailyBonus = () => {
+    const today = todayStr();
+    if (state.dailyBonusClaimed === today) { showToast('Бонус уже получен'); return; }
+    const bonus = 50 + state.loginStreak * 10;
+    state.xp += bonus;
+    state.totalXp += bonus;
+    state.dailyBonusClaimed = today;
+    saveToCloud();
+    showToast(` Бонус: +${bonus} XP! (Серия: ${state.loginStreak})`);
+    renderHeader();
+  };
+
+  window.addCustomTask = (scope) => {
+    const text = document.getElementById('newTodayTask').value.trim();
+    const xp = parseInt(document.getElementById('newTodayXp').value) || 20;
+    if (!text) return;
+    const key = 'custom:' + Date.now() + ':' + todayStr();
+    state.completedTasks[key] = false;
+    // Добавляем временно
+    const container = document.getElementById('todayTasks');
+    const li = document.createElement('li');
+    li.className = 'task-item';
+    li.innerHTML = `<input type="checkbox" data-key="${key}" data-xp="${xp}"><span class="task-text">${escapeHtml(text)}</span><span class="task-xp">+${xp}</span><button class="task-del" data-key="${key}">×</button>`;
+    container.appendChild(li);
+    li.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) { state.completedTasks[key] = true; window.addXp(xp); li.classList.add('done'); }
+      else { delete state.completedTasks[key]; window.addXp(-xp); li.classList.remove('done'); }
+      updateTodayProgress();
+      renderHeader();
+    });
+    li.querySelector('.task-del').addEventListener('click', () => li.remove());
+    document.getElementById('newTodayTask').value = '';
+  };
+
+  function renderAchievements() {
+    const panel = document.getElementById('panel-achievements');
+    panel.innerHTML = `
+      <div class="card">
+        <h2>🏆 Достижения (${state.achievements.length}/${ACHIEVEMENTS.length})</h2>
+        <div class="achievement-grid">
+          ${ACHIEVEMENTS.map(a => `
+            <div class="achievement ${state.achievements.includes(a.id) ? 'unlocked' : ''}">
+              <div class="achievement-icon">${a.icon}</div>
+              <div class="achievement-name">${a.name}</div>
+              <div class="achievement-desc">${a.desc}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderHeatmap() {
+    const panel = document.getElementById('panel-heatmap');
+    const today = todayStr();
+    let cells = '';
+    for (let week = 51; week >= 0; week--) {
+      for (let day = 0; day < 7; day++) {
+        const d = addDays(today, -(week * 7 + day));
+        let count = 0;
+        for (const key in state.completedTasks) if (key.includes(d)) count++;
+        const level = count === 0 ? '' : count <= 2 ? 'l1' : count <= 4 ? 'l2' : count <= 6 ? 'l3' : 'l4';
+        cells += `<div class="heatmap-cell ${level}" title="${d}: ${count} задач"></div>`;
+      }
+    }
+    panel.innerHTML = `
+      <div class="card">
+        <h2>📊 Тепловая карта активности</h2>
+        <div class="heatmap">${cells}</div>
+        <div style="display:flex; gap:8px; margin-top:12px; align-items:center; font-size:12px; color:var(--muted);">
+          <span>Меньше</span>
+          <div class="heatmap-cell"></div>
+          <div class="heatmap-cell l1"></div>
+          <div class="heatmap-cell l2"></div>
+          <div class="heatmap-cell l3"></div>
+          <div class="heatmap-cell l4"></div>
+          <span>Больше</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderQuizzes() {
+    const panel = document.getElementById('panel-quizzes');
+    const langs = Object.keys(QUIZZES);
+    panel.innerHTML = `
+      <div class="card">
+        <h2>🎓 Квизы по языкам</h2>
+        <p style="color:var(--muted); margin-bottom:12px;">Проверь свои знания. +20 XP за правильный ответ</p>
+        <div style="display:grid; gap:10px;">
+          ${langs.map(l => `
+            <button class="btn ghost" onclick="startQuiz('${l}')" style="padding:16px; text-align:left;">
+              <strong style="font-size:16px;">${l.toUpperCase()}</strong>
+              <div style="font-size:12px; color:var(--muted);">5 вопросов</div>
+            </button>
+          `).join('')}
+        </div>
+        <div style="margin-top:16px;">
+          <h3 style="margin-bottom:8px;">История:</h3>
+          ${Object.entries(state.quizScores).slice(-5).reverse().map(([_, v]) => 
+            `<div style="padding:8px; background:var(--card-2); border-radius:8px; margin-bottom:6px;">${v.date}: <strong>${v.score}%</strong></div>`
+          ).join('') || '<p style="color:var(--muted);">Пока нет результатов</p>'}
+        </div>
+      </div>
+      <div class="card" id="quizArea"></div>
+    `;
+  }
+
+  function renderQuizQuestion() {
+    const q = currentQuiz[currentQuizIdx];
+    const area = document.getElementById('quizArea');
+    if (!area) return;
+    area.innerHTML = `
+      <h3>Вопрос ${currentQuizIdx + 1}/${currentQuiz.length}</h3>
+      <p style="font-size:16px; margin:16px 0;">${q.q}</p>
+      ${q.options.map((o, i) => `<button class="quiz-option" onclick="answerQuiz(${i})">${o}</button>`).join('')}
+    `;
+  }
+
+  function renderFlashcards() {
+    const panel = document.getElementById('panel-flashcards');
+    if (state.flashcards.length === 0) {
+      panel.innerHTML = `<div class="card"><h2>🧠 Карточки</h2><p>Нет карточек</p></div>`;
+      return;
+    }
+    const card = state.flashcards[currentCardIdx % state.flashcards.length];
+    panel.innerHTML = `
+      <div class="card">
+        <h2>🧠 Flashcards (${currentCardIdx % state.flashcards.length + 1}/${state.flashcards.length})</h2>
+        <div class="flashcard" id="flashcard" onclick="flipCard()">
+          <div class="flashcard-front"><strong>${escapeHtml(card.front)}</strong><br><small style="color:var(--muted);">Нажми чтобы перевернуть</small></div>
+          <div class="flashcard-back">${escapeHtml(card.back)}</div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button class="btn ghost" onclick="nextCard()" style="flex:1;">Следующая →</button>
+          <button class="btn" onclick="addFlashcard()" style="flex:1;">+ Добавить</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderExpenses() {
+    const panel = document.getElementById('panel-expenses');
+    const total = state.expenses.reduce((s, e) => s + e.amount, 0);
+    const byCategory = {};
+    state.expenses.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + e.amount; });
+    panel.innerHTML = `
+      <div class="card">
+        <h2>💰 Трекер расходов</h2>
+        <div style="font-size:24px; font-weight:700; color:var(--green); margin:12px 0;">${total.toFixed(0)} ₽ всего</div>
+        <button class="btn" onclick="addExpense()" style="width:100%; margin-bottom:12px;">+ Добавить расход</button>
+        <h3 style="margin:12px 0 8px;">По категориям:</h3>
+        ${Object.entries(byCategory).map(([c, v]) => `
+          <div style="display:flex; justify-content:space-between; padding:8px; background:var(--card-2); border-radius:8px; margin-bottom:6px;">
+            <span><span class="expense-category">${c}</span></span>
+            <strong>${v.toFixed(0)} ₽</strong>
+          </div>
+        `).join('') || '<p style="color:var(--muted);">Нет расходов</p>'}
+        <h3 style="margin:16px 0 8px;">История:</h3>
+        ${state.expenses.slice().reverse().slice(0, 20).map(e => `
+          <div class="expense-item">
+            <div><span class="expense-category">${e.category}</span>${e.desc}</div>
+            <strong>${e.amount} ₽</strong>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function renderProjects() {
+    const panel = document.getElementById('panel-projects');
+    panel.innerHTML = `
+      <div class="card">
+        <h2>🚀 Pet-проекты</h2>
+        <button class="btn" onclick="addProject()" style="width:100%; margin-bottom:12px;">+ Новый проект</button>
+        ${state.projects.map(p => `
+          <div class="project-card">
+            <h4 style="margin-bottom:8px;">${escapeHtml(p.name)}</h4>
+            <div style="font-size:12px; color:var(--muted);">Создан: ${p.createdAt}</div>
+            ${p.stages.map((s, i) => `
+              <div class="project-stage">
+                <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStage('${p.id}', ${i})">
+                <span style="${s.done ? 'text-decoration:line-through; opacity:0.5;' : ''}">${escapeHtml(s.name)}</span>
+              </div>
+            `).join('')}
+            <div style="margin-top:8px; font-size:12px; color:var(--green);">
+              Прогресс: ${p.stages.filter(s => s.done).length}/${p.stages.length}
+            </div>
+          </div>
+        `).join('') || '<p style="color:var(--muted);">Нет проектов</p>'}
+      </div>
+    `;
+  }
+
+  function renderForecast() {
+    const panel = document.getElementById('panel-forecast');
+    const forecast = calcForecast();
+    const burnout = calcBurnout();
+    const burnoutClass = burnout.level === 'low' ? 'burnout-low' : burnout.level === 'med' ? 'burnout-med' : 'burnout-high';
+    const burnoutText = burnout.level === 'low' ? 'Отлично! Ты в форме 💪' : burnout.level === 'med' ? 'Нормально, но следи за собой ️' : 'Высокий риск выгорания! Отдохни 🛑';
+    
+    panel.innerHTML = `
+      <div class="forecast-card">
+        <h2>📈 Прогноз до Junior</h2>
+        <div style="font-size:32px; font-weight:700; color:var(--green);">${forecast.daysLeft} дней</div>
+        <div style="color:var(--muted);">При текущем темпе (${forecast.tasksPerDay} задач/день)</div>
+        <div style="margin-top:12px; font-size:13px;">
+          Выполнено: ${Object.keys(state.completedTasks).length} задач<br>
+          Цель: ~500 задач для Junior уровня
+        </div>
+      </div>
+      <div class="card ${burnoutClass}">
+        <h2>🔋 Индекс выгорания</h2>
+        <div style="font-size:32px; font-weight:700;">${burnout.score}%</div>
+        <div style="margin-top:8px;">${burnoutText}</div>
+        <div style="font-size:12px; color:var(--muted); margin-top:8px;">Среднее настроение за 7 дней: ${burnout.avg}/5</div>
+      </div>
+      <div class="card">
+        <h2> Статистика</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="padding:12px; background:var(--card-2); border-radius:10px;">
+            <div style="font-size:12px; color:var(--muted);">Серия входов</div>
+            <div style="font-size:24px; font-weight:700; color:var(--yellow);">${state.loginStreak || 0} 🔥</div>
+          </div>
+          <div style="padding:12px; background:var(--card-2); border-radius:10px;">
+            <div style="font-size:12px; color:var(--muted);">Достижений</div>
+            <div style="font-size:24px; font-weight:700; color:var(--accent-2);">${state.achievements.length}</div>
+          </div>
+          <div style="padding:12px; background:var(--card-2); border-radius:10px;">
+            <div style="font-size:12px; color:var(--muted);">Проектов</div>
+            <div style="font-size:24px; font-weight:700; color:var(--green);">${state.projects.length}</div>
+          </div>
+          <div style="padding:12px; background:var(--card-2); border-radius:10px;">
+            <div style="font-size:12px; color:var(--muted);">Квизов</div>
+            <div style="font-size:24px; font-weight:700; color:var(--blue);">${Object.keys(state.quizScores).length}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function renderGuilds() {
+    const panel = document.getElementById('panel-guilds');
+    if (!state.guildId) {
+      panel.innerHTML = `
+        <div class="card">
+          <h2>🏰 Гильдии</h2>
+          <p style="color:var(--muted); margin-bottom:16px;">Объединяйся с друзьями, выполняйте задания вместе и получайте баллы гильдии!</p>
+          <button class="btn" onclick="createGuild()" style="width:100%; margin-bottom:8px;">+ Создать гильдию</button>
+          <button class="btn ghost" onclick="joinGuild()" style="width:100%;">Вступить по коду</button>
+        </div>
+        <div class="card">
+          <h3>🏆 Топ гильдий</h3>
+          <div id="guildRanking">Загрузка...</div>
+        </div>
+      `;
+      // Загрузка рейтинга
+      try {
+        const snapshot = await get(child(ref(db), 'guilds'));
+        const guilds = Object.entries(snapshot.val() || []).sort((a, b) => (b[1].totalPoints || 0) - (a[1].totalPoints || 0)).slice(0, 10);
+        document.getElementById('guildRanking').innerHTML = guilds.map(([id, g], i) => `
+          <div class="guild-rank-item">
+            <div class="guild-rank-num">#${i + 1}</div>
+            <div style="flex:1;">
+              <div style="font-weight:600;">${escapeHtml(g.name)}</div>
+              <div style="font-size:12px; color:var(--muted);">Код: ${g.code} · Участников: ${Object.keys(g.members || {}).length}</div>
+            </div>
+            <div style="font-weight:700; color:var(--yellow);">${g.totalPoints || 0}</div>
+          </div>
+        `).join('');
+      } catch(e) {
+        document.getElementById('guildRanking').innerHTML = 'Ошибка загрузки';
+      }
+      return;
+    }
+    
+    const g = window.currentGuild;
+    if (!g) { panel.innerHTML = '<div class="card">Загрузка...</div>'; return; }
+    const members = Object.entries(g.members || {}).sort((a, b) => (b[1].contribution || 0) - (a[1].contribution || 0));
+    
+    panel.innerHTML = `
+      <div class="guild-card">
+        <h2>🏰 ${escapeHtml(g.name)}</h2>
+        <div>Код приглашения:</div>
+        <div class="guild-code">${g.code}</div>
+        <div style="font-size:14px; color:var(--muted);">По делись с друзьями!</div>
+        <div style="margin-top:12px; font-size:24px; font-weight:700; color:var(--yellow);">${g.totalPoints || 0} баллов</div>
+        <button class="btn danger small" onclick="leaveGuild()" style="margin-top:12px;">Покинуть гильдию</button>
+      </div>
+      <div class="card">
+        <h3>👥 Участники (${members.length})</h3>
+        ${members.map(([uid, m], i) => `
+          <div class="guild-member">
+            <div>
+              <strong>#${i + 1} ${escapeHtml(m.name || 'Аноним')}</strong>
+              ${uid === currentUser.uid ? ' (ты)' : ''}
+            </div>
+            <div style="color:var(--yellow); font-weight:600;">${m.contribution || 0}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card">
+        <h3>🛒 Магазин гильдии</h3>
+        <div class="shop-grid">
+          ${GUILD_SHOP.map(item => `
+            <div class="shop-item">
+              <div class="shop-item-icon">${item.icon}</div>
+              <div class="shop-item-name">${item.name}</div>
+              <div class="shop-item-price">${item.price} баллов</div>
+              <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">${item.desc}</div>
+              <button class="btn small" onclick="buyGuildItem('${item.id}')" ${(g.totalPoints || 0) < item.price ? 'disabled style="opacity:0.5;"' : ''}>Купить</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <h3>🏆 Топ гильдий</h3>
+        <div id="guildRanking2"></div>
+      </div>
+    `;
+    
+    try {
+      const snapshot = await get(child(ref(db), 'guilds'));
+      const guilds = Object.entries(snapshot.val() || {}).sort((a, b) => (b[1].totalPoints || 0) - (a[1].totalPoints || 0)).slice(0, 10);
+      document.getElementById('guildRanking2').innerHTML = guilds.map(([id, gg], i) => `
+        <div class="guild-rank-item" style="${id === state.guildId ? 'border:1px solid var(--accent);' : ''}">
+          <div class="guild-rank-num">#${i + 1}</div>
+          <div style="flex:1;">
+            <div style="font-weight:600;">${escapeHtml(gg.name)} ${id === state.guildId ? '(ты)' : ''}</div>
+            <div style="font-size:12px; color:var(--muted);">Участников: ${Object.keys(gg.members || {}).length}</div>
+          </div>
+          <div style="font-weight:700; color:var(--yellow);">${gg.totalPoints || 0}</div>
+        </div>
+      `).join('');
+    } catch(e) {}
+  }
+
+  function renderSettings() {
+    const panel = document.getElementById('panel-settings');
+    panel.innerHTML = `
+      <div class="card">
+        <h2>⚙️ Настройки</h2>
+        <h3 style="margin:12px 0 8px;">Тема</h3>
+        <div class="theme-grid">
+          ${THEMES.map(t => `<div class="theme-swatch ${state.theme === t.id ? 'active' : ''}" style="background:${t.bg};" onclick="applyTheme('${t.id}')" title="${t.name}"></div>`).join('')}
+        </div>
+        <h3 style="margin:16px 0 8px;">Акцентный цвет</h3>
+        <div class="theme-grid">
+          ${ACCENTS.map(c => `<div class="theme-swatch ${state.accentColor === c ? 'active' : ''}" style="background:${c};" onclick="applyAccent('${c}')"></div>`).join('')}
+        </div>
+        <h3 style="margin:16px 0 8px;">Язык интерфейса</h3>
+        <select class="auth-select" onchange="changeInterfaceLang(this.value); state.profile.interfaceLang = this.value; saveToCloud();">
+          ${Object.keys(i18n).map(l => `<option value="${l}" ${interfaceLang === l ? 'selected' : ''}>${l.toUpperCase()}</option>`).join('')}
+        </select>
+        <h3 style="margin:16px 0 8px;">Изучаемые языки</h3>
+        <div class="lang-grid">
+          ${programmingLangs.map(l => `<div class="lang-chip ${state.profile.langs?.includes(l.id) ? 'active' : ''}">${l.flag} ${l.name}</div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <h3>📤 Экспорт / Импорт данных</h3>
+        <button class="btn ghost" onclick="exportData()" style="width:100%; margin-bottom:8px;">Скачать резервную копию</button>
+        <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
+        <button class="btn ghost" onclick="document.getElementById('importFile').click()" style="width:100%;">Восстановить из файла</button>
+      </div>
+      <div class="card">
+        <button class="btn danger" style="width:100%; margin-bottom:8px;" onclick="resetAll()">Сбросить прогресс</button>
+        <button class="btn ghost" style="width:100%;" onclick="logout()">Выйти из аккаунта</button>
+      </div>
+    `;
+  }
+
+  window.exportData = () => {
+    const data = JSON.stringify(state, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lifeos_backup_${todayStr()}.json`;
+    a.click();
+    showToast('Резервная копия скачана');
+  };
+
+  window.importData = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        state = { ...defaultState, ...data };
+        saveToCloud();
+        showToast('Данные восстановлены');
+        initApp();
+      } catch(err) { showToast('Ошибка импорта'); }
+    };
+    reader.readAsText(file);
+  };
 
   window.resetAll = () => {
     if (!confirm('Сбросить ВЕСЬ прогресс?')) return;
     state = structuredClone(defaultState);
-    window.debouncedSave();
-    renderAll();
+    saveToCloud();
+    initApp();
     showToast('Прогресс сброшен');
   };
 
@@ -1618,46 +1571,34 @@
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2000);
+    setTimeout(() => t.classList.remove('show'), 2500);
   }
 
   function initApp() {
-    setDailyQuote();
-    renderHeader();
-    renderToday();
-    renderDay();
-    renderHabits();
-    renderSnippets();
-    initTyping();
+    // Применяем тему
+    if (state.theme) {
+      document.documentElement.setAttribute('data-theme', state.theme === 'light' ? 'light' : 'dark');
+      if (state.theme === 'midnight') {
+        document.documentElement.style.setProperty('--bg', '#000000');
+        document.documentElement.style.setProperty('--bg-2', '#0a0a0a');
+      } else if (state.theme === 'forest') {
+        document.documentElement.style.setProperty('--bg', '#0f1f15');
+        document.documentElement.style.setProperty('--bg-2', '#1a2f22');
+      }
+    }
+    if (state.accentColor) {
+      document.documentElement.style.setProperty('--accent-color', state.accentColor);
+      document.documentElement.style.setProperty('--accent-color-2', state.accentColor);
+    }
     
-    // Восстанавливаем настроение за сегодня
-    const today = todayStr();
-    const mood = state.moods[today];
-    if (mood) {
-      document.querySelectorAll('.mood-star').forEach((s, i) => {
-        s.classList.toggle('active', i < mood.value);
-      });
-      document.getElementById('moodComment').value = mood.comment || '';
-    }
-  }
-
-  function renderAll() {
+    buildTabs();
     renderHeader();
     renderToday();
-    renderDay();
-    renderHabits();
-    renderSnippets();
+    checkAchievements();
   }
 
-  window.addEventListener('resize', () => {
-    if (document.getElementById('panel-more').classList.contains('active')) {
-      drawChart7();
-    }
-  });
-
-  document.getElementById('newTodayTask').addEventListener('keypress', e => { if (e.key === 'Enter') window.addCustomTask('today'); });
-  document.getElementById('newDayTask').addEventListener('keypress', e => { if (e.key === 'Enter') window.addCustomTask('day'); });
-  document.getElementById('newHabitName').addEventListener('keypress', e => { if (e.key === 'Enter') window.addHabit(); });
+  // Запуск
+  buildTabs();
 </script>
 </body>
 </html>
